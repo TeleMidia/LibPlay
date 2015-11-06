@@ -34,6 +34,7 @@ INDENT_TYPES=\
 
 SC_USELESS_IF_BEFORE_FREE_ALIASES=\
   g_free\
+  lp_media_destroy\
   $(NULL)
 
 SYNTAX_CHECK_EXCLUDE=\

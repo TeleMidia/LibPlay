@@ -1,0 +1,2 @@
+# LibPlay
+Simple multimedia library

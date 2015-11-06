@@ -1,0 +1,46 @@
+/* playconf.h -- LibPlay configuration.
+   Copyright (C) 2015 PUC-Rio/Laboratorio TeleMidia
+
+This file is part of LibPlay.
+
+LibPlay is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+LibPlay is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+License for more details.
+
+You should have received a copy of the GNU General Public License
+along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
+
+/* @configure_input@ */
+
+#ifndef LIBPLAYCONF_H
+#define LIBPLAYCONF_H
+
+#ifdef  __cplusplus
+# define LP_BEGIN_DECLS extern "C" { /* } */
+# define LP_END_DECLS           /* { */ }
+#else
+# define LP_BEGIN_DECLS
+# define LP_END_DECLS
+#endif
+
+#if defined LP_BUILDING && defined HAVE_VISIBILITY && HAVE_VISIBILITY
+# define LP_API __attribute__((__visibility__("default")))
+#elif defined LP_BUILDING && defined _MSC_VER && !defined LP_STATIC
+# define LP_API __declspec(dllexport)
+#elif defined _MSC_VER && !defined LP_STATIC
+# define LP_API __declspec(dllimport)
+#else
+# define LP_API
+#endif
+
+#define LP_VERSION_MAJOR @LIBPLAY_VERSION_MAJOR@
+#define LP_VERSION_MINOR @LIBPLAY_VERSION_MINOR@
+#define LP_VERSION_MICRO @LIBPLAY_VERSION_MICRO@
+
+#endif /* LIBPLAYCONF_H */

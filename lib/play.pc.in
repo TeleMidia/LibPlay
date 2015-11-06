@@ -1,0 +1,13 @@
+# @configure_input@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: LibPlay
+Description: Simple multimedia library
+Version: @VERSION@
+
+Cflags:
+Libs: -L${libdir} -lplay
+Libs.private: @GLIB_LIBS@ @GSTREAMER_LIBS@

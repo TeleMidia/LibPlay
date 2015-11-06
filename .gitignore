@@ -72,7 +72,11 @@
 /tests/test-lp-event-init-stop
 /tests/test-lp-event-equals
 /tests/test-lp-media-create
+/tests/test-lp-media-destroy
 /tests/test-lp-media-set-get-property-int
+/tests/test-lp-media-set-get-property-double
+/tests/test-lp-media-set-get-property-string
+/tests/test-lp-media-set-get-property-pointer
 Makefile
 Makefile.in
 autom4te.cache

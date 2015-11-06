@@ -21,20 +21,11 @@ int
 main (void)
 {
   lp_media_t *m;
-  lp_media_t *parent;
 
-  m = lp_media_create ("xyz");
+  m = lp_media_create (NULL);
   ASSERT (m != NULL);
 
-  parent = lp_media_get_parent (m);
-  ASSERT (parent != NULL);
-  ASSERT (parent == _lp_media_get_default_parent ());
-
-  ASSERT (m->parent == parent);
-  ASSERT (m->refcount == 1);
-  ASSERT (streq (m->uri, "xyz"));
-  ASSERT (m->properties != NULL);
-
+  lp_media_destroy (NULL);
   lp_media_destroy (m);
   _lp_media_destroy_default_parent ();
 

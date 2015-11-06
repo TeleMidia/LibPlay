@@ -21,19 +21,19 @@ int
 main (void)
 {
   lp_media_t *m;
-  lp_media_t *parent;
+  char *s;
 
-  m = lp_media_create ("xyz");
+  m = lp_media_create (NULL);
   ASSERT (m != NULL);
 
-  parent = lp_media_get_parent (m);
-  ASSERT (parent != NULL);
-  ASSERT (parent == _lp_media_get_default_parent ());
+  ASSERT (!lp_media_get_property_string (m, "s", NULL));
 
-  ASSERT (m->parent == parent);
-  ASSERT (m->refcount == 1);
-  ASSERT (streq (m->uri, "xyz"));
-  ASSERT (m->properties != NULL);
+  ASSERT (lp_media_set_property_string (m, "s", "abc"));
+  ASSERT (lp_media_get_property_string (m, "s", &s));
+  ASSERT (streq (s, "abc"));
+  g_free (s);
+
+  ASSERT (!lp_media_get_property_int (m, "s", NULL));
 
   lp_media_destroy (m);
   _lp_media_destroy_default_parent ();

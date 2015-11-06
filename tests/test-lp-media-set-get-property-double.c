@@ -17,23 +17,24 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "tests.h"
 
+PRAGMA_DIAG_IGNORE (-Wfloat-equal)
+
 int
 main (void)
 {
   lp_media_t *m;
-  lp_media_t *parent;
+  double d;
 
-  m = lp_media_create ("xyz");
+  m = lp_media_create (NULL);
   ASSERT (m != NULL);
 
-  parent = lp_media_get_parent (m);
-  ASSERT (parent != NULL);
-  ASSERT (parent == _lp_media_get_default_parent ());
+  ASSERT (!lp_media_get_property_double (m, "d", NULL));
 
-  ASSERT (m->parent == parent);
-  ASSERT (m->refcount == 1);
-  ASSERT (streq (m->uri, "xyz"));
-  ASSERT (m->properties != NULL);
+  ASSERT (lp_media_set_property_double (m, "d", 0.0));
+  ASSERT (lp_media_get_property_double (m, "d", &d));
+  ASSERT (d == 0);
+
+  ASSERT (!lp_media_get_property_int (m, "d", NULL));
 
   lp_media_destroy (m);
   _lp_media_destroy_default_parent ();

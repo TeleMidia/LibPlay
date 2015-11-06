@@ -35,7 +35,7 @@ libplay_la_CPPFLAGS= -DLP_BUILDING
 libplay_la_CFLAGS= $(AM_CFLAGS) $(CFLAGS_VISIBILITY)\
   $(GLIB_CFLAGS) $(GSTREAMER_CFLAGS)
 libplay_la_LDFLAGS= -version-info $(LIBPLAY_LIBTOOL_STRING) -no-undefined\
-  $(GLIB_CFLAGs) $(GSTREAMER_LIBS)
+  $(GLIB_CFLAGS) $(GSTREAMER_LIBS)
 libplay_la_SOURCES=\
   event.c\
   macros.h\

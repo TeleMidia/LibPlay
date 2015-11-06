@@ -40,13 +40,13 @@ struct _lp_media_t
   GHashTable *properties;       /* property table */
 };
 
+#define _lp_media_lock(m)   g_mutex_lock (&(m)->mutex)
+#define _lp_media_unlock(m) g_mutex_unlock (&(m)->mutex)
+
 lp_media_t *
 _lp_media_get_default_parent (void);
 
 void
-_lp_media_lock (lp_media_t *);
-
-void
-_lp_media_unlock (lp_media_t *);
+_lp_media_destroy_default_parent (void);
 
 #endif /* PLAY_INTERNAL */

@@ -20,20 +20,22 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  lp_media_t *parent;
   lp_media_t *m;
   int i;
 
   m = lp_media_create (NULL);
   ASSERT (m != NULL);
 
+  ASSERT (!lp_media_get_property_int (m, "i", NULL));
+
   ASSERT (lp_media_set_property_int (m, "i", 0));
   ASSERT (lp_media_get_property_int (m, "i", &i));
   ASSERT (i == 0);
 
-  parent = lp_media_get_parent (m);
+  ASSERT (!lp_media_get_property_double (m, "i", NULL));
+
   lp_media_destroy (m);
-  lp_media_destroy (parent);
+  _lp_media_destroy_default_parent ();
 
   exit (EXIT_SUCCESS);
 }

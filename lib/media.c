@@ -31,22 +31,25 @@ _lp_media_get_default_parent (void)
 }
 
 void
-_lp_media_lock (lp_media_t *media)
+_lp_media_destroy_default_parent (void)
 {
-  g_mutex_lock (&media->mutex);
+  lp_media_destroy (default_parent);
 }
 
-void
-_lp_media_unlock (lp_media_t *media)
+static GValue *
+__lp_media_g_value_alloc (GType type)
 {
-  g_mutex_unlock (&media->mutex);
+  GValue *value = g_slice_new0 (GValue);
+  assert (value != NULL);
+  g_value_init (value, type);
+  return value;
 }
 
 static void
-__lp_media_destroy_property_value (GValue *value)
+__lp_media_g_value_free (GValue *value)
 {
   g_value_unset (value);
-  /* g_free (value); */
+  g_slice_free (GValue, value);
 }
 
 static lp_media_t *
@@ -63,7 +66,7 @@ __lp_media_alloc (const char *uri)
   media->properties = g_hash_table_new_full
     (g_str_hash, g_str_equal,
      (GDestroyNotify) g_free,
-     (GDestroyNotify) __lp_media_destroy_property_value);
+     (GDestroyNotify) __lp_media_g_value_free);
   assert (media->properties != NULL);
 
   return media;
@@ -156,16 +159,23 @@ lp_media_get_reference_count (const lp_media_t *media)
   return (guint) g_atomic_int_get (&media->refcount);
 }
 
-/* COMMENT */
+/*-
+ * lp_media_get_parent:
+ * @media: a #lp_media_t
+ *
+ * Returns the parent of @media.
+ *
+ * Return value: the parent of @media.
+ */
 ATTR_PURE lp_media_t *
 lp_media_get_parent (const lp_media_t *media)
 {
   return media->parent;
 }
 
-/* COMMENT */
-LP_API int
-lp_media_get_property_int (lp_media_t *media, const char *name, int *i)
+static int
+__lp_media_get_property (lp_media_t *media, const char *name,
+                         GType type, void *p)
 {
   GValue *value;
 
@@ -173,22 +183,190 @@ lp_media_get_property_int (lp_media_t *media, const char *name, int *i)
   if (value == NULL)
     return FALSE;
 
-  if (G_VALUE_TYPE (value) != G_TYPE_INT)
+  if (G_VALUE_TYPE (value) != type)
     return FALSE;
 
-  set_if_nonnull (i, g_value_get_int (value));
+  switch (type)
+    {
+    case G_TYPE_INT:
+      set_if_nonnull (((int *) p), g_value_get_int (value));
+      break;
+    case G_TYPE_DOUBLE:
+      set_if_nonnull (((double *) p), g_value_get_double (value));
+      break;
+    case G_TYPE_STRING:
+      set_if_nonnull (((char **) p), g_value_dup_string (value));
+      break;
+    case G_TYPE_POINTER:
+      set_if_nonnull (((void **) p), g_value_get_pointer (value));
+      break;
+    default:
+      ASSERT_NOT_REACHED;
+    }
   return TRUE;
 }
 
-/* COMMENT */
+static int
+__lp_media_set_property (lp_media_t *media, const char *name,
+                         GType type, void *p)
+{
+  GValue *value;
+
+  value = __lp_media_g_value_alloc (type);
+  switch (type)
+    {
+    case G_TYPE_INT:
+      g_value_set_int (value, *((int *) p));
+      break;
+    case G_TYPE_DOUBLE:
+      g_value_set_double (value, *((double *) p));
+      break;
+    case G_TYPE_STRING:
+      g_value_set_string (value, *((char **) p));
+      break;
+    case G_TYPE_POINTER:
+      g_value_set_pointer (value, *((void **) p));
+      break;
+    default:
+      ASSERT_NOT_REACHED;
+    }
+
+  g_hash_table_insert (media->properties, g_strdup (name), value);
+
+  return TRUE;
+}
+
+/*-
+ * lp_media_get_property_int:
+ * @media: a #lp_media_t
+ * @name: property name
+ * @i: return value for the property
+ *
+ * Stores the current value of @media property @name into @i.
+ *
+ * Return value: %TRUE if successful.  %FALSE if property @name is not
+ * defined or its current value is not of type #int.
+ */
+LP_API int
+lp_media_get_property_int (lp_media_t *media, const char *name, int *i)
+{
+  return __lp_media_get_property (media, name, G_TYPE_INT, i);
+}
+
+/*-
+ * lp_media_set_property_int:
+ * @media: a #lp_media_t
+ * @name: property name
+ * @i: property value (#int)
+ *
+ * Sets @media property @name to @i.
+ *
+ * Return value: %TRUE if successful.  %FALSE otherwise.
+ */
 LP_API int
 lp_media_set_property_int (lp_media_t *media, const char *name, int i)
 {
-  GValue value = G_VALUE_INIT;
+  return __lp_media_set_property (media, name, G_TYPE_INT, &i);
+}
 
-  g_value_init (&value, G_TYPE_INT);
-  g_value_set_int (&value, i);
-  g_hash_table_insert (media->properties, deconst (gpointer, name),
-                       g_memdup (&value, sizeof (value)));
-  return TRUE;
+/*-
+ * lp_media_get_property_double:
+ * @media: a #lp_media_t
+ * @name: property name
+ * @d: return value for the property
+ *
+ * Stores the current value of @media property @name into @d.
+ *
+ * Return value: %TRUE if successful.  %FALSE if property @name is not
+ * defined or its current value is not of type #double.
+ */
+LP_API int
+lp_media_get_property_double (lp_media_t *media, const char *name,
+                              double *d)
+{
+  return __lp_media_get_property (media, name, G_TYPE_DOUBLE, d);
+}
+
+/*-
+ * lp_media_set_property_double:
+ * @media: a #lp_media_t
+ * @name: property name
+ * @d: property value (#double)
+ *
+ * Sets @media property @name to @d.
+ *
+ * Return value: %TRUE if successful.  %FALSE otherwise.
+ */
+LP_API int
+lp_media_set_property_double (lp_media_t *media, const char *name, double d)
+{
+  return __lp_media_set_property (media, name, G_TYPE_DOUBLE, &d);
+}
+
+/*-
+ * lp_media_get_property_string:
+ * @media: a #lp_media_t
+ * @name: property name
+ * @s: return value for the property
+ *
+ * Stores a copy of the current value of @media property @name into @s.
+ *
+ * Return value: %TRUE if successful.  %FALSE if property @name is not
+ * defined or its current value is not of type #string.
+ */
+LP_API int
+lp_media_get_property_string (lp_media_t *media, const char *name, char **s)
+{
+  return __lp_media_get_property (media, name, G_TYPE_STRING, s);
+}
+
+/*-
+ * lp_media_set_property_string:
+ * @media: a #lp_media_t
+ * @name: property name
+ * @s: property value (#string)
+ *
+ * Sets @media property @name to @s.
+ *
+ * Return value: %TRUE if successful.  %FALSE otherwise.
+ */
+LP_API int
+lp_media_set_property_string (lp_media_t *media, const char *name,
+                              const char *s)
+{
+  return __lp_media_set_property (media, name, G_TYPE_STRING, &s);
+}
+
+/*-
+ * lp_media_get_property_pointer:
+ * @media: a #lp_media_t
+ * @name: property name
+ * @p: return value for the property
+ *
+ * Stores a copy of the current value of @media property @name into @p.
+ *
+ * Return value: %TRUE if successful.  %FALSE if property @name is not
+ * defined or its current value is not of type #pointer.
+ */
+LP_API int
+lp_media_get_property_pointer (lp_media_t *media, const char *name,
+                               void **p)
+{
+  return __lp_media_get_property (media, name, G_TYPE_POINTER, p);
+}
+
+/*-
+ * lp_media_set_property_pointer:
+ * @media: a #lp_media_t
+ * @name: property name
+ * @p: property value (#pointer)
+ *
+ * Sets @media property @name to @p.
+ *
+ * Return value: %TRUE if successful.  %FALSE otherwise.
+ */
+LP_API int
+lp_media_set_property_pointer (lp_media_t *media, const char *name, void *p)
+{
+  return __lp_media_set_property (media, name, G_TYPE_POINTER, &p);
 }

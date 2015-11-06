@@ -42,5 +42,4 @@ libplay_la_SOURCES=\
   media.c\
   play.h\
   playconf.h\
-  value.c\
   $(NULL)

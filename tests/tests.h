@@ -32,16 +32,8 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <string.h>
 #include <time.h>
 
-#include "macros.h"
-
-/* *INDENT-OFF* */
-PRAGMA_DIAG_PUSH ()
-PRAGMA_DIAG_IGNORE (-Wvariadic-macros)
-#include <glib.h>
-PRAGMA_DIAG_POP ()
-/* *INDENT-ON* */
-
 #include "play.h"
+#include "play-internal.h"
 
 #define ASSERT(cond)                                            \
   STMT_BEGIN                                                    \

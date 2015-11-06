@@ -69,22 +69,22 @@ LP_API int
 lp_media_get_property_int (lp_media_t *, const char *, int *);
 
 LP_API int
-lp_media_get_property_double (lp_media_t *, const char *, double *);
-
-LP_API int
-lp_media_get_property_string (lp_media_t *, const char *, const char **);
-
-LP_API int
-lp_media_get_property_pointer (lp_media_t *, const char *, void **);
-
-LP_API int
 lp_media_set_property_int (lp_media_t *, const char *, int);
+
+LP_API int
+lp_media_get_property_double (lp_media_t *, const char *, double *);
 
 LP_API int
 lp_media_set_property_double (lp_media_t *, const char *, double);
 
 LP_API int
+lp_media_get_property_string (lp_media_t *, const char *, char **);
+
+LP_API int
 lp_media_set_property_string (lp_media_t *, const char *, const char *);
+
+LP_API int
+lp_media_get_property_pointer (lp_media_t *, const char *, void **);
 
 LP_API int
 lp_media_set_property_pointer (lp_media_t *, const char *, void *);

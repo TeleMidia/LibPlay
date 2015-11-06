@@ -16,44 +16,12 @@ License for more details.
 You should have received a copy of the GNU General Public License
 along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef LIBPLAY_H
-#define LIBPLAY_H
+#ifndef PLAY_H
+#define PLAY_H
 
 #include <playconf.h>
 
 LP_BEGIN_DECLS
-
-/* value */
-
-typedef enum _lp_value_type_t
-{
-  LP_VALUE_INT = 0,
-  LP_VALUE_DOUBLE,
-  LP_VALUE_STRING
-} lp_value_type_t;
-
-typedef struct _lp_value_t
-{
-  lp_value_type_t type;
-  union
-  {
-    int i;
-    double d;
-    char *s;
-  } u;
-} lp_value_t;
-
-LP_API void
-lp_value_init_int (lp_value_t *, int);
-
-LP_API void
-lp_value_init_double (lp_value_t *, double);
-
-LP_API void
-lp_value_init_string (lp_value_t *, const char *);
-
-LP_API int
-lp_value_equals (const lp_value_t *, const lp_value_t *);
 
 /* event */
 
@@ -80,6 +48,7 @@ lp_event_equals (const lp_event_t *, const lp_event_t *);
 /* media */
 
 typedef struct _lp_media_t lp_media_t;
+typedef int (*lp_event_func_t) (lp_media_t *, lp_event_t *);
 
 LP_API lp_media_t *
 lp_media_create (const char *uri);
@@ -93,6 +62,42 @@ lp_media_reference (lp_media_t *);
 LP_API unsigned int
 lp_media_get_reference_count (const lp_media_t *);
 
+LP_API lp_media_t *
+lp_media_get_parent (const lp_media_t *);
+
+LP_API int
+lp_media_get_property_int (lp_media_t *, const char *, int *);
+
+LP_API int
+lp_media_get_property_double (lp_media_t *, const char *, double *);
+
+LP_API int
+lp_media_get_property_string (lp_media_t *, const char *, const char **);
+
+LP_API int
+lp_media_get_property_pointer (lp_media_t *, const char *, void **);
+
+LP_API int
+lp_media_set_property_int (lp_media_t *, const char *, int);
+
+LP_API int
+lp_media_set_property_double (lp_media_t *, const char *, double);
+
+LP_API int
+lp_media_set_property_string (lp_media_t *, const char *, const char *);
+
+LP_API int
+lp_media_set_property_pointer (lp_media_t *, const char *, void *);
+
+LP_API void
+lp_media_post (lp_media_t *, const lp_event_t *);
+
+LP_API void
+lp_media_register (lp_media_t *, lp_event_func_t);
+
+LP_API void
+lp_media_unregister (lp_media_t *, lp_event_func_t);
+
 LP_END_DECLS
 
-#endif /* LIBPLAY_H */
+#endif /* PLAY_H */

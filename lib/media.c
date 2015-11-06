@@ -19,21 +19,64 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <config.h>
 
 #include "play.h"
-#include "macros.h"
+#include "play-internal.h"
 
-/* *INDENT-OFF* */
-PRAGMA_DIAG_PUSH ()
-PRAGMA_DIAG_IGNORE (-Wvariadic-macros)
-#include <glib.h>
-PRAGMA_DIAG_POP ()
-/* *INDENT-ON* */
+/* Default parent media object.  */
+static lp_media_t *default_parent = NULL;
 
-/* Media object data.  */
-struct _lp_media_t
+ATTR_PURE lp_media_t *
+_lp_media_get_default_parent (void)
 {
-  char *uri;                    /* content URI */
-  guint refcount;               /* reference counter */
-};
+  return default_parent;
+}
+
+void
+_lp_media_lock (lp_media_t *media)
+{
+  g_mutex_lock (&media->mutex);
+}
+
+void
+_lp_media_unlock (lp_media_t *media)
+{
+  g_mutex_unlock (&media->mutex);
+}
+
+static void
+__lp_media_destroy_property_value (GValue *value)
+{
+  g_value_unset (value);
+  /* g_free (value); */
+}
+
+static lp_media_t *
+__lp_media_alloc (const char *uri)
+{
+  lp_media_t *media;
+
+  media = (lp_media_t *) g_malloc (sizeof (*media));
+  assert (media != NULL);
+  media->parent = NULL;
+  media->refcount = 1;
+  g_mutex_init (&media->mutex);
+  media->uri = g_strdup (uri);
+  media->properties = g_hash_table_new_full
+    (g_str_hash, g_str_equal,
+     (GDestroyNotify) g_free,
+     (GDestroyNotify) __lp_media_destroy_property_value);
+  assert (media->properties != NULL);
+
+  return media;
+}
+
+static void
+__lp_media_free (lp_media_t *media)
+{
+  g_mutex_clear (&media->mutex);
+  g_free (media->uri);
+  g_hash_table_destroy (media->properties);
+  g_free (media);
+}
 
 /*-
  * lp_media_create:
@@ -42,17 +85,21 @@ struct _lp_media_t
  * Creates a new #lp_media_t with the given source @uri.
  *
  * Return value: a newly allocated #lp_media_t with a reference count of 1.
- *  This function never returns %NULL.
+ * This function never returns %NULL.
  */
 lp_media_t *
 lp_media_create (const char *uri)
 {
   lp_media_t *media;
 
-  media = (lp_media_t *) g_malloc (sizeof (*media));
-  assert (media != NULL);
-  media->uri = g_strdup (uri);
-  media->refcount = 1;
+  if (unlikely (default_parent == NULL))
+    {
+      default_parent = __lp_media_alloc (uri);
+      /* TODO: Iinitialize GStreamer.  */
+    }
+
+  media = __lp_media_alloc (uri);
+  media->parent = default_parent;
 
   return media;
 }
@@ -71,8 +118,7 @@ lp_media_destroy (lp_media_t *media)
     return;
   if (!g_atomic_int_dec_and_test (&media->refcount))
     return;
-  g_free (media->uri);
-  g_free (media);
+  __lp_media_free (media);
 }
 
 /*-
@@ -100,7 +146,7 @@ lp_media_reference (lp_media_t *media)
  * Returns the current reference count of @media.
  *
  * Return value: the current reference count of @media.
- *  If the object is a nil object, 0 will be returned.
+ * If the object is a nil object, 0 will be returned.
  */
 unsigned int
 lp_media_get_reference_count (const lp_media_t *media)
@@ -108,4 +154,41 @@ lp_media_get_reference_count (const lp_media_t *media)
   if (unlikely (media == NULL))
     return 0;
   return (guint) g_atomic_int_get (&media->refcount);
+}
+
+/* COMMENT */
+ATTR_PURE lp_media_t *
+lp_media_get_parent (const lp_media_t *media)
+{
+  return media->parent;
+}
+
+/* COMMENT */
+LP_API int
+lp_media_get_property_int (lp_media_t *media, const char *name, int *i)
+{
+  GValue *value;
+
+  value = (GValue *) g_hash_table_lookup (media->properties, name);
+  if (value == NULL)
+    return FALSE;
+
+  if (G_VALUE_TYPE (value) != G_TYPE_INT)
+    return FALSE;
+
+  set_if_nonnull (i, g_value_get_int (value));
+  return TRUE;
+}
+
+/* COMMENT */
+LP_API int
+lp_media_set_property_int (lp_media_t *media, const char *name, int i)
+{
+  GValue value = G_VALUE_INIT;
+
+  g_value_init (&value, G_TYPE_INT);
+  g_value_set_int (&value, i);
+  g_hash_table_insert (media->properties, deconst (gpointer, name),
+                       g_memdup (&value, sizeof (value)));
+  return TRUE;
 }

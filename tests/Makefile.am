@@ -59,15 +59,13 @@ check_SCRIPTS= $(scripts)
 
 # Test programs.
 programs=
-# value
-programs+= test-lp-value-init-int
-programs+= test-lp-value-init-double
-programs+= test-lp-value-init-string
-programs+= test-lp-value-equals
 # event
 programs+= test-lp-event-init-start
 programs+= test-lp-event-init-stop
 programs+= test-lp-event-equals
+# media
+programs+= test-lp-media-create
+programs+= test-lp-media-set-get-property-int
 check_PROGRAMS= $(programs)
 
 TESTS=\

@@ -1,4 +1,5 @@
 /* tests.h -- Common declarations for tests.
+   Copyright (C) 2015 PUC-Rio/Laboratorio TeleMidia
 
 This file is part of LibPlay.
 

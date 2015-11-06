@@ -104,7 +104,9 @@ AU_CHECK_PKG([GLIB],
 
 # Check for GStreamer (optional).
 my_break_version([gstreamer], gstreamer_required_version)
-AU_CHECK_PKG([GSTREAMER], gstreamer-1.0 >= gstreamer_required_version,
+AU_CHECK_PKG([GSTREAMER],
+  gstreamer-1.0 >= gstreamer_required_version
+  gstreamer-video-1.0 >= gstreamer_required_version,
  [AC_LANG_PROGRAM([[
 #include <gst/gst.h>
 #if !GST_CHECK_VERSION  \
@@ -116,6 +118,7 @@ AU_CHECK_PKG([GSTREAMER], gstreamer-1.0 >= gstreamer_required_version,
  ]])],
  [AC_LANG_PROGRAM([[]], [[
 gst_init (0, 0);
+gst_video_info_from_caps (0, 0);
  ]])])
 
 AC_CONFIG_FILES([

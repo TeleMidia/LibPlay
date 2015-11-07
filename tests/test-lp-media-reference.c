@@ -22,13 +22,22 @@ main (void)
 {
   lp_media_t *m;
 
-  m = lp_media_create (NULL);
+  m = lp_media_create ("xyz");
   ASSERT (m != NULL);
 
-  lp_media_destroy (NULL);
+  ASSERT (m->refcount == 1);
   ASSERT (lp_media_reference (m) == m);
+  ASSERT (m->refcount == 2);
+  ASSERT (lp_media_reference (m) == m);
+  ASSERT (m->refcount == 3);
   lp_media_destroy (m);
+  ASSERT (m->refcount == 2);
   lp_media_destroy (m);
+  ASSERT (m->refcount == 1);
+  lp_media_destroy (m);
+
+  ASSERT (lp_media_reference (NULL) == NULL);
+
   _lp_media_destroy_default_parent ();
 
   exit (EXIT_SUCCESS);

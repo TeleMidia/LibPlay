@@ -66,6 +66,8 @@ programs+= test-lp-event-equals
 # media
 programs+= test-lp-media-create
 programs+= test-lp-media-destroy
+programs+= test-lp-media-reference
+programs+= test-lp-media-get-reference-count
 programs+= test-lp-media-set-get-property-int
 programs+= test-lp-media-set-get-property-double
 programs+= test-lp-media-set-get-property-string

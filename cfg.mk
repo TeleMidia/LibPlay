@@ -19,14 +19,29 @@
 COPYRIGHT_YEAR= 2015
 COPYRIGHT_HOLDER= PUC-Rio/Laboratorio TeleMidia
 
+INDENT_OPTIONS=\
+  --brace-indent0\
+  --case-brace-indentation0\
+  --case-indentation2\
+  --else-endif-column0\
+  --gnu-style\
+  --indent-label-1\
+  --leave-preprocessor-space\
+  --no-tabs\
+  -l76\
+  $(NULL)
+
 INDENT_EXCLUDE=\
+  lib/play-internal.h\
   lib/play.h\
+  tests/tests.h\
   $(NULL)
 
 INDENT_JOIN_EMPTY_LINES_EXCLUDE=\
   $(NULL)
 
 INDENT_TYPES=\
+  GValue\
   lp_event_t\
   lp_media_t\
   lp_value_t\

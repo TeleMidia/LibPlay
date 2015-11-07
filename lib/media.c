@@ -65,8 +65,7 @@ __lp_media_alloc (const char *uri)
   media->uri = g_strdup (uri);
   media->properties = g_hash_table_new_full
     (g_str_hash, g_str_equal,
-     (GDestroyNotify) g_free,
-     (GDestroyNotify) __lp_media_g_value_free);
+     (GDestroyNotify) g_free, (GDestroyNotify) __lp_media_g_value_free);
   assert (media->properties != NULL);
 
   return media;
@@ -96,10 +95,10 @@ lp_media_create (const char *uri)
   lp_media_t *media;
 
   if (unlikely (default_parent == NULL))
-    {
-      default_parent = __lp_media_alloc (uri);
-      /* TODO: Iinitialize GStreamer.  */
-    }
+  {
+    default_parent = __lp_media_alloc (uri);
+    /* TODO: Iinitialize GStreamer.  */
+  }
 
   media = __lp_media_alloc (uri);
   media->parent = default_parent;
@@ -187,7 +186,7 @@ __lp_media_get_property (lp_media_t *media, const char *name,
     return FALSE;
 
   switch (type)
-    {
+  {
     case G_TYPE_INT:
       set_if_nonnull (((int *) p), g_value_get_int (value));
       break;
@@ -202,7 +201,7 @@ __lp_media_get_property (lp_media_t *media, const char *name,
       break;
     default:
       ASSERT_NOT_REACHED;
-    }
+  }
   return TRUE;
 }
 
@@ -214,7 +213,7 @@ __lp_media_set_property (lp_media_t *media, const char *name,
 
   value = __lp_media_g_value_alloc (type);
   switch (type)
-    {
+  {
     case G_TYPE_INT:
       g_value_set_int (value, *((int *) p));
       break;
@@ -229,7 +228,7 @@ __lp_media_set_property (lp_media_t *media, const char *name,
       break;
     default:
       ASSERT_NOT_REACHED;
-    }
+  }
 
   g_hash_table_insert (media->properties, g_strdup (name), value);
 
@@ -298,7 +297,8 @@ lp_media_get_property_double (lp_media_t *media, const char *name,
  * Return value: %TRUE if successful.  %FALSE otherwise.
  */
 LP_API int
-lp_media_set_property_double (lp_media_t *media, const char *name, double d)
+lp_media_set_property_double (lp_media_t *media, const char *name,
+                              double d)
 {
   return __lp_media_set_property (media, name, G_TYPE_DOUBLE, &d);
 }
@@ -315,7 +315,8 @@ lp_media_set_property_double (lp_media_t *media, const char *name, double d)
  * defined or its current value is not of type #string.
  */
 LP_API int
-lp_media_get_property_string (lp_media_t *media, const char *name, char **s)
+lp_media_get_property_string (lp_media_t *media, const char *name,
+                              char **s)
 {
   return __lp_media_get_property (media, name, G_TYPE_STRING, s);
 }
@@ -366,7 +367,8 @@ lp_media_get_property_pointer (lp_media_t *media, const char *name,
  * Return value: %TRUE if successful.  %FALSE otherwise.
  */
 LP_API int
-lp_media_set_property_pointer (lp_media_t *media, const char *name, void *p)
+lp_media_set_property_pointer (lp_media_t *media, const char *name,
+                               void *p)
 {
   return __lp_media_set_property (media, name, G_TYPE_POINTER, &p);
 }

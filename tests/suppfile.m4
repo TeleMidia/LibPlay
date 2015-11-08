@@ -9,4 +9,5 @@ define([suppress],[dnl
 }])dnl
 
 suppress(_dl_init)
+suppress(g_array_append_vals)
 suppress(g_type_register_fundamental)

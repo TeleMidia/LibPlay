@@ -66,12 +66,13 @@ programs+= test-lp-event-equals
 # media
 programs+= test-lp-media-create
 programs+= test-lp-media-destroy
-programs+= test-lp-media-reference
 programs+= test-lp-media-get-reference-count
-programs+= test-lp-media-set-get-property-int
+programs+= test-lp-media-reference
+programs+= test-lp-media-register-unregister
 programs+= test-lp-media-set-get-property-double
-programs+= test-lp-media-set-get-property-string
+programs+= test-lp-media-set-get-property-int
 programs+= test-lp-media-set-get-property-pointer
+programs+= test-lp-media-set-get-property-string
 check_PROGRAMS= $(programs)
 
 TESTS=\

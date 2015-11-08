@@ -66,8 +66,10 @@ __lp_media_alloc (const char *uri)
   media->properties = g_hash_table_new_full
     (g_str_hash, g_str_equal,
      (GDestroyNotify) g_free, (GDestroyNotify) __lp_media_g_value_free);
-  assert (media->properties != NULL);
+  media->handlers = g_array_new (FALSE, FALSE, sizeof (lp_event_func_t));
 
+  assert (media->properties != NULL);
+  assert (media->handlers != NULL);
   return media;
 }
 
@@ -77,6 +79,7 @@ __lp_media_free (lp_media_t *media)
   g_mutex_clear (&media->mutex);
   g_free (media->uri);
   g_hash_table_destroy (media->properties);
+  g_array_free (media->handlers, FALSE);
   g_free (media);
 }
 
@@ -371,4 +374,61 @@ lp_media_set_property_pointer (lp_media_t *media, const char *name,
                                void *p)
 {
   return __lp_media_set_property (media, name, G_TYPE_POINTER, &p);
+}
+
+/*-
+ * lp_media_register:
+ * @media: a #lp_media_t
+ * @handler: a lp_event_func_t 
+ *
+ * Adds @handler to the @media handler list.
+ *
+ * Return value: %TRUE if successful.  %FALSE otherwise.
+ */
+LP_API int
+lp_media_register (lp_media_t *media, lp_event_func_t handler)
+{
+  guint i;
+  int found = 0;
+  for (i = 0; i < media->handlers->len && !found; i++)
+  {
+    if (g_array_index (media->handlers, lp_event_func_t, i) == handler)
+      found = 1;
+  }
+  if (!found)
+  {
+    g_array_append_val (media->handlers, handler);
+    return TRUE;
+  }
+  else
+    return FALSE;
+}
+
+/*-
+ * lp_media_unregister:
+ * @media: a #lp_media_t
+ * @handler: a lp_event_func_t 
+ *
+ * Removes @handler of the @media handler list.
+ *
+ * Return value: %TRUE if successful.  %FALSE otherwise.
+ */
+LP_API int
+lp_media_unregister (lp_media_t *media, lp_event_func_t handler)
+{
+  guint i;
+  int found = 0;
+  for (i = 0; i < media->handlers->len && !found; i++)
+  {
+    if (g_array_index (media->handlers, lp_event_func_t, i) == handler)
+      found = 1;
+  }
+  if (found)
+  {
+    --i;
+    g_array_remove_index (media->handlers, i);
+    return TRUE;
+  }
+  else
+    return FALSE;
 }

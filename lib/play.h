@@ -92,10 +92,10 @@ lp_media_set_property_pointer (lp_media_t *, const char *, void *);
 LP_API void
 lp_media_post (lp_media_t *, const lp_event_t *);
 
-LP_API void
+LP_API int
 lp_media_register (lp_media_t *, lp_event_func_t);
 
-LP_API void
+LP_API int
 lp_media_unregister (lp_media_t *, lp_event_func_t);
 
 LP_END_DECLS

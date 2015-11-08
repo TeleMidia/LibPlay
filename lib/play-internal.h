@@ -38,6 +38,7 @@ struct _lp_media_t
 
   char *uri;                    /* content URI */
   GHashTable *properties;       /* property table */
+  GArray *handlers;             /* handler array */
 };
 
 #define _lp_media_lock(m)   g_mutex_lock (&(m)->mutex)

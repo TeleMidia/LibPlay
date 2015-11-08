@@ -36,7 +36,6 @@ func2 (lp_media_t *m, lp_event_t *e)
   return 0;
 }
 
-
 int
 main (void)
 {
@@ -45,15 +44,15 @@ main (void)
   m = lp_media_create (NULL);
   ASSERT (m != NULL);
 
-  ASSERT (lp_media_register(m, func1) == TRUE);
-  ASSERT (lp_media_register(m, func1) == FALSE);
-  ASSERT (lp_media_register(m, func2) == TRUE);
-  ASSERT (lp_media_register(m, func2) == FALSE);
+  ASSERT (lp_media_register (m, func1) == TRUE);
+  ASSERT (lp_media_register (m, func1) == FALSE);
+  ASSERT (lp_media_register (m, func2) == TRUE);
+  ASSERT (lp_media_register (m, func2) == FALSE);
 
-  ASSERT (lp_media_unregister(m, func1) == TRUE);
-  ASSERT (lp_media_unregister(m, func1) == FALSE);
-  ASSERT (lp_media_unregister(m, func2) == TRUE);
-  ASSERT (lp_media_unregister(m, func2) == FALSE);
+  ASSERT (lp_media_unregister (m, func1) == TRUE);
+  ASSERT (lp_media_unregister (m, func1) == FALSE);
+  ASSERT (lp_media_unregister (m, func2) == TRUE);
+  ASSERT (lp_media_unregister (m, func2) == FALSE);
 
   lp_media_destroy (m);
   _lp_media_destroy_default_parent ();

@@ -53,16 +53,42 @@ __lp_media_g_value_free (GValue *value)
 }
 
 static lp_media_t *
-__lp_media_alloc (const char *uri)
+__lp_media_alloc (const char *uri, lp_media_type_t type)
 {
   lp_media_t *media;
 
   media = (lp_media_t *) g_malloc (sizeof (*media));
   assert (media != NULL);
+  g_mutex_init (&media->mutex);
   media->parent = NULL;
   media->refcount = 1;
-  g_mutex_init (&media->mutex);
   media->uri = g_strdup (uri);
+  media->type = type;
+  switch (media->type)
+  {
+    case LP_MEDIA_ATOM:
+      media->elements.atom.bin = NULL;
+      media->elements.atom.decodebin = NULL;
+      media->elements.atom.imagefreeze = NULL;
+      media->elements.atom.videoscale = NULL;
+      media->elements.atom.videofilter = NULL;
+      media->elements.atom.audiovolume = NULL;
+      media->elements.atom.audioconvert = NULL;
+      media->elements.atom.audioresample = NULL;
+      media->elements.atom.audiofilter = NULL;
+      break;
+    case LP_MEDIA_SCENE:
+      media->elements.scene.pipeline = NULL;
+      media->elements.scene.videomix = NULL;
+      media->elements.scene.audiomix = NULL;
+      media->elements.scene.videosink = NULL;
+      media->elements.scene.audiosink = NULL;
+      break;
+    default:
+      ASSERT_NOT_REACHED;
+      break;
+  }
+
   media->properties = g_hash_table_new_full
     (g_str_hash, g_str_equal,
      (GDestroyNotify) g_free, (GDestroyNotify) __lp_media_g_value_free);
@@ -80,6 +106,52 @@ __lp_media_free (lp_media_t *media)
   g_free (media->uri);
   g_hash_table_destroy (media->properties);
   g_array_free (media->handlers, FALSE);
+
+  switch (media->type)
+  {
+    case LP_MEDIA_ATOM:
+      if (media->elements.atom.bin != NULL)
+        gst_object_unref (media->elements.atom.bin);
+      if (media->elements.atom.decodebin != NULL)
+        gst_object_unref (media->elements.atom.decodebin);
+      if (media->elements.atom.imagefreeze != NULL)
+        gst_object_unref (media->elements.atom.imagefreeze);
+      if (media->elements.atom.videoscale != NULL)
+        gst_object_unref (media->elements.atom.videoscale);
+      if (media->elements.atom.videofilter != NULL)
+        gst_object_unref (media->elements.atom.videofilter);
+      if (media->elements.atom.audiovolume != NULL)
+        gst_object_unref (media->elements.atom.audiovolume);
+      if (media->elements.atom.audioconvert != NULL)
+        gst_object_unref (media->elements.atom.audioconvert);
+      if (media->elements.atom.audioresample != NULL)
+        gst_object_unref (media->elements.atom.audioresample);
+      if (media->elements.atom.audiofilter != NULL)
+        gst_object_unref (media->elements.atom.audiofilter);
+      break;
+
+    case LP_MEDIA_SCENE:
+      if (media->elements.scene.pipeline != NULL)
+        gst_element_set_state (media->elements.scene.pipeline,
+                               GST_STATE_NULL);
+
+      if (media->elements.scene.videomix != NULL)
+        gst_object_unref (media->elements.scene.videomix);
+      if (media->elements.scene.audiomix != NULL)
+        gst_object_unref (media->elements.scene.audiomix);
+      if (media->elements.scene.videosink != NULL)
+        gst_object_unref (media->elements.scene.videosink);
+      if (media->elements.scene.audiosink != NULL)
+        gst_object_unref (media->elements.scene.audiosink);
+      if (media->elements.scene.pipeline != NULL)
+        gst_object_unref (media->elements.scene.pipeline);
+      break;
+
+    default:
+      ASSERT_NOT_REACHED;
+      break;
+  }
+
   g_free (media);
 }
 
@@ -99,11 +171,15 @@ lp_media_create (const char *uri)
 
   if (unlikely (default_parent == NULL))
   {
-    default_parent = __lp_media_alloc (uri);
-    /* TODO: Iinitialize GStreamer.  */
+    default_parent = __lp_media_alloc (uri, LP_MEDIA_SCENE);
+
+    /* GStreamer stuffs */
+    gst_init (NULL, NULL);
+    default_parent->elements.scene.pipeline = gst_pipeline_new (NULL);
+    assert (default_parent->elements.scene.pipeline != NULL);
   }
 
-  media = __lp_media_alloc (uri);
+  media = __lp_media_alloc (uri, LP_MEDIA_ATOM);
   media->parent = default_parent;
 
   return media;

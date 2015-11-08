@@ -47,6 +47,12 @@ lp_event_equals (const lp_event_t *, const lp_event_t *);
 
 /* media */
 
+typedef enum _lp_media_type_t
+{
+  LP_MEDIA_ATOM = 0,
+  LP_MEDIA_SCENE
+} lp_media_type_t;
+
 typedef struct _lp_media_t lp_media_t;
 typedef int (*lp_event_func_t) (lp_media_t *, lp_event_t *);
 

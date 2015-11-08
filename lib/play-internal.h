@@ -24,21 +24,61 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 /* *INDENT-OFF* */
 PRAGMA_DIAG_PUSH ()
 PRAGMA_DIAG_IGNORE (-Wvariadic-macros)
+PRAGMA_DIAG_IGNORE (-Wcast-qual)
+PRAGMA_DIAG_IGNORE (-Wconversion)
+PRAGMA_DIAG_IGNORE (-Wpedantic)
 #include <glib.h>
 #include <glib-object.h>
+#include <gst/gst.h>
 PRAGMA_DIAG_POP ()
 /* *INDENT-ON* */
 
 /* Media object data.  */
 struct _lp_media_t
 {
-  lp_media_t *parent;           /* parent */
-  guint refcount;               /* reference counter */
-  GMutex mutex;                 /* sync access to object */
+  lp_media_t *parent;               /* parent */
+  guint refcount;                   /* reference counter */
+  GMutex mutex;                     /* sync access to object */
 
-  char *uri;                    /* content URI */
-  GHashTable *properties;       /* property table */
-  GArray *handlers;             /* handler array */
+  char *uri;                        /* content URI */
+  GHashTable *properties;           /* property table */
+  GArray *handlers;                 /* handler array */
+  lp_media_type_t type;             /* LP_MEDIA_ATOM or LP_MEDIA_SCENE */     
+  union
+  {
+    struct _lp_media_atom_t
+    {
+      GstElement *bin;              /* element bin */
+      GstElement *decodebin;        /* decoder */
+     
+      /* image elements */
+      GstElement *imagefreeze;      /* generates a still frame stream
+                                       from an image */
+      
+      /* video elements */      
+      GstElement *videoscale;       /* scales video */
+      GstElement *videofilter;      /* changes video caps  */
+      
+      /* audio elements */
+      GstElement *audiovolume;      /* changes audio volume */
+      GstElement *audioconvert;     /* converts audio format  */
+      GstElement *audioresample;    /* resamples audio  */
+      GstElement *audiofilter;      /* changes audio caps  */
+    } atom;
+    
+    struct _lp_media_scene_t
+    {
+      GstElement *pipeline;         /* pipeline */
+     
+      /* mixers */
+      GstElement *videomix;         /* video mixer */
+      GstElement *audiomix;         /* audio mixer */
+     
+      /* sinks */
+      GstElement *videosink;        /* video sink */
+      GstElement *audiosink;        /* audio sink */
+    } scene;
+  } elements;
 };
 
 #define _lp_media_lock(m)   g_mutex_lock (&(m)->mutex)

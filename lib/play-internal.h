@@ -44,41 +44,44 @@ struct _lp_media_t
   GHashTable *properties;           /* property table */
   GArray *handlers;                 /* handler array */
   lp_media_type_t type;             /* LP_MEDIA_ATOM or LP_MEDIA_SCENE */     
-  union
-  {
-    struct _lp_media_atom_t
-    {
-      GstElement *bin;              /* element bin */
-      GstElement *decodebin;        /* decoder */
+  
+  GHashTable *elements;             /* GStreamer elements table  */
+  
+  /* union */
+  /* { */
+  /*   struct _lp_media_atom_t */
+  /*   { */
+  /*     GstElement *bin;              /1* element bin *1/ */
+  /*     GstElement *decodebin;        /1* decoder *1/ */
      
-      /* image elements */
-      GstElement *imagefreeze;      /* generates a still frame stream
-                                       from an image */
+  /*     /1* image elements *1/ */
+  /*     GstElement *imagefreeze;      /1* generates a still frame stream */
+  /*                                      from an image *1/ */
       
-      /* video elements */      
-      GstElement *videoscale;       /* scales video */
-      GstElement *videofilter;      /* changes video caps  */
+  /*     /1* video elements *1/ */      
+  /*     GstElement *videoscale;       /1* scales video *1/ */
+  /*     GstElement *videofilter;      /1* changes video caps  *1/ */
       
-      /* audio elements */
-      GstElement *audiovolume;      /* changes audio volume */
-      GstElement *audioconvert;     /* converts audio format  */
-      GstElement *audioresample;    /* resamples audio  */
-      GstElement *audiofilter;      /* changes audio caps  */
-    } atom;
+  /*     /1* audio elements *1/ */
+  /*     GstElement *audiovolume;      /1* changes audio volume *1/ */
+  /*     GstElement *audioconvert;     /1* converts audio format  *1/ */
+  /*     GstElement *audioresample;    /1* resamples audio  *1/ */
+  /*     GstElement *audiofilter;      /1* changes audio caps  *1/ */
+  /*   } atom; */
     
-    struct _lp_media_scene_t
-    {
-      GstElement *pipeline;         /* pipeline */
+  /*   struct _lp_media_scene_t */
+  /*   { */
+  /*     GstElement *pipeline;         /1* pipeline *1/ */
      
-      /* mixers */
-      GstElement *videomix;         /* video mixer */
-      GstElement *audiomix;         /* audio mixer */
+  /*     /1* mixers *1/ */
+  /*     GstElement *videomix;         /1* video mixer *1/ */
+  /*     GstElement *audiomix;         /1* audio mixer *1/ */
      
-      /* sinks */
-      GstElement *videosink;        /* video sink */
-      GstElement *audiosink;        /* audio sink */
-    } scene;
-  } elements;
+  /*     /1* sinks *1/ */
+  /*     GstElement *videosink;        /1* video sink *1/ */
+  /*     GstElement *audiosink;        /1* audio sink *1/ */
+  /*   } scene; */
+  /* } elements; */
 };
 
 #define _lp_media_lock(m)   g_mutex_lock (&(m)->mutex)

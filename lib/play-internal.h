@@ -39,58 +39,62 @@ struct _lp_media_t
   lp_media_t *parent;               /* parent */
   guint refcount;                   /* reference counter */
   GMutex mutex;                     /* sync access to object */
-
+  
   char *uri;                        /* content URI */
   GHashTable *properties;           /* property table */
   GArray *handlers;                 /* handler array */
   lp_media_type_t type;             /* LP_MEDIA_ATOM or LP_MEDIA_SCENE */     
   
   GHashTable *elements;             /* GStreamer elements table  */
-  
-  /* union */
-  /* { */
-  /*   struct _lp_media_atom_t */
-  /*   { */
-  /*     GstElement *bin;              /1* element bin *1/ */
-  /*     GstElement *decodebin;        /1* decoder *1/ */
-     
-  /*     /1* image elements *1/ */
-  /*     GstElement *imagefreeze;      /1* generates a still frame stream */
-  /*                                      from an image *1/ */
-      
-  /*     /1* video elements *1/ */      
-  /*     GstElement *videoscale;       /1* scales video *1/ */
-  /*     GstElement *videofilter;      /1* changes video caps  *1/ */
-      
-  /*     /1* audio elements *1/ */
-  /*     GstElement *audiovolume;      /1* changes audio volume *1/ */
-  /*     GstElement *audioconvert;     /1* converts audio format  *1/ */
-  /*     GstElement *audioresample;    /1* resamples audio  *1/ */
-  /*     GstElement *audiofilter;      /1* changes audio caps  *1/ */
-  /*   } atom; */
-    
-  /*   struct _lp_media_scene_t */
-  /*   { */
-  /*     GstElement *pipeline;         /1* pipeline *1/ */
-     
-  /*     /1* mixers *1/ */
-  /*     GstElement *videomix;         /1* video mixer *1/ */
-  /*     GstElement *audiomix;         /1* audio mixer *1/ */
-     
-  /*     /1* sinks *1/ */
-  /*     GstElement *videosink;        /1* video sink *1/ */
-  /*     GstElement *audiosink;        /1* audio sink *1/ */
-  /*   } scene; */
-  /* } elements; */
+  GstClockTime start_offset;        /* set the start offset */
 };
 
 #define _lp_media_lock(m)   g_mutex_lock (&(m)->mutex)
 #define _lp_media_unlock(m) g_mutex_unlock (&(m)->mutex)
+
+#define _lp_media_get_element(m,e) \
+  (GstElement *) g_hash_table_lookup(m->elements, e)
+
+#define _lp_media_add_element(m,k,v) \
+  g_hash_table_insert (m->elements,k,v)
 
 lp_media_t *
 _lp_media_get_default_parent (void);
 
 void
 _lp_media_destroy_default_parent (void);
+
+void
+_lp_media_atom_start (lp_media_t *);
+
+void
+_lp_media_scene_start (lp_media_t *);
+
+void
+_lp_media_atom_stop (lp_media_t *);
+
+void
+_lp_media_scene_stop (lp_media_t *);
+
+int
+_lp_media_set_video_bin (lp_media_t *, GstPad *);
+
+int
+_lp_media_set_audio_bin (lp_media_t *, GstPad *);
+
+int
+_lp_media_recursive_get_property_int (lp_media_t *, const char*, int *);
+
+int
+_lp_media_recursive_get_property_double(lp_media_t *, const char*, double *);
+
+int
+_lp_media_recursive_get_property_string (lp_media_t *, const char*, char **);
+
+int
+_lp_media_recursive_get_property_pointer (lp_media_t *, const char*, void **);
+
+GstElement *
+_lp_media_recursive_get_element (lp_media_t *, const char *);
 
 #endif /* PLAY_INTERNAL */

@@ -37,9 +37,11 @@ libplay_la_CFLAGS= $(AM_CFLAGS) $(CFLAGS_VISIBILITY)\
 libplay_la_LDFLAGS= -version-info $(LIBPLAY_LIBTOOL_STRING) -no-undefined\
   $(GLIB_CFLAGS) $(GSTREAMER_LIBS)
 libplay_la_SOURCES=\
+	audio.c\
+	play.h\
+	video.c\
   event.c\
   macros.h\
   media.c\
-  play.h\
   playconf.h\
   $(NULL)

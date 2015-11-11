@@ -63,9 +63,9 @@ programs=
 # status
 programs+= test-lp-status-to-string
 # event
-# programs+= test-lp-event-init-start
-# programs+= test-lp-event-init-stop
-# programs+= test-lp-event-equals
+programs+= test-lp-event-init-start
+programs+= test-lp-event-init-stop
+programs+= test-lp-event-equals
 # media
 programs+= test-lp-media-create
 programs+= test-lp-media-create-for-parent

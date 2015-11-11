@@ -85,6 +85,12 @@ lp_media_reference (lp_media_t *);
 LP_API unsigned int
 lp_media_get_reference_count (const lp_media_t *);
 
+LP_API int
+lp_media_register (lp_media_t *, lp_event_func_t);
+
+LP_API int
+lp_media_unregister (lp_media_t *, lp_event_func_t);
+
 LP_END_DECLS
 
 #endif /* PLAY_H */

@@ -97,7 +97,6 @@ __lp_media_free (lp_media_t *media)
   g_free (media);
 }
 
-
 /* Exported functions.  */
 
 /*-

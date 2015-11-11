@@ -21,7 +21,6 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "play.h"
 #include "play-internal.h"
 
-
 /* Exported functions.  */
 
 /*-
@@ -36,7 +35,7 @@ ATTR_CONST const char *
 lp_status_to_string (lp_status_t status)
 {
   switch (status)
-    {
+  {
     case LP_STATUS_SUCCESS:
       return "no error has occurred";
     case LP_STATUS_NULL_POINTER:
@@ -54,5 +53,5 @@ lp_status_to_string (lp_status_t status)
     case LP_STATUS_LAST_STATUS:
     default:
       return "<unknown error status>";
-    }
+  }
 }

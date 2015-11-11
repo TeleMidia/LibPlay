@@ -25,39 +25,40 @@ main (void)
 {
   size_t i;
   for (i = 0; i <= LP_STATUS_LAST_STATUS; i++)
+  {
+    lp_status_t s = (lp_status_t) i;
+    printf ("%d\n", (int) i);
+    switch (i)
     {
-      lp_status_t s = (lp_status_t) i;
-      printf ("%d\n", (int) i);
-      switch (i)
-        {
-        case LP_STATUS_SUCCESS:
-          CHECK_STATUS_STRING (s, "no error has occurred");
-          break;
-        case LP_STATUS_NULL_POINTER:
-          CHECK_STATUS_STRING (s, "NULL pointer");
-          break;
-        case LP_STATUS_READ_ERROR:
-          CHECK_STATUS_STRING (s, "error while reading from input stream");
-          break;
-        case LP_STATUS_WRITE_ERROR:
-          CHECK_STATUS_STRING (s, "error while writing to output stream");
-          break;
-        case LP_STATUS_FILE_NOT_FOUND:
-          CHECK_STATUS_STRING (s, "file not found");
-          break;
-        case LP_STATUS_NEGATIVE_COUNT:
-          CHECK_STATUS_STRING (s, "negative number used where it is not allowed");
-          break;
-        case LP_STATUS_INVALID_PARENT:
-          CHECK_STATUS_STRING(s, "invalid parent");
-          break;
-        case LP_STATUS_LAST_STATUS:
-          CHECK_STATUS_STRING (s, "<unknown error status>");
-          break;
-        default:
-          ASSERT (0);
-        }
+      case LP_STATUS_SUCCESS:
+        CHECK_STATUS_STRING (s, "no error has occurred");
+        break;
+      case LP_STATUS_NULL_POINTER:
+        CHECK_STATUS_STRING (s, "NULL pointer");
+        break;
+      case LP_STATUS_READ_ERROR:
+        CHECK_STATUS_STRING (s, "error while reading from input stream");
+        break;
+      case LP_STATUS_WRITE_ERROR:
+        CHECK_STATUS_STRING (s, "error while writing to output stream");
+        break;
+      case LP_STATUS_FILE_NOT_FOUND:
+        CHECK_STATUS_STRING (s, "file not found");
+        break;
+      case LP_STATUS_NEGATIVE_COUNT:
+        CHECK_STATUS_STRING (s,
+                             "negative number used where it is not allowed");
+        break;
+      case LP_STATUS_INVALID_PARENT:
+        CHECK_STATUS_STRING (s, "invalid parent");
+        break;
+      case LP_STATUS_LAST_STATUS:
+        CHECK_STATUS_STRING (s, "<unknown error status>");
+        break;
+      default:
+        ASSERT (0);
     }
+  }
 
   exit (EXIT_SUCCESS);
 }

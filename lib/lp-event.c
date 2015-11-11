@@ -21,7 +21,6 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "play.h"
 #include "play-internal.h"
 
-
 /* Exported functions.  */
 
 /*-

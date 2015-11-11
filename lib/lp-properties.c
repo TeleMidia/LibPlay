@@ -26,7 +26,8 @@ typedef struct _lp_properties_desc_t
   const char *name;
   GType type;
   int has_default;
-  union {
+  union
+  {
     int i;
     double d;
     char *s;
@@ -34,11 +35,10 @@ typedef struct _lp_properties_desc_t
   } default_value;
 } lp_properties_desc_t;
 
-static const lp_properties_desc_t known_properties[] =
-{
+static const lp_properties_desc_t known_properties[] = {
   /* KEEP THIS SORTED ALPHABETICALLY */
   {"height", G_TYPE_INT, TRUE, {LP_PROPERTY_DEFAULT_HEIGHT}},
-  {"width",  G_TYPE_INT, TRUE, {LP_PROPERTY_DEFAULT_WIDTH}},
+  {"width", G_TYPE_INT, TRUE, {LP_PROPERTY_DEFAULT_WIDTH}},
 };
 
 #if 0
@@ -71,7 +71,6 @@ __lp_properties_desc (const char *name, lp_properties_desc_t **desc)
 }
 #endif
 
-
 /* Internal functions.  */
 
 /* Allocates a new (empty) #lp_properties_t.
@@ -84,8 +83,8 @@ _lp_properties_alloc (void)
   GHashTable *hash;
 
   hash = g_hash_table_new_full (g_str_hash, g_str_equal,
-                                 (GDestroyNotify) g_free,
-                                 (GDestroyNotify) _lp_util_g_value_free);
+                                (GDestroyNotify) g_free,
+                                (GDestroyNotify) _lp_util_g_value_free);
   assert (hash != NULL);
 
   props = (lp_properties_t *) g_malloc (sizeof (*props));
@@ -113,7 +112,7 @@ _lp_properties_free (lp_properties_t *props)
 
 ATTR_USE_RESULT int
 _lp_properties_get (lp_properties_t *props, const char *name,
-                     GValue *value)
+                    GValue *value)
 {
   GValue *result;
 
@@ -128,10 +127,10 @@ _lp_properties_get (lp_properties_t *props, const char *name,
     return FALSE;
 
   if (value != NULL)
-    {
-      g_value_init (value, G_VALUE_TYPE (result));
-      g_value_copy (result, value);
-    }
+  {
+    g_value_init (value, G_VALUE_TYPE (result));
+    g_value_copy (result, value);
+  }
 
   return TRUE;
 }
@@ -141,7 +140,7 @@ _lp_properties_get (lp_properties_t *props, const char *name,
 
 ATTR_USE_RESULT int
 _lp_properties_set (lp_properties_t *props, const char *name,
-                     GValue *value)
+                    GValue *value)
 {
   if (unlikely (props == NULL))
     return FALSE;
@@ -171,32 +170,32 @@ _lp_properties_reset_all (lp_properties_t *props)
   hash = props->hash;
   g_hash_table_remove_all (hash);
   for (i = 0; i < nelementsof (known_properties); i++)
+  {
+    const lp_properties_desc_t *desc;
+    GValue *value;
+
+    desc = &known_properties[i];
+    if (!desc->has_default)
+      continue;
+
+    value = _lp_util_g_value_alloc (desc->type);
+    switch (desc->type)
     {
-      const lp_properties_desc_t *desc;
-      GValue *value;
-
-      desc = &known_properties[i];
-      if (!desc->has_default)
-        continue;
-
-      value = _lp_util_g_value_alloc (desc->type);
-      switch (desc->type)
-        {
-        case G_TYPE_INT:
-          g_value_set_int (value, desc->default_value.i);
-          break;
-        case G_TYPE_DOUBLE:
-          g_value_set_double (value, desc->default_value.d);
-          break;
-        case G_TYPE_STRING:
-          g_value_set_string (value, desc->default_value.s);
-          break;
-        case G_TYPE_POINTER:
-          g_value_set_pointer (value, desc->default_value.p);
-          break;
-        default:
-          ASSERT_NOT_REACHED;
-        }
-      assert (g_hash_table_insert (hash, g_strdup (desc->name), value));
+      case G_TYPE_INT:
+        g_value_set_int (value, desc->default_value.i);
+        break;
+      case G_TYPE_DOUBLE:
+        g_value_set_double (value, desc->default_value.d);
+        break;
+      case G_TYPE_STRING:
+        g_value_set_string (value, desc->default_value.s);
+        break;
+      case G_TYPE_POINTER:
+        g_value_set_pointer (value, desc->default_value.p);
+        break;
+      default:
+        ASSERT_NOT_REACHED;
     }
+    assert (g_hash_table_insert (hash, g_strdup (desc->name), value));
+  }
 }

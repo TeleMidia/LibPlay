@@ -42,11 +42,15 @@ struct _lp_media_t
   
   char *uri;                        /* content URI */
   GHashTable *properties;           /* property table */
-  GArray *handlers;                 /* handler array */
+  GSList *handlers;                 /* handler list */
   lp_media_type_t type;             /* LP_MEDIA_ATOM or LP_MEDIA_SCENE */     
   
   GHashTable *elements;             /* GStreamer elements table  */
   GstClockTime start_offset;        /* set the start offset */
+  GMainLoop *loop;                  /* loop to get pipeline messages  */
+  GThread *loop_thread;             /* thread running the gmainloop. Ewe need 
+                                       this pointer to free resources when the
+                                       thread exits */
 };
 
 #define _lp_media_lock(m)   g_mutex_lock (&(m)->mutex)
@@ -93,6 +97,9 @@ _lp_media_recursive_get_property_string (lp_media_t *, const char*, char **);
 
 int
 _lp_media_recursive_get_property_pointer (lp_media_t *, const char*, void **);
+
+void
+_lp_media_notify_handlers (lp_media_t *, lp_media_t *, lp_event_t *);
 
 GstElement *
 _lp_media_recursive_get_element (lp_media_t *, const char *);

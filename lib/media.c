@@ -64,6 +64,7 @@ __lp_media_alloc (const char *uri, lp_media_type_t type)
   media->refcount = 1;
   media->uri = g_strdup (uri);
   media->type = type;
+  media->handlers = NULL;
   media->elements = g_hash_table_new_full
     (g_str_hash, g_str_equal,
      (GDestroyNotify) g_free, (GDestroyNotify) gst_object_unref);
@@ -71,21 +72,33 @@ __lp_media_alloc (const char *uri, lp_media_type_t type)
   media->properties = g_hash_table_new_full
     (g_str_hash, g_str_equal,
      (GDestroyNotify) g_free, (GDestroyNotify) __lp_media_g_value_free);
-  media->handlers = g_array_new (FALSE, FALSE, sizeof (lp_event_func_t));
 
+  
   assert (media->properties != NULL);
-  assert (media->handlers != NULL);
   return media;
 }
 
 static void
 __lp_media_free (lp_media_t *media)
 {
+  lp_media_t *parent;
+
+  parent = lp_media_get_parent (media);
+  if (parent == NULL)
+  {
+    g_main_loop_quit (media->loop);
+    g_thread_unref (media->loop_thread);
+  }
+  
+  g_thread_unref (media->loop_thread);
+  g_main_loop_unref (media->loop);
   g_mutex_clear (&media->mutex);
   g_free (media->uri);
   g_hash_table_destroy (media->elements);
   g_hash_table_destroy (media->properties);
-  g_array_free (media->handlers, FALSE);
+  
+  while (media->handlers != NULL)
+    media->handlers = g_slist_remove_link (media->handlers, media->handlers);
 
   g_free (media);
 }
@@ -115,6 +128,113 @@ __lp_media_pad_added_callback (GstElement * source, GstPad * new_pad,
   }
 
   (void) source;
+}
+
+static void
+__lp_gst_bus_state_change_message (GstMessage *message)
+{
+  GstState old_state, new_state;
+
+  gst_message_parse_state_changed (message, &old_state, &new_state, NULL);
+  if (new_state == GST_STATE_PLAYING)
+  {
+    const char *type_name = G_OBJECT_TYPE_NAME (G_OBJECT (message->src));
+    if (strcmp (type_name, "GstBin") == 0)
+    {
+      lp_event_t event;
+      lp_media_t *media;
+
+      lp_event_init_start (&event);
+
+      media = (lp_media_t *)
+        g_object_get_data (G_OBJECT(message->src), "lp_media_t_pointer");
+      assert (media);
+      
+      _lp_media_notify_handlers(media, media, &event);
+    }
+  }
+}
+
+static gpointer
+__lp_gst_bus_loop_thread (gpointer data)
+{
+  GMainLoop *loop = (GMainLoop *) data;
+  g_main_loop_run (loop);
+  g_thread_exit (EXIT_SUCCESS);
+  return NULL;
+}
+
+static gboolean
+__lp_gst_bus_callback (GstBus *bus, GstMessage *message, gpointer data)
+{
+  (void)bus;
+  (void)data;
+  switch (GST_MESSAGE_TYPE (message))
+  {
+    case GST_MESSAGE_STATE_CHANGED:
+    {
+      __lp_gst_bus_state_change_message (message);
+      break;
+    }
+    case GST_MESSAGE_ELEMENT:
+    {
+      /* Not supported yet */
+    }
+    case GST_MESSAGE_APPLICATION:
+    {
+      /* TODO */
+      break;
+    }
+    case GST_MESSAGE_ERROR:
+    {
+      GError *err;
+      
+      gst_message_parse_error (message, &err, NULL);
+      g_debug ("Error: %s\n", err->message);
+      g_error_free (err);
+      break;
+    }
+    case GST_MESSAGE_EOS:
+    {
+      /*
+       * end-of-stream 
+       */
+      break;
+    }
+    default:
+      /*
+       * unhandled message 
+       */
+      break;
+  }
+
+  return TRUE;
+}
+
+static void
+__lp_gst_setup (lp_media_t *media)
+{
+  GstElement *e;
+  GstBus *bus;
+  
+  gst_init (NULL, NULL);
+
+  e = gst_pipeline_new ("pipeline");
+  assert (e);
+
+  _lp_media_add_element (media, strdup ("pipeline"), e);  
+  
+  bus = gst_pipeline_get_bus (GST_PIPELINE (e));
+  gst_bus_add_watch (bus, __lp_gst_bus_callback, NULL);
+  
+  media->loop = g_main_loop_new (NULL, FALSE);
+
+  /* The following code is causing memory leak. */
+  media->loop_thread =  g_thread_new (NULL, __lp_gst_bus_loop_thread, 
+      media->loop);
+  assert (media->loop_thread);
+  
+  gst_object_unref (bus);
 }
 
 void
@@ -149,6 +269,9 @@ _lp_media_atom_start (lp_media_t *media)
   g_signal_connect (G_OBJECT (decoder), "pad-added",
                     G_CALLBACK (__lp_media_pad_added_callback), media);
 
+  
+  g_object_set_data (G_OBJECT(bin), "lp_media_t_pointer", media); 
+  
   g_hash_table_insert (media->elements, strdup ("bin"), bin);
   g_hash_table_insert (media->elements, strdup ("decoder"), decoder);
 
@@ -189,6 +312,26 @@ _lp_media_scene_stop (lp_media_t *media)
   /* Not implemented yet */
 }
 
+void
+_lp_media_notify_handlers (lp_media_t *to_notify, lp_media_t *media, 
+    lp_event_t *event)
+{
+  lp_media_t *parent;
+  GSList *l;
+  
+  for (l = to_notify->handlers; l != NULL; l = l->next)
+  {
+    lp_event_func_t f;
+    f = (lp_event_func_t) integralof (l->data);
+    if (f(media, event) == FALSE)
+      l = g_slist_remove_link (l, l);
+  }
+
+  parent = lp_media_get_parent (to_notify);
+  if (parent != NULL)
+    _lp_media_notify_handlers (parent, media, event);
+}
+
 /*-
  * lp_media_create:
  * @uri: source URI for the media object
@@ -205,18 +348,18 @@ lp_media_create (const char *uri)
 
   if (unlikely (default_parent == NULL))
   {
-    GstElement *e;
     default_parent = __lp_media_alloc (NULL, LP_MEDIA_SCENE);
 
     /* GStreamer stuffs */
-    gst_init (NULL, NULL);
-
-    e = gst_pipeline_new ("pipeline");
-    g_hash_table_insert (default_parent->elements, strdup ("pipeline"), e);
+    __lp_gst_setup (default_parent);
   }
-
   media = __lp_media_alloc (uri, LP_MEDIA_ATOM);
   media->parent = default_parent;
+  media->loop = media->parent->loop;
+  media->loop_thread = media->parent->loop_thread;
+
+  g_thread_ref (media->loop_thread);
+  g_main_loop_ref (media->loop);
 
   return media;
 }
@@ -558,16 +701,25 @@ lp_media_set_property_pointer (lp_media_t *media, const char *name,
 LP_API int
 lp_media_register (lp_media_t *media, lp_event_func_t handler)
 {
-  guint i;
+  GSList *l = NULL, *p = NULL;
   int found = 0;
-  for (i = 0; i < media->handlers->len && !found; i++)
+  
+  assert (handler != NULL);
+  l = media->handlers;
+  while (l != NULL && !found)
   {
-    if (g_array_index (media->handlers, lp_event_func_t, i) == handler)
+    if (((lp_event_func_t) integralof (l->data)) == handler)
       found = 1;
+    
+    l = l->next;
   }
+
   if (!found)
   {
-    g_array_append_val (media->handlers, handler);
+    p = g_slist_append (p, pointerof(handler));
+    if (media->handlers == NULL)
+      media->handlers = p;
+
     return TRUE;
   }
   else
@@ -586,21 +738,24 @@ lp_media_register (lp_media_t *media, lp_event_func_t handler)
 LP_API int
 lp_media_unregister (lp_media_t *media, lp_event_func_t handler)
 {
-  guint i;
+  GSList *l = NULL;
   int found = 0;
-  for (i = 0; i < media->handlers->len && !found; i++)
+  
+  assert (handler != NULL);
+  l = media->handlers;
+  while (l != NULL && !found)
   {
-    if (g_array_index (media->handlers, lp_event_func_t, i) == handler)
+    if (((lp_event_func_t) integralof (l->data)) == handler)
+    {
+      l = g_slist_remove_link (l, l);
       found = 1;
+    }
+    l = l->next;
   }
-  if (found)
-  {
-    --i;
-    g_array_remove_index (media->handlers, i);
-    return TRUE;
-  }
-  else
+  if (!found)
     return FALSE;
+  else
+    return TRUE;
 }
 
 LP_API void

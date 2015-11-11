@@ -19,6 +19,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <config.h>
 
 #include "play.h"
+#include "macros.h"
 
 
 /* Exported functions.  */
@@ -31,7 +32,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
  *
  * Returns: a string representation of the status.
  */
-const char *
+ATTR_CONST const char *
 lp_status_to_string (lp_status_t status)
 {
   switch (status)

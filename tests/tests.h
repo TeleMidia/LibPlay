@@ -37,7 +37,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
   }                                                             \
   STMT_END
 
-static inline void
+static ATTR_UNUSED void
 ASSERT_MEDIA_IS_EMPTY (lp_media_t *media, const char *uri)
 {
   ASSERT (media != NULL);

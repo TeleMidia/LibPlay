@@ -49,7 +49,7 @@ static void __lp_media_free (lp_media_t *);
 
 /* Returns a reference to an invalid #lp_media_t.  */
 
-static ATTR_USE_RESULT lp_media_t *
+static ATTR_PURE lp_media_t *
 __lp_media_create_in_error (lp_status_t status)
 {
   lp_media_t *media;
@@ -114,7 +114,7 @@ __lp_media_free (lp_media_t *media)
  * The caller owns the returned object and should call lp_media_destroy()
  * when finished with it.  This function never returns %NULL.
  */
-LP_API lp_media_t *
+lp_media_t *
 lp_media_create (const char *uri)
 {
   return __lp_media_alloc (uri);
@@ -133,7 +133,7 @@ lp_media_create (const char *uri)
  * returned object is to be retained after the @parent is destroyed.  This
  * function never returns %NULL.
  */
-LP_API lp_media_t *
+lp_media_t *
 lp_media_create_for_parent (lp_media_t *parent, const char *uri)
 {
   lp_media_t *media;
@@ -183,7 +183,7 @@ lp_media_destroy (lp_media_t *media)
  *
  * Return value: the current status of this media, see #lp_status_t.
  */
-lp_status_t
+lp_status_t ATTR_PURE
 lp_media_status (lp_media_t *media)
 {
   assert (media != NULL);

@@ -80,6 +80,7 @@
 /tests/test-lp-media-set-get-property-int
 /tests/test-lp-media-set-get-property-pointer
 /tests/test-lp-media-set-get-property-string
+/tests/test-lp-media-start
 Makefile
 Makefile.in
 autom4te.cache

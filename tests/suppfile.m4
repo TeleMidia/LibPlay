@@ -10,6 +10,7 @@ define([suppress],[dnl
 
 suppress(_dl_init)
 suppress(g_array_append_vals)
+suppress(g_thread_new)
 suppress(g_type_add_interface_static)
 suppress(g_type_class_ref)
 suppress(g_type_register_fundamental)

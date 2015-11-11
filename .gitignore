@@ -68,11 +68,14 @@
 /tests/env.sh
 /tests/gdb.cfg
 /tests/suppfile
+/tests/test-lp-status-to-string
 /tests/test-lp-event-equals
 /tests/test-lp-event-init-start
 /tests/test-lp-event-init-stop
 /tests/test-lp-media-create
+/tests/test-lp-media-create-for-parent
 /tests/test-lp-media-destroy
+/tests/test-lp-media-status
 /tests/test-lp-media-get-reference-count
 /tests/test-lp-media-reference
 /tests/test-lp-media-register-unregister

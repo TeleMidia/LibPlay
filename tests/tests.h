@@ -20,17 +20,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #define TESTS_H
 
 #include <config.h>
-#include <ctype.h>
-#include <errno.h>
-#include <float.h>
-#include <limits.h>
-#include <math.h>
-#include <setjmp.h>
-#include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 
 #include "play.h"
 #include "play-internal.h"
@@ -46,4 +36,18 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
       }                                                         \
   }                                                             \
   STMT_END
+
+static inline void
+ASSERT_MEDIA_IS_EMPTY (lp_media_t *media, const char *uri)
+{
+  ASSERT (media != NULL);
+  ASSERT (media->status == LP_STATUS_SUCCESS);
+  ASSERT (media->ref_count == 1);
+  ASSERT (media->parent == NULL);
+  ASSERT (g_strcmp0 (media->uri, uri) == 0);
+  ASSERT (media->children == NULL);
+  ASSERT (media->properties != NULL);
+  ASSERT (g_hash_table_size (media->properties) == 0);
+}
+
 #endif /* TESTS_H */

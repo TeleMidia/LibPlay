@@ -22,28 +22,15 @@ main (void)
 {
   lp_media_t *media;
 
-  /* no-op: NULL media */
-  ASSERT (lp_media_get_reference_count (NULL) == 0);
-
   /* no-op: invalid media */
   media = lp_media_create_for_parent (NULL, NULL);
-  ASSERT (lp_media_get_reference_count (NULL) == 0);
-  lp_media_destroy (NULL);
+  ASSERT (lp_media_status (media) == LP_STATUS_NULL_POINTER);
+  lp_media_destroy (media);
 
   /* success */
   media = lp_media_create (NULL);
   ASSERT_MEDIA_IS_EMPTY (media, NULL);
-  ASSERT (media->ref_count == 1);
-  ASSERT (lp_media_get_reference_count (media) == 1);
-
-  ASSERT (lp_media_reference (media) == media);
-  ASSERT (media->ref_count == 2);
-  ASSERT (lp_media_get_reference_count (media) == 2);
-
-  lp_media_destroy (media);
-  ASSERT (media->ref_count == 1);
-  ASSERT (lp_media_get_reference_count (media) == 1);
-
+  ASSERT (lp_media_status (media) == LP_STATUS_SUCCESS);
   lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);

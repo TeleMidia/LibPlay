@@ -43,13 +43,14 @@ AM_COLOR_TESTS= always
 DISABLE_HARD_ERRORS= true
 TEST_EXTENSIONS= .sh
 LOG_COMPILER= $(_VALGRIND)
+VALGRIND_OPTIONS+= --show-reachable=yes --errors-for-leak-kinds=all
 SH_LOG_COMPILER= $(SHELL)
 
 AM_TESTS_ENVIRONMENT=\
   export G_DEBUG="all";\
   export G_SLICE="always-malloc";\
   export LD_LIBRARY_PATH="$(top_builddir)/lib/.libs";\
-  export LD_PRELOAD="$(LD_PRELOAD)";\
+  export LD_PRELOAD="libplay$(SOEXT)";\
   export MALLOC_CHECK_=1;\
   $(NULL)
 
@@ -59,21 +60,24 @@ check_SCRIPTS= $(scripts)
 
 # Test programs.
 programs=
+# status
+programs+= test-lp-status-to-string
 # event
-programs+= test-lp-event-init-start
-programs+= test-lp-event-init-stop
-programs+= test-lp-event-equals
+# programs+= test-lp-event-init-start
+# programs+= test-lp-event-init-stop
+# programs+= test-lp-event-equals
 # media
 programs+= test-lp-media-create
+programs+= test-lp-media-create-for-parent
 programs+= test-lp-media-destroy
-programs+= test-lp-media-get-reference-count
+programs+= test-lp-media-status
 programs+= test-lp-media-reference
-programs+= test-lp-media-register-unregister
-programs+= test-lp-media-set-get-property-double
-programs+= test-lp-media-set-get-property-int
-programs+= test-lp-media-set-get-property-pointer
-programs+= test-lp-media-set-get-property-string
-programs+= test-lp-media-start
+programs+= test-lp-media-get-reference-count
+# programs+= test-lp-media-register-unregister
+# programs+= test-lp-media-set-get-property-double
+# programs+= test-lp-media-set-get-property-int
+# programs+= test-lp-media-set-get-property-pointer
+# programs+= test-lp-media-set-get-property-string
 check_PROGRAMS= $(programs)
 
 TESTS=\

@@ -20,23 +20,17 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  lp_media_t *m;
-  lp_media_t *parent;
+  lp_media_t *media;
 
-  m = lp_media_create ("xyz");
-  ASSERT (m != NULL);
+  /* success: NULL URI */
+  media = lp_media_create (NULL);
+  ASSERT_MEDIA_IS_EMPTY (media, NULL);
+  lp_media_destroy (media);
 
-  parent = lp_media_get_parent (m);
-  ASSERT (parent != NULL);
-  ASSERT (parent == _lp_media_get_default_parent ());
-
-  ASSERT (m->parent == parent);
-  ASSERT (m->refcount == 1);
-  ASSERT (streq (m->uri, "xyz"));
-  ASSERT (m->properties != NULL);
-
-  lp_media_destroy (m);
-  _lp_media_destroy_default_parent ();
+  /* success: non-NULL URI */
+  media = lp_media_create ("abc");
+  ASSERT_MEDIA_IS_EMPTY (media, "abc");
+  lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);
 }

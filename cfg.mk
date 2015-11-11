@@ -34,6 +34,7 @@ INDENT_OPTIONS=\
 INDENT_EXCLUDE=\
   lib/play-internal.h\
   lib/play.h\
+  lua/luax-macros.h\
   tests/tests.h\
   $(NULL)
 
@@ -44,6 +45,8 @@ INDENT_TYPES=\
   GValue\
   lp_event_t\
   lp_media_t\
+  lp_properties_desc_t\
+  lp_properties_t\
   lp_value_t\
   $(NULL)
 

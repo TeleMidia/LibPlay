@@ -300,6 +300,8 @@ __lp_media_get_property (lp_media_t *media, const char *name,
   if (G_VALUE_TYPE (value) != type)
     return FALSE;
 
+  _lp_media_lock (media);
+
   switch (type)
   {
     case G_TYPE_INT:
@@ -317,6 +319,8 @@ __lp_media_get_property (lp_media_t *media, const char *name,
     default:
       ASSERT_NOT_REACHED;
   }
+  
+  _lp_media_unlock (media);
   return TRUE;
 }
 
@@ -345,8 +349,9 @@ __lp_media_set_property (lp_media_t *media, const char *name,
       ASSERT_NOT_REACHED;
   }
 
+  _lp_media_lock (media);
   g_hash_table_insert (media->properties, g_strdup (name), value);
-
+  _lp_media_unlock (media);
   return TRUE;
 }
 

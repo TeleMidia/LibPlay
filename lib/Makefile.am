@@ -20,8 +20,8 @@ include $(top_srcdir)/build-aux/Makefile.am.common
 
 AM_CFLAGS= $(WERROR_CFLAGS) $(WARN_CFLAGS)
 
-EXTRA_DIST= play.pc.in ncluaconf.h.in
-DISTCLEANFILES+= play.pc ncluaconf.h
+EXTRA_DIST= play.pc.in playconf.h.in
+DISTCLEANFILES+= play.pc playconf.h
 
 pkgconfigdir= $(libdir)/pkgconfig
 pkgconfig_DATA= play.pc
@@ -32,16 +32,15 @@ lib_LTLIBRARIES= libplay.la
 
 libplay_la_DEPENDENCIES= $(include_HEADERS) $(noinst_HEADERS)
 libplay_la_CPPFLAGS= -DLP_BUILDING
-libplay_la_CFLAGS= $(AM_CFLAGS) $(CFLAGS_VISIBILITY)\
+libplay_la_CFLAGS= $(AM_CFLAGS) $(CFLAG_VISIBILITY)\
   $(GLIB_CFLAGS) $(GSTREAMER_CFLAGS)
 libplay_la_LDFLAGS= -version-info $(LIBPLAY_LIBTOOL_STRING) -no-undefined\
   $(GLIB_CFLAGS) $(GSTREAMER_LIBS)
 libplay_la_SOURCES=\
-	audio.c\
-	play.h\
-	video.c\
-  event.c\
-  macros.h\
-  media.c\
+  lp-media.c\
+  lp-status.c\
+  lp-util.c\
+  play-internal.h\
+  play.h\
   playconf.h\
   $(NULL)

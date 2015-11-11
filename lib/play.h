@@ -23,6 +23,23 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 LP_BEGIN_DECLS
 
+/* status */
+
+typedef enum _lp_status_t
+{
+  LP_STATUS_SUCCESS = 0,
+  LP_STATUS_NULL_POINTER,
+  LP_STATUS_READ_ERROR,
+  LP_STATUS_WRITE_ERROR,
+  LP_STATUS_FILE_NOT_FOUND,
+  LP_STATUS_NEGATIVE_COUNT,
+  LP_STATUS_INVALID_PARENT,
+  LP_STATUS_LAST_STATUS
+} lp_status_t;
+
+LP_API const char *
+lp_status_to_string (lp_status_t);
+
 /* event */
 
 typedef enum _lp_event_type_t
@@ -47,62 +64,26 @@ lp_event_equals (const lp_event_t *, const lp_event_t *);
 
 /* media */
 
-typedef enum _lp_media_type_t
-{
-  LP_MEDIA_ATOM = 0,
-  LP_MEDIA_SCENE
-} lp_media_type_t;
-
 typedef struct _lp_media_t lp_media_t;
 typedef int (*lp_event_func_t) (lp_media_t *, lp_event_t *);
 
 LP_API lp_media_t *
 lp_media_create (const char *uri);
 
+LP_API lp_media_t *
+lp_media_create_for_parent (lp_media_t *, const char *);
+
 LP_API void
 lp_media_destroy (lp_media_t *);
+
+LP_API lp_status_t
+lp_media_status (lp_media_t *);
 
 LP_API lp_media_t *
 lp_media_reference (lp_media_t *);
 
 LP_API unsigned int
 lp_media_get_reference_count (const lp_media_t *);
-
-LP_API lp_media_t *
-lp_media_get_parent (const lp_media_t *);
-
-LP_API int
-lp_media_get_property_int (lp_media_t *, const char *, int *);
-
-LP_API int
-lp_media_set_property_int (lp_media_t *, const char *, int);
-
-LP_API int
-lp_media_get_property_double (lp_media_t *, const char *, double *);
-
-LP_API int
-lp_media_set_property_double (lp_media_t *, const char *, double);
-
-LP_API int
-lp_media_get_property_string (lp_media_t *, const char *, char **);
-
-LP_API int
-lp_media_set_property_string (lp_media_t *, const char *, const char *);
-
-LP_API int
-lp_media_get_property_pointer (lp_media_t *, const char *, void **);
-
-LP_API int
-lp_media_set_property_pointer (lp_media_t *, const char *, void *);
-
-LP_API void
-lp_media_post (lp_media_t *, const lp_event_t *);
-
-LP_API int
-lp_media_register (lp_media_t *, lp_event_func_t);
-
-LP_API int
-lp_media_unregister (lp_media_t *, lp_event_func_t);
 
 LP_END_DECLS
 

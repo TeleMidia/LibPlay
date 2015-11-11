@@ -23,78 +23,34 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* *INDENT-OFF* */
 PRAGMA_DIAG_PUSH ()
-PRAGMA_DIAG_IGNORE (-Wvariadic-macros)
 PRAGMA_DIAG_IGNORE (-Wcast-qual)
 PRAGMA_DIAG_IGNORE (-Wconversion)
 PRAGMA_DIAG_IGNORE (-Wpedantic)
+PRAGMA_DIAG_IGNORE (-Wvariadic-macros)
 #include <glib.h>
 #include <glib-object.h>
 #include <gst/gst.h>
 PRAGMA_DIAG_POP ()
 /* *INDENT-ON* */
 
-/* Media object data.  */
+/* lp-media */
+
 struct _lp_media_t
 {
-  lp_media_t *parent;               /* parent */
-  guint refcount;                   /* reference counter */
-  GMutex mutex;                     /* sync access to object */
-  
-  char *uri;                        /* content URI */
-  GHashTable *properties;           /* property table */
-  GArray *handlers;                 /* handler array */
-  lp_media_type_t type;             /* LP_MEDIA_ATOM or LP_MEDIA_SCENE */     
-  
-  GHashTable *elements;             /* GStreamer elements table  */
-  GstClockTime start_offset;        /* set the start offset */
+  lp_status_t status;           /* error status */
+  gint ref_count;               /* reference counter */
+  lp_media_t *parent;           /* parent */
+
+  char *uri;                    /* content URI */
+  GList *children;              /* children list */
+  GHashTable *properties;       /* property table */
 };
 
-#define _lp_media_lock(m)   g_mutex_lock (&(m)->mutex)
-#define _lp_media_unlock(m) g_mutex_unlock (&(m)->mutex)
+#define _lp_media_is_valid(m) ((m) != NULL && !(m)->status)
 
-#define _lp_media_get_element(m,e) \
-  (GstElement *) g_hash_table_lookup(m->elements, e)
+/* lp-util */
 
-#define _lp_media_add_element(m,k,v) \
-  g_hash_table_insert (m->elements,k,v)
-
-lp_media_t *
-_lp_media_get_default_parent (void);
-
-void
-_lp_media_destroy_default_parent (void);
-
-void
-_lp_media_atom_start (lp_media_t *);
-
-void
-_lp_media_scene_start (lp_media_t *);
-
-void
-_lp_media_atom_stop (lp_media_t *);
-
-void
-_lp_media_scene_stop (lp_media_t *);
-
-int
-_lp_media_set_video_bin (lp_media_t *, GstPad *);
-
-int
-_lp_media_set_audio_bin (lp_media_t *, GstPad *);
-
-int
-_lp_media_recursive_get_property_int (lp_media_t *, const char*, int *);
-
-int
-_lp_media_recursive_get_property_double(lp_media_t *, const char*, double *);
-
-int
-_lp_media_recursive_get_property_string (lp_media_t *, const char*, char **);
-
-int
-_lp_media_recursive_get_property_pointer (lp_media_t *, const char*, void **);
-
-GstElement *
-_lp_media_recursive_get_element (lp_media_t *, const char *);
+GValue *_lp_util_g_value_alloc (GType);
+void _lp_util_g_value_free (GValue *);
 
 #endif /* PLAY_INTERNAL */

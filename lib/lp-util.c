@@ -41,6 +41,26 @@ _lp_util_g_value_alloc (GType type)
 void
 _lp_util_g_value_free (GValue *value)
 {
+  if (unlikely (value == NULL))
+    return;
+
   g_value_unset (value);
   g_slice_free (GValue, value);
+}
+
+/* Allocates and returns a copy of the given #GValue.  */
+
+ATTR_USE_RESULT GValue *
+_lp_util_g_value_dup (GValue *value)
+{
+  GValue *new_value;
+
+  if (unlikely (value == NULL))
+    return value;
+
+  new_value = _lp_util_g_value_alloc (G_VALUE_TYPE (value));
+  assert (new_value != NULL);
+  g_value_copy (value, new_value);
+
+  return new_value;
 }

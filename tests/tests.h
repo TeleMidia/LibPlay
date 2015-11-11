@@ -47,7 +47,6 @@ ASSERT_MEDIA_IS_EMPTY (lp_media_t *media, const char *uri)
   ASSERT (g_strcmp0 (media->uri, uri) == 0);
   ASSERT (media->children == NULL);
   ASSERT (media->properties != NULL);
-  ASSERT (g_hash_table_size (media->properties) == 0);
 }
 
 #endif /* TESTS_H */

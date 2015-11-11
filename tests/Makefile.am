@@ -60,13 +60,21 @@ check_SCRIPTS= $(scripts)
 
 # Test programs.
 programs=
-# status
+# _lp-util
+programs+= test-_lp-util-g-value-alloc
+programs+= test-_lp-util-g-value-free
+programs+= test-_lp-util-g-value-dup
+# _lp-properties
+programs+= test-_lp-properties-alloc
+programs+= test-_lp-properties-free
+programs+= test-_lp-properties-reset-all
+# lp-status
 programs+= test-lp-status-to-string
-# event
+# lp-event
 programs+= test-lp-event-init-start
 programs+= test-lp-event-init-stop
 programs+= test-lp-event-equals
-# media
+# lp-media
 programs+= test-lp-media-create
 programs+= test-lp-media-create-for-parent
 programs+= test-lp-media-destroy

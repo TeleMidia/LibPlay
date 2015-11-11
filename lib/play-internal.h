@@ -33,24 +33,54 @@ PRAGMA_DIAG_IGNORE (-Wvariadic-macros)
 PRAGMA_DIAG_POP ()
 /* *INDENT-ON* */
 
+/* lp-properties */
+
+#define LP_PROPERTY_DEFAULT_WIDTH  800 /* pixels */
+#define LP_PROPERTY_DEFAULT_HEIGHT 600 /* pixels */
+
+typedef struct _lp_properties_t
+{
+  GHashTable *hash;             /* hash table */
+} lp_properties_t;
+
+lp_properties_t *
+_lp_properties_alloc (void);
+
+void
+_lp_properties_free (lp_properties_t *);
+
+void
+_lp_properties_reset_all (lp_properties_t *);
+
+int
+_lp_properties_get (lp_properties_t *, const char *, GValue *);
+
+int
+_lp_properties_set (lp_properties_t *, const char *, GValue *);
+
 /* lp-media */
 
 struct _lp_media_t
 {
-  lp_status_t status;           /* error status */
-  gint ref_count;               /* reference counter */
-  lp_media_t *parent;           /* parent */
-
-  char *uri;                    /* content URI */
-  GList *children;              /* children list */
-  GHashTable *properties;       /* property table */
+  lp_status_t status;            /* error status */
+  gint ref_count;                /* reference counter */
+  lp_media_t *parent;            /* parent */
+  char *uri;                     /* content URI */
+  GList *children;               /* children list */
+  lp_properties_t *properties;   /* property table */
 };
 
 #define _lp_media_is_valid(m) ((m) != NULL && !(m)->status)
 
 /* lp-util */
 
-GValue *_lp_util_g_value_alloc (GType);
-void _lp_util_g_value_free (GValue *);
+GValue *
+_lp_util_g_value_alloc (GType);
+
+void
+_lp_util_g_value_free (GValue *);
+
+GValue *
+_lp_util_g_value_dup (GValue *);
 
 #endif /* PLAY_INTERNAL */

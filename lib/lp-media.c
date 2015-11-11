@@ -80,10 +80,7 @@ __lp_media_alloc (const char *uri)
 
   media->uri = g_strdup (uri);
   media->children = NULL;
-  media->properties = g_hash_table_new_full
-    (g_str_hash, g_str_equal,
-     (GDestroyNotify) g_free,
-     (GDestroyNotify) _lp_util_g_value_free);
+  media->properties = _lp_properties_alloc ();
   assert (media->properties != NULL);
 
   return media;
@@ -96,7 +93,7 @@ __lp_media_free (lp_media_t *media)
 {
   g_free (media->uri);
   g_list_free_full (media->children, (GDestroyNotify) lp_media_destroy);
-  g_hash_table_destroy (media->properties);
+  _lp_properties_free (media->properties);
   g_free (media);
 }
 

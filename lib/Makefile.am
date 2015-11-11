@@ -39,6 +39,7 @@ libplay_la_LDFLAGS= -version-info $(LIBPLAY_LIBTOOL_STRING) -no-undefined\
 libplay_la_SOURCES=\
   lp-event.c\
   lp-media.c\
+  lp-properties.c\
   lp-status.c\
   lp-util.c\
   play-internal.h\

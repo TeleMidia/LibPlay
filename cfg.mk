@@ -60,8 +60,10 @@ SC_COPYRIGHT_EXCLUDE=\
   build-aux/Makefile.am.coverage\
   build-aux/Makefile.am.env\
   build-aux/Makefile.am.gitlog\
+  build-aux/Makefile.am.link\
   build-aux/Makefile.am.valgrind\
   lib/macros.h\
+  lua/luax-macros.h\
   maint.mk\
   $(NULL)
 

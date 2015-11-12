@@ -38,10 +38,7 @@ PRAGMA_DIAG_POP ()
 #define LP_PROPERTY_DEFAULT_WIDTH  800 /* pixels */
 #define LP_PROPERTY_DEFAULT_HEIGHT 600 /* pixels */
 
-typedef struct _lp_properties_t
-{
-  GHashTable *hash;             /* hash table */
-} lp_properties_t;
+typedef struct _lp_properties_t lp_properties_t;
 
 lp_properties_t *
 _lp_properties_alloc (void);
@@ -49,14 +46,20 @@ _lp_properties_alloc (void);
 void
 _lp_properties_free (lp_properties_t *);
 
+unsigned int
+_lp_properties_size (const lp_properties_t *);
+
+int
+_lp_properties_get (const lp_properties_t *, const char *, GValue *);
+
+int
+_lp_properties_set (lp_properties_t *, const char *, const GValue *);
+
+int
+_lp_properties_reset (lp_properties_t *, const char *);
+
 void
 _lp_properties_reset_all (lp_properties_t *);
-
-int
-_lp_properties_get (lp_properties_t *, const char *, GValue *);
-
-int
-_lp_properties_set (lp_properties_t *, const char *, GValue *);
 
 /* lp-media */
 
@@ -81,6 +84,6 @@ void
 _lp_util_g_value_free (GValue *);
 
 GValue *
-_lp_util_g_value_dup (GValue *);
+_lp_util_g_value_dup (const GValue *);
 
 #endif /* PLAY_INTERNAL */

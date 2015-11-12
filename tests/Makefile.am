@@ -67,6 +67,10 @@ programs+= test-_lp-util-g-value-dup
 # _lp-properties
 programs+= test-_lp-properties-alloc
 programs+= test-_lp-properties-free
+programs+= test-_lp-properties-size
+programs+= test-_lp-properties-get
+programs+= test-_lp-properties-set
+programs+= test-_lp-properties-reset
 programs+= test-_lp-properties-reset-all
 # lp-status
 programs+= test-lp-status-to-string

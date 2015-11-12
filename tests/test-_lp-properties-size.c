@@ -21,10 +21,22 @@ int
 main (void)
 {
   lp_properties_t *props;
+  GValue value = G_VALUE_INIT;
 
+  /* no-op: NULL pointer */
+  ASSERT (_lp_properties_size (NULL) == 0);
+
+  /* success */
   props = _lp_properties_alloc ();
   ASSERT (props != NULL);
   ASSERT (_lp_properties_size (props) == 0);
+
+  g_value_init (&value, G_TYPE_INT);
+  g_value_set_int (&value, 0);
+  ASSERT (_lp_properties_set (props, "i", &value));
+  g_value_unset (&value);
+
+  ASSERT (_lp_properties_size (props) == 1);
   _lp_properties_free (props);
 
   exit (EXIT_SUCCESS);

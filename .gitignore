@@ -69,11 +69,15 @@
 /tests/gdb.cfg
 /tests/suppfile
 /tests/test-_lp-util-g-value-alloc
-/tests/test-_lp-util-g-value-free
 /tests/test-_lp-util-g-value-dup
+/tests/test-_lp-util-g-value-free
 /tests/test-_lp-properties-alloc
 /tests/test-_lp-properties-free
+/tests/test-_lp-properties-get
+/tests/test-_lp-properties-reset
 /tests/test-_lp-properties-reset-all
+/tests/test-_lp-properties-set
+/tests/test-_lp-properties-size
 /tests/test-lp-status-to-string
 /tests/test-lp-event-equals
 /tests/test-lp-event-init-start

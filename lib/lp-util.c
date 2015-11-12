@@ -50,14 +50,16 @@ _lp_util_g_value_free (GValue *value)
 /* Allocates and returns a copy of the given #GValue.  */
 
 ATTR_USE_RESULT GValue *
-_lp_util_g_value_dup (GValue *value)
+_lp_util_g_value_dup (const GValue *value)
 {
   GValue *new_value;
+  GType type;
 
   if (unlikely (value == NULL))
-    return value;
+    return NULL;
 
-  new_value = _lp_util_g_value_alloc (G_VALUE_TYPE (value));
+  type = G_VALUE_TYPE (deconst (GValue *, value));
+  new_value = _lp_util_g_value_alloc (type);
   assert (new_value != NULL);
   g_value_copy (value, new_value);
 

@@ -27,7 +27,7 @@ main (void)
 
   /* success */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
+  assert (props != NULL);
   _lp_properties_free (props);
 
   exit (EXIT_SUCCESS);

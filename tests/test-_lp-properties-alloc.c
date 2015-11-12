@@ -23,8 +23,8 @@ main (void)
   lp_properties_t *props;
 
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
-  ASSERT (_lp_properties_size (props) == 0);
+  assert (props != NULL);
+  assert (_lp_properties_size (props) == 0);
   _lp_properties_free (props);
 
   exit (EXIT_SUCCESS);

@@ -45,8 +45,11 @@ typedef struct _lp_properties_desc_t
 /* List of known properties.  */
 static const lp_properties_desc_t known_properties[] = {
   /* KEEP THIS SORTED ALPHABETICALLY */
-  {"height", G_TYPE_INT, TRUE, {LP_PROPERTY_DEFAULT_HEIGHT}},
-  {"width", G_TYPE_INT, TRUE, {LP_PROPERTY_DEFAULT_WIDTH}},
+  {"height", G_TYPE_INT, FALSE, {NULL}},
+  {"width", G_TYPE_INT, FALSE, {NULL}},
+  {"x", G_TYPE_INT, TRUE, {LP_PROPERTY_DEFAULT_X}},
+  {"y", G_TYPE_INT, TRUE, {LP_PROPERTY_DEFAULT_Y}},
+  {"z", G_TYPE_INT, TRUE, {LP_PROPERTY_DEFAULT_Z}},
 };
 
 /* Compares two property descriptors.  */
@@ -75,43 +78,6 @@ __lp_properties_get_desc (const char *name, lp_properties_desc_t **desc)
     return FALSE;
 
   set_if_nonnull (desc, match);
-  return TRUE;
-}
-
-/* Sets #lp_properties_t property @name to the default value of @desc.
-   Returns %TRUE if successful, or %FALSE if @desc has no default value.  */
-
-static int
-__lp_properties_set_desc (lp_properties_t *prop, const char *name,
-                          const lp_properties_desc_t *desc)
-{
-  GValue *value;
-
-  assert (streq (name, desc->name));
-
-  if (unlikely (!desc->has_default))
-    return FALSE;
-
-  value = _lp_util_g_value_alloc (desc->type);
-  switch (desc->type)
-    {
-    case G_TYPE_INT:
-      g_value_set_int (value, desc->default_value.i);
-      break;
-    case G_TYPE_DOUBLE:
-      g_value_set_double (value, desc->default_value.d);
-      break;
-    case G_TYPE_STRING:
-      g_value_set_string (value, desc->default_value.s);
-      break;
-    case G_TYPE_POINTER:
-      g_value_set_pointer (value, desc->default_value.p);
-      break;
-    default:
-      ASSERT_NOT_REACHED;
-    }
-
-  g_hash_table_insert (prop->hash, g_strdup (desc->name), value);
   return TRUE;
 }
 
@@ -168,6 +134,7 @@ ATTR_USE_RESULT int
 _lp_properties_get (const lp_properties_t *props, const char *name,
                     GValue *value)
 {
+  GValue default_value = G_VALUE_INIT;
   GValue *result;
 
   if (unlikely (props == NULL))
@@ -178,13 +145,30 @@ _lp_properties_get (const lp_properties_t *props, const char *name,
 
   result = (GValue *) g_hash_table_lookup (props->hash, name);
   if (result == NULL)
-    return FALSE;
+    {
+      lp_properties_desc_t *desc;
+      if (__lp_properties_get_desc (name, &desc) && desc->has_default)
+        {
+          ptrdiff_t ptr = (ptrdiff_t) desc;
+          ptr += (ptrdiff_t) offsetof (lp_properties_desc_t, default_value);
+          _lp_util_g_value_init_and_set (&default_value, desc->type,
+                                         pointerof (ptr));
+          result = &default_value;
+        }
+      else
+        {
+          return FALSE;
+        }
+    }
 
   if (value != NULL)
   {
     g_value_init (value, G_VALUE_TYPE (result));
     g_value_copy (result, value);
   }
+
+  if (result == &default_value)
+    g_value_unset (&default_value);
 
   return TRUE;
 }
@@ -226,18 +210,13 @@ _lp_properties_set (lp_properties_t *props, const char *name,
 ATTR_USE_RESULT int
 _lp_properties_reset (lp_properties_t *props, const char *name)
 {
-  lp_properties_desc_t *desc;
-
   if (unlikely (props == NULL))
     return FALSE;
 
   if (unlikely (name == NULL))
     return FALSE;
 
-  if (!__lp_properties_get_desc (name, &desc))
-    return FALSE;
-
-  return __lp_properties_set_desc (props, name, desc);
+  return g_hash_table_remove (props->hash, name);
 }
 
 /* Resets all #lp_properties_t properties to their default values.  */
@@ -245,15 +224,7 @@ _lp_properties_reset (lp_properties_t *props, const char *name)
 void
 _lp_properties_reset_all (lp_properties_t *props)
 {
-  size_t i;
-
   if (unlikely (props == NULL))
     return;
-
   g_hash_table_remove_all (props->hash);
-  for (i = 0; i < nelementsof (known_properties); i++)
-    {
-      const lp_properties_desc_t *desc = &known_properties[i];
-      __lp_properties_set_desc (props, desc->name, desc);
-    }
 }

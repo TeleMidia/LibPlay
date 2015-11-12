@@ -24,38 +24,38 @@ main (void)
   GValue value = G_VALUE_INIT;
 
   /* no-op: NULL props */
-  ASSERT (_lp_properties_reset (NULL, NULL) == FALSE);
+  assert (_lp_properties_reset (NULL, NULL) == FALSE);
 
   /* no-op: NULL name */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
-  ASSERT (_lp_properties_reset (props, NULL) == FALSE);
+  assert (props != NULL);
+  assert (_lp_properties_reset (props, NULL) == FALSE);
   _lp_properties_free (props);
 
   /* no-op: unknown property */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
-  ASSERT (_lp_properties_reset (props, "unknown") == FALSE);
+  assert (props != NULL);
+  assert (_lp_properties_reset (props, "unknown") == FALSE);
   _lp_properties_free (props);
 
   /* success */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
+  assert (props != NULL);
   _lp_properties_reset_all (props);
 
   g_value_init (&value, G_TYPE_INT);
-  g_value_set_int (&value, 1920);
-  ASSERT (_lp_properties_set (props, "width", &value));
+  g_value_set_int (&value, -50);
+  assert (_lp_properties_set (props, "x", &value));
   g_value_unset (&value);
 
-  ASSERT (_lp_properties_get (props, "width", &value));
-  ASSERT (g_value_get_int (&value) == 1920);
+  assert (_lp_properties_get (props, "x", &value));
+  assert (g_value_get_int (&value) == -50);
   g_value_unset (&value);
 
-  ASSERT (_lp_properties_reset (props, "width"));
+  assert (_lp_properties_reset (props, "x"));
 
-  ASSERT (_lp_properties_get (props, "width", &value));
-  ASSERT (g_value_get_int (&value) == LP_PROPERTY_DEFAULT_WIDTH);
+  assert (_lp_properties_get (props, "x", &value));
+  assert (g_value_get_int (&value) == LP_PROPERTY_DEFAULT_X);
   g_value_unset (&value);
 
   _lp_properties_free (props);

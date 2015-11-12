@@ -24,41 +24,41 @@ main (void)
   GValue value = G_VALUE_INIT;
 
   /* no-op: NULL props */
-  ASSERT (_lp_properties_get (NULL, NULL, NULL) == FALSE);
+  assert (_lp_properties_get (NULL, NULL, NULL) == FALSE);
 
   /* no-op: NULL name */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
-  ASSERT (_lp_properties_get (props, NULL, NULL) == FALSE);
+  assert (props != NULL);
+  assert (_lp_properties_get (props, NULL, NULL) == FALSE);
   _lp_properties_free (props);
 
   /* success: known property */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
-  _lp_properties_reset_all (props);
+  assert (props != NULL);
 
-  ASSERT (_lp_properties_get (props, "width", &value));
-  ASSERT (g_value_get_int (&value) == LP_PROPERTY_DEFAULT_WIDTH);
+  assert (_lp_properties_get (props, "x", &value));
+  assert (g_value_get_int (&value) == LP_PROPERTY_DEFAULT_X);
+  g_value_unset (&value);
   _lp_properties_free (props);
 
   /* success: unknown property */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
-  ASSERT (_lp_properties_get (props, "foo", NULL) == FALSE);
-  ASSERT (_lp_properties_get (props, "foo", &value) == FALSE);
+  assert (props != NULL);
+  assert (_lp_properties_get (props, "foo", NULL) == FALSE);
+  assert (_lp_properties_get (props, "foo", &value) == FALSE);
   _lp_properties_free (props);
 
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
+  assert (props != NULL);
 
-  g_value_unset (&value);
+
   g_value_init (&value, G_TYPE_STRING);
   g_value_set_string (&value, "bar");
-  ASSERT (_lp_properties_set (props, "foo", &value));
+  assert (_lp_properties_set (props, "foo", &value));
   g_value_unset (&value);
 
-  ASSERT (_lp_properties_get (props, "foo", &value));
-  ASSERT (streq (g_value_get_string (&value), "bar"));
+  assert (_lp_properties_get (props, "foo", &value));
+  assert (streq (g_value_get_string (&value), "bar"));
   g_value_unset (&value);
 
   _lp_properties_free (props);

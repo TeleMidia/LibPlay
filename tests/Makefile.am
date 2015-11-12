@@ -64,6 +64,7 @@ programs=
 programs+= test-_lp-util-g-value-alloc
 programs+= test-_lp-util-g-value-free
 programs+= test-_lp-util-g-value-dup
+programs+= test-_lp-util-g-value-init-and-set
 # _lp-properties
 programs+= test-_lp-properties-alloc
 programs+= test-_lp-properties-free

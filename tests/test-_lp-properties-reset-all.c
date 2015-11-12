@@ -28,18 +28,23 @@ main (void)
 
   /* success */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
+  assert (props != NULL);
 
   _lp_properties_reset_all (props);
 
-  ASSERT (_lp_properties_get (props, "width", &value));
-  ASSERT (G_VALUE_TYPE (&value) == G_TYPE_INT);
-  ASSERT (g_value_get_int (&value) == LP_PROPERTY_DEFAULT_WIDTH);
+  assert (_lp_properties_get (props, "x", &value));
+  assert (G_VALUE_TYPE (&value) == G_TYPE_INT);
+  assert (g_value_get_int (&value) == LP_PROPERTY_DEFAULT_X);
   g_value_unset (&value);
 
-  ASSERT (_lp_properties_get (props, "height", &value));
-  ASSERT (G_VALUE_TYPE (&value) == G_TYPE_INT);
-  ASSERT (g_value_get_int (&value) == LP_PROPERTY_DEFAULT_HEIGHT);
+  assert (_lp_properties_get (props, "y", &value));
+  assert (G_VALUE_TYPE (&value) == G_TYPE_INT);
+  assert (g_value_get_int (&value) == LP_PROPERTY_DEFAULT_Y);
+  g_value_unset (&value);
+
+  assert (_lp_properties_get (props, "z", &value));
+  assert (G_VALUE_TYPE (&value) == G_TYPE_INT);
+  assert (g_value_get_int (&value) == LP_PROPERTY_DEFAULT_Z);
   g_value_unset (&value);
 
   _lp_properties_free (props);

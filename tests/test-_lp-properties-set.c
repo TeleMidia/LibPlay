@@ -24,65 +24,65 @@ main (void)
   GValue value = G_VALUE_INIT;
 
   /* no-op: NULL props */
-  ASSERT (_lp_properties_set (NULL, NULL, NULL) == FALSE);
+  assert (_lp_properties_set (NULL, NULL, NULL) == FALSE);
 
   /* no-op: NULL name */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
-  ASSERT (_lp_properties_set (props, NULL, NULL) == FALSE);
+  assert (props != NULL);
+  assert (_lp_properties_set (props, NULL, NULL) == FALSE);
   _lp_properties_free (props);
 
   /* no-op: NULL value */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
-  ASSERT (_lp_properties_set (props, "@unknown", NULL) == FALSE);
+  assert (props != NULL);
+  assert (_lp_properties_set (props, "@unknown", NULL) == FALSE);
   _lp_properties_free (props);
 
   /* no-op: wrong type for known property */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
+  assert (props != NULL);
   _lp_properties_reset_all (props);
 
   g_value_init (&value, G_TYPE_DOUBLE);
   g_value_set_double (&value, 13.37);
-  ASSERT (_lp_properties_set (props, "width", &value) == FALSE);
-  ASSERT (_lp_properties_set (props, "height", &value) == FALSE);
+  assert (_lp_properties_set (props, "x", &value) == FALSE);
+  assert (_lp_properties_set (props, "x", &value) == FALSE);
   g_value_unset (&value);
   _lp_properties_free (props);
 
   /* success: known property  */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
+  assert (props != NULL);
   _lp_properties_reset_all (props);
 
   g_value_init (&value, G_TYPE_INT);
-  g_value_set_int (&value, 1920);
-  ASSERT (_lp_properties_set (props, "width", &value));
+  g_value_set_int (&value, 50);
+  assert (_lp_properties_set (props, "x", &value));
   g_value_unset (&value);
 
-  ASSERT (_lp_properties_get (props, "width", &value));
-  ASSERT (g_value_get_int (&value) == 1920);
+  assert (_lp_properties_get (props, "x", &value));
+  assert (g_value_get_int (&value) == 50);
 
-  g_value_set_int (&value, 1080);
-  ASSERT (_lp_properties_set (props, "height", &value));
+  g_value_set_int (&value, 80);
+  assert (_lp_properties_set (props, "y", &value));
   g_value_unset (&value);
 
-  ASSERT (_lp_properties_get (props, "height", &value));
-  ASSERT (g_value_get_int (&value) == 1080);
+  assert (_lp_properties_get (props, "y", &value));
+  assert (g_value_get_int (&value) == 80);
   g_value_unset (&value);
   _lp_properties_free (props);
 
   /* success: unknown property */
   props = _lp_properties_alloc ();
-  ASSERT (props != NULL);
+  assert (props != NULL);
 
   g_value_init (&value, G_TYPE_POINTER);
   g_value_set_pointer (&value, pointerof (main));
-  ASSERT (_lp_properties_set (props, "main", &value));
+  assert (_lp_properties_set (props, "main", &value));
   g_value_unset (&value);
 
-  ASSERT (_lp_properties_get (props, "main", &value));
-  ASSERT (g_value_get_pointer (&value) == pointerof (main));
+  assert (_lp_properties_get (props, "main", &value));
+  assert (g_value_get_pointer (&value) == pointerof (main));
   g_value_unset (&value);
   _lp_properties_free (props);
 

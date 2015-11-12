@@ -35,8 +35,9 @@ PRAGMA_DIAG_POP ()
 
 /* lp-properties */
 
-#define LP_PROPERTY_DEFAULT_WIDTH  800 /* pixels */
-#define LP_PROPERTY_DEFAULT_HEIGHT 600 /* pixels */
+#define LP_PROPERTY_DEFAULT_X 0
+#define LP_PROPERTY_DEFAULT_Y 0
+#define LP_PROPERTY_DEFAULT_Z 0
 
 typedef struct _lp_properties_t lp_properties_t;
 

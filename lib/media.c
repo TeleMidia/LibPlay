@@ -30,6 +30,47 @@ _lp_media_get_default_parent (void)
   return default_parent;
 }
 
+static int
+__lp_gst_media_set_dimension (lp_media_t *media, const char *dimension,
+    GValue *value)
+{
+  GstElement *videofilter;
+  int code = FALSE;
+
+  videofilter = _lp_media_get_element (media, "videofilter");
+  if (videofilter != NULL)
+  {
+    GstCaps *caps;
+    GstPad *pad;
+    
+    pad = gst_element_get_static_pad (videofilter, "sink");
+    
+    caps = gst_pad_get_current_caps (pad);
+    caps = gst_caps_make_writable (caps);
+    gst_caps_set_value (caps, dimension, value);
+
+    g_object_set (G_OBJECT(videofilter), "caps", caps, NULL);
+
+    gst_object_unref (caps);
+
+    code = TRUE;
+  }
+
+  return code;
+}
+
+static int
+__lp_gst_media_set_property (lp_media_t *media, const char *property, 
+    GValue *value)
+{
+  int code = FALSE; 
+  if ((streq(property, "width") || streq(property, "height")) && 
+      G_VALUE_TYPE(value) == G_TYPE_INT)
+    code = __lp_gst_media_set_dimension (media, property, value);
+
+  return code;
+}
+
 void
 _lp_media_destroy_default_parent (void)
 {
@@ -112,7 +153,7 @@ __lp_media_pad_added_callback (GstElement * source, GstPad * new_pad,
   const gchar *new_pad_type = NULL;
   lp_media_t *media = (lp_media_t *) data;
 
-  g_assert (media);
+  assert (media);
 
   new_pad_caps = gst_pad_query_caps (new_pad, NULL);
   new_pad_struct = gst_caps_get_structure (new_pad_caps, 0);
@@ -494,6 +535,8 @@ __lp_media_set_property (lp_media_t *media, const char *name,
 
   _lp_media_lock (media);
   g_hash_table_insert (media->properties, g_strdup (name), value);
+  __lp_gst_media_set_property (media, name, value);
+  
   _lp_media_unlock (media);
   return TRUE;
 }
@@ -710,13 +753,18 @@ lp_media_register (lp_media_t *media, lp_event_func_t handler)
   {
     if (((lp_event_func_t) integralof (l->data)) == handler)
       found = 1;
-    
+    p = l;
     l = l->next;
   }
 
   if (!found)
   {
-    p = g_slist_append (p, pointerof(handler));
+    l = g_slist_append (l, pointerof(handler));
+    if (p != NULL)
+      p->next = l;
+    else
+      p = l;
+
     if (media->handlers == NULL)
       media->handlers = p;
 
@@ -743,12 +791,17 @@ lp_media_unregister (lp_media_t *media, lp_event_func_t handler)
   
   assert (handler != NULL);
   l = media->handlers;
-  while (l != NULL && !found)
+  while (l != NULL)
   {
     if (((lp_event_func_t) integralof (l->data)) == handler)
     {
+      GSList *p = l;
       l = g_slist_remove_link (l, l);
+      if (media->handlers == p)
+        media->handlers = l;
+        
       found = 1;
+      break;
     }
     l = l->next;
   }

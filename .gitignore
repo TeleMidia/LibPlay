@@ -66,6 +66,7 @@
 /lib/stamp-h1
 /tests/env.csh
 /tests/env.sh
+/tests/example-lp-media-change-dimensions
 /tests/gdb.cfg
 /tests/suppfile
 /tests/test-lp-event-equals

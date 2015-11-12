@@ -75,6 +75,8 @@ programs+= test-lp-media-set-get-property-int
 programs+= test-lp-media-set-get-property-pointer
 programs+= test-lp-media-set-get-property-string
 programs+= test-lp-media-start
+# examples
+programs+= example-lp-media-change-dimensions
 check_PROGRAMS= $(programs)
 
 TESTS=\

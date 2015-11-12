@@ -94,6 +94,7 @@
 /tests/test-lp-media-remove-child
 /tests/test-lp-media-register
 /tests/test-lp-media-unregister
+/tests/test-_lp-media-dispatch
 Makefile
 Makefile.in
 autom4te.cache

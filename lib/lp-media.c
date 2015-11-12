@@ -47,6 +47,7 @@ G_STATIC_ASSERT (nelementsof (__lp_media_nil) == LP_STATUS_LAST_STATUS - 1);
 static lp_media_t *__lp_media_create_in_error (lp_status_t);
 static lp_media_t *__lp_media_alloc (const char *);
 static void __lp_media_free (lp_media_t *);
+static unsigned int __lp_media_dispatch_helper (lp_media_t *, lp_media_t *, lp_event_t *);
 
 /* Returns a reference to an invalid #lp_media_t.  */
 
@@ -98,6 +99,58 @@ __lp_media_free (lp_media_t *media)
   g_list_free (media->handlers);
   _lp_properties_free (media->properties);
   g_free (media);
+}
+
+static unsigned int
+__lp_media_dispatch_helper (lp_media_t *media, lp_media_t *target,
+                            lp_event_t *event)
+{
+  GList *list;
+  unsigned int count;
+
+  assert (_lp_media_is_valid (media));
+  assert (_lp_media_is_valid (target));
+  assert (event != NULL);
+
+  list = media->handlers;
+  count = 0;
+
+  while (list != NULL)
+    {
+      lp_event_func_t func;
+
+      func = (lp_event_func_t) integralof (list->data);
+      assert (func != NULL);
+      count++;
+
+      if (func (media, target, event))
+        return count;
+
+      list = g_list_next (list);
+    }
+
+  if (media->parent == NULL)
+    return count;
+
+  return count + __lp_media_dispatch_helper (media->parent, target, event);
+}
+
+/*************************** Internal functions ***************************/
+
+/* Dispatches @event to all handlers registered in @media and its ancestors.
+   Stops processing (calling handlers) if any of them returns %TRUE.
+   Returns the total number of handlers called.  */
+
+unsigned int
+_lp_media_dispatch (lp_media_t *media, lp_event_t *event)
+{
+  if (unlikely (!_lp_media_is_valid (media)))
+    return 0;
+
+  if (unlikely (event == NULL))
+    return 0;
+
+  return __lp_media_dispatch_helper (media, media, event);
 }
 
 /*************************** Exported functions ***************************/

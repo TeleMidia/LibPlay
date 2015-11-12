@@ -77,6 +77,9 @@ struct _lp_media_t
 
 #define _lp_media_is_valid(m) ((m) != NULL && !(m)->status)
 
+unsigned int
+_lp_media_dispatch (lp_media_t *, lp_event_t *);
+
 /* lp-util */
 
 GValue *

@@ -95,10 +95,10 @@ _lp_properties_alloc (void)
   hash = g_hash_table_new_full (g_str_hash, g_str_equal,
                                 (GDestroyNotify) g_free,
                                 (GDestroyNotify) _lp_util_g_value_free);
-  assert (hash != NULL);
+  _lp_assert (hash != NULL);
 
   props = (lp_properties_t *) g_malloc (sizeof (*props));
-  assert (props != NULL);
+  _lp_assert (props != NULL);
   props->hash = hash;
 
   return props;

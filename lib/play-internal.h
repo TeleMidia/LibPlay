@@ -82,6 +82,10 @@ _lp_media_dispatch (lp_media_t *, lp_event_t *);
 
 /* lp-util */
 
+#define _lp_assert assert
+#define _LP_ASSERT_NOT_REACHED ASSERT_NOT_REACHED
+#define _LP_STATIC_ASSERT G_STATIC_ASSERT
+
 GValue *
 _lp_util_g_value_alloc (void);
 

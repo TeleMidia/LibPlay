@@ -28,7 +28,7 @@ ATTR_USE_RESULT GValue *
 _lp_util_g_value_alloc (void)
 {
   GValue *value = g_slice_new0 (GValue);
-  assert (value != NULL);
+  _lp_assert (value != NULL);
   return value;
 }
 
@@ -55,7 +55,7 @@ _lp_util_g_value_dup (const GValue *value)
     return NULL;
 
   new_value = _lp_util_g_value_alloc ();
-  assert (new_value != NULL);
+  _lp_assert (new_value != NULL);
   g_value_init (new_value, G_VALUE_TYPE (deconst (GValue *, value)));
   g_value_copy (value, new_value);
 
@@ -87,7 +87,7 @@ _lp_util_g_value_init_and_set (GValue *value, GType type, const void *ptr)
       g_value_set_pointer (value, *(deconst (void **, ptr)));
       break;
     default:
-      ASSERT_NOT_REACHED;
+      _LP_ASSERT_NOT_REACHED;
     }
   return value;
 }

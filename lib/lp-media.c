@@ -41,7 +41,8 @@ static const lp_media_t __lp_media_nil[] = {
   DEFINE_NIL_MEDIA (LP_STATUS_INVALID_PARENT)
 };
 
-G_STATIC_ASSERT (nelementsof (__lp_media_nil) == LP_STATUS_LAST_STATUS - 1);
+_LP_STATIC_ASSERT (nelementsof (__lp_media_nil)
+                   == LP_STATUS_LAST_STATUS - 1);
 
 /* Forward declarations:  */
 static lp_media_t *__lp_media_create_in_error (lp_status_t);
@@ -56,10 +57,10 @@ __lp_media_create_in_error (lp_status_t status)
 {
   lp_media_t *media;
 
-  assert (status != LP_STATUS_SUCCESS);
+  _lp_assert (status != LP_STATUS_SUCCESS);
   media = deconst (lp_media_t *,
                    &__lp_media_nil[status - LP_STATUS_NULL_POINTER]);
-  assert (status == media->status);
+  _lp_assert (status == media->status);
 
   return media;
 }
@@ -73,7 +74,7 @@ __lp_media_alloc (const char *uri)
   lp_media_t *media;
 
   media = (lp_media_t *) g_malloc (sizeof (*media));
-  assert (media != NULL);
+  _lp_assert (media != NULL);
   memset (media, 0, sizeof (*media));
 
   media->status = LP_STATUS_SUCCESS;
@@ -84,7 +85,7 @@ __lp_media_alloc (const char *uri)
   media->children = NULL;
   media->handlers = NULL;
   media->properties = _lp_properties_alloc ();
-  assert (media->properties != NULL);
+  _lp_assert (media->properties != NULL);
 
   return media;
 }
@@ -108,9 +109,9 @@ __lp_media_dispatch_helper (lp_media_t *media, lp_media_t *target,
   GList *list;
   unsigned int count;
 
-  assert (_lp_media_is_valid (media));
-  assert (_lp_media_is_valid (target));
-  assert (event != NULL);
+  _lp_assert (_lp_media_is_valid (media));
+  _lp_assert (_lp_media_is_valid (target));
+  _lp_assert (event != NULL);
 
   list = media->handlers;
   count = 0;
@@ -120,7 +121,7 @@ __lp_media_dispatch_helper (lp_media_t *media, lp_media_t *target,
       lp_event_func_t func;
 
       func = (lp_event_func_t) integralof (list->data);
-      assert (func != NULL);
+      _lp_assert (func != NULL);
       count++;
 
       if (func (media, target, event))
@@ -200,7 +201,7 @@ lp_media_create_for_parent (lp_media_t *parent, const char *uri)
     return __lp_media_create_in_error (LP_STATUS_INVALID_PARENT);
 
   media = __lp_media_alloc (uri);
-  assert (media != NULL);
+  _lp_assert (media != NULL);
   media->parent = parent;
   parent->children = g_list_append (parent->children, media);
 
@@ -226,7 +227,7 @@ lp_media_destroy (lp_media_t *media)
   if (!g_atomic_int_dec_and_test (&media->ref_count))
     return;
 
-  assert (g_atomic_int_get (&(media)->ref_count) == 0);
+  _lp_assert (g_atomic_int_get (&(media)->ref_count) == 0);
   __lp_media_free (media);
 }
 
@@ -241,7 +242,7 @@ lp_media_destroy (lp_media_t *media)
 lp_status_t ATTR_PURE ATTR_USE_RESULT
 lp_media_status (const lp_media_t *media)
 {
-  assert (media != NULL);
+  _lp_assert (media != NULL);
   return media->status;
 }
 
@@ -280,7 +281,7 @@ lp_media_get_reference_count (const lp_media_t *media)
     return 0;
 
   ref_count = g_atomic_int_get (&media->ref_count);
-  assert (ref_count > 0);
+  _lp_assert (ref_count > 0);
 
   return (unsigned int) ref_count;
 }
@@ -329,7 +330,7 @@ lp_media_add_child (lp_media_t *parent, lp_media_t *child)
 
   child->parent = parent;
   parent->children = g_list_append (parent->children, child);
-  assert (parent->children != NULL);
+  _lp_assert (parent->children != NULL);
   return TRUE;
 }
 
@@ -387,7 +388,7 @@ lp_media_register (lp_media_t *media, lp_event_func_t func)
     return FALSE;
 
   media->handlers = g_list_append (media->handlers, pointerof (func));
-  assert (media->handlers != NULL);
+  _lp_assert (media->handlers != NULL);
   return TRUE;
 }
 

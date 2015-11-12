@@ -65,7 +65,7 @@ lp_event_equals (const lp_event_t *, const lp_event_t *);
 /* media */
 
 typedef struct _lp_media_t lp_media_t;
-typedef int (*lp_event_func_t) (lp_media_t *, lp_event_t *);
+typedef int (*lp_event_func_t) (lp_media_t *, lp_media_t *, lp_event_t *);
 
 LP_API lp_media_t *
 lp_media_create (const char *uri);

@@ -18,19 +18,22 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "tests.h"
 
 static int
-h1 (arg_unused (lp_media_t *m), arg_unused (lp_event_t *e))
+h1 (arg_unused (lp_media_t *m), arg_unused (lp_media_t *t),
+    arg_unused (lp_event_t *e))
 {
   return TRUE;
 }
 
 static int
-h2 (arg_unused (lp_media_t *m), arg_unused (lp_event_t *e))
+h2 (arg_unused (lp_media_t *m), arg_unused (lp_media_t *t),
+    arg_unused (lp_event_t *e))
 {
   return TRUE;
 }
 
 static int
-h3 (arg_unused (lp_media_t *m), arg_unused (lp_event_t *e))
+h3 (arg_unused (lp_media_t *m), arg_unused (lp_media_t *t),
+    arg_unused (lp_event_t *e))
 {
   return TRUE;
 }

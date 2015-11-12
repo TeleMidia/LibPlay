@@ -23,7 +23,7 @@ main (void)
   lp_event_t evt;
 
   lp_event_init_start (&evt);
-  ASSERT (evt.type == LP_EVENT_START);
+  assert (evt.type == LP_EVENT_START);
 
   exit (EXIT_SUCCESS);
 }

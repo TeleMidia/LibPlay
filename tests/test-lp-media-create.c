@@ -24,12 +24,12 @@ main (void)
 
   /* success: NULL uri */
   media = lp_media_create (NULL);
-  ASSERT_MEDIA_IS_EMPTY (media, NULL);
+  assert_media_is_empty (media, NULL);
   lp_media_destroy (media);
 
   /* success: non-NULL uri */
   media = lp_media_create ("abc");
-  ASSERT_MEDIA_IS_EMPTY (media, "abc");
+  assert_media_is_empty (media, "abc");
   lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);

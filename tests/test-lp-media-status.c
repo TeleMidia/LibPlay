@@ -24,14 +24,14 @@ main (void)
 
   /* no-op: invalid media */
   media = lp_media_create_for_parent (NULL, NULL);
-  ASSERT (media != NULL);
-  ASSERT (lp_media_status (media) == LP_STATUS_NULL_POINTER);
+  assert (media != NULL);
+  assert (lp_media_status (media) == LP_STATUS_NULL_POINTER);
   lp_media_destroy (media);
 
   /* success */
   media = lp_media_create (NULL);
-  ASSERT_MEDIA_IS_EMPTY (media, NULL);
-  ASSERT (lp_media_status (media) == LP_STATUS_SUCCESS);
+  assert_media_is_empty (media, NULL);
+  assert (lp_media_status (media) == LP_STATUS_SUCCESS);
   lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);

@@ -24,21 +24,21 @@ main (void)
   lp_media_t *media;
 
   /* no-op: NULL media */
-  ASSERT (lp_media_get_parent (NULL) == NULL);
+  assert (lp_media_get_parent (NULL) == NULL);
 
   /* no-op: invalid media */
   media = lp_media_create_for_parent (NULL, NULL);
-  ASSERT (media != NULL);
-  ASSERT (lp_media_get_parent (media) == NULL);
+  assert (media != NULL);
+  assert (lp_media_get_parent (media) == NULL);
   lp_media_destroy (media);
 
   /* success */
   parent = lp_media_create (NULL);
-  ASSERT_MEDIA_IS_EMPTY (parent, NULL);
+  assert_media_is_empty (parent, NULL);
   media = lp_media_create_for_parent (parent, NULL);
-  ASSERT (media != NULL);
-  ASSERT (lp_media_get_parent (parent) == NULL);
-  ASSERT (lp_media_get_parent (media) == parent);
+  assert (media != NULL);
+  assert (lp_media_get_parent (parent) == NULL);
+  assert (lp_media_get_parent (media) == parent);
   lp_media_destroy (parent);
 
   exit (EXIT_SUCCESS);

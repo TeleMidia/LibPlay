@@ -23,27 +23,27 @@ main (void)
   lp_media_t *media;
 
   /* no-op: NULL media */
-  ASSERT (lp_media_get_reference_count (NULL) == 0);
+  assert (lp_media_get_reference_count (NULL) == 0);
 
   /* no-op: invalid media */
   media = lp_media_create_for_parent (NULL, NULL);
-  ASSERT (media != NULL);
-  ASSERT (lp_media_get_reference_count (NULL) == 0);
+  assert (media != NULL);
+  assert (lp_media_get_reference_count (NULL) == 0);
   lp_media_destroy (NULL);
 
   /* success */
   media = lp_media_create (NULL);
-  ASSERT_MEDIA_IS_EMPTY (media, NULL);
-  ASSERT (media->ref_count == 1);
-  ASSERT (lp_media_get_reference_count (media) == 1);
+  assert_media_is_empty (media, NULL);
+  assert (media->ref_count == 1);
+  assert (lp_media_get_reference_count (media) == 1);
 
-  ASSERT (lp_media_reference (media) == media);
-  ASSERT (media->ref_count == 2);
-  ASSERT (lp_media_get_reference_count (media) == 2);
+  assert (lp_media_reference (media) == media);
+  assert (media->ref_count == 2);
+  assert (lp_media_get_reference_count (media) == 2);
 
   lp_media_destroy (media);
-  ASSERT (media->ref_count == 1);
-  ASSERT (lp_media_get_reference_count (media) == 1);
+  assert (media->ref_count == 1);
+  assert (lp_media_get_reference_count (media) == 1);
 
   lp_media_destroy (media);
 

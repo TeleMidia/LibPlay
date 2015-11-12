@@ -17,10 +17,6 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "tests.h"
 
-/* *INDENT-OFF* */
-PRAGMA_DIAG_IGNORE (-Wfloat-equal)
-/* *INDENT-ON* */
-
 int
 main (void)
 {

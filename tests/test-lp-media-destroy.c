@@ -27,12 +27,12 @@ main (void)
 
   /* no-op: invalid media */
   media = lp_media_create_for_parent (NULL, NULL);
-  ASSERT (media != NULL);
+  assert (media != NULL);
   lp_media_destroy (media);
 
   /* no-op: invalid ref_count */
   media = lp_media_create (NULL);
-  ASSERT_MEDIA_IS_EMPTY (media, NULL);
+  assert_media_is_empty (media, NULL);
   media->ref_count = -1;
   lp_media_destroy (media);
   media->ref_count = 1;
@@ -40,14 +40,14 @@ main (void)
 
   /* success: single reference */
   media = lp_media_create (NULL);
-  ASSERT_MEDIA_IS_EMPTY (media, NULL);
+  assert_media_is_empty (media, NULL);
   lp_media_destroy (media);
 
   /* success: multiple references */
   media = lp_media_create (NULL);
-  ASSERT_MEDIA_IS_EMPTY (media, NULL);
-  ASSERT (lp_media_reference (media) == media);
-  ASSERT (lp_media_reference (media) == media);
+  assert_media_is_empty (media, NULL);
+  assert (lp_media_reference (media) == media);
+  assert (lp_media_reference (media) == media);
   lp_media_destroy (media);
   lp_media_destroy (media);
   lp_media_destroy (media);

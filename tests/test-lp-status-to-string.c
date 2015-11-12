@@ -18,7 +18,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "tests.h"
 
 #define CHECK_STATUS_STRING(s, str)\
-  ASSERT (streq (lp_status_to_string (s), str))
+  assert (streq (lp_status_to_string (s), str))
 
 int
 main (void)
@@ -56,7 +56,7 @@ main (void)
         CHECK_STATUS_STRING (s, "<unknown error status>");
         break;
       default:
-        ASSERT (0);
+        ASSERT_NOT_REACHED;
     }
   }
 

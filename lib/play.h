@@ -85,6 +85,15 @@ lp_media_reference (lp_media_t *);
 LP_API unsigned int
 lp_media_get_reference_count (const lp_media_t *);
 
+LP_API lp_media_t *
+lp_media_get_parent (const lp_media_t *);
+
+LP_API int
+lp_media_add_child (lp_media_t *, lp_media_t *);
+
+LP_API int
+lp_media_remove_child (lp_media_t *, lp_media_t *);
+
 LP_API int
 lp_media_register (lp_media_t *, lp_event_func_t);
 

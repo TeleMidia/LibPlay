@@ -78,6 +78,7 @@ programs+= test-lp-status-to-string
 programs+= test-lp-event-init-start
 programs+= test-lp-event-init-stop
 programs+= test-lp-event-equals
+# _lp-media
 # lp-media
 programs+= test-lp-media-create
 programs+= test-lp-media-create-for-parent
@@ -85,9 +86,11 @@ programs+= test-lp-media-destroy
 programs+= test-lp-media-status
 programs+= test-lp-media-reference
 programs+= test-lp-media-get-reference-count
+programs+= test-lp-media-get-parent
+programs+= test-lp-media-add-child
+programs+= test-lp-media-remove-child
 programs+= test-lp-media-register
 programs+= test-lp-media-unregister
-# programs+= test-lp-media-set-get-property-double
 # programs+= test-lp-media-set-get-property-int
 # programs+= test-lp-media-set-get-property-pointer
 # programs+= test-lp-media-set-get-property-string

@@ -88,6 +88,9 @@
 /tests/test-lp-media-status
 /tests/test-lp-media-reference
 /tests/test-lp-media-get-reference-count
+/tests/test-lp-media-get-parent
+/tests/test-lp-media-add-child
+/tests/test-lp-media-remove-child
 /tests/test-lp-media-register
 /tests/test-lp-media-unregister
 Makefile

@@ -148,8 +148,8 @@ lp_media_create_for_parent (lp_media_t *parent, const char *uri)
 
   media = __lp_media_alloc (uri);
   assert (media != NULL);
-  parent->children = g_list_append (parent->children, media);
   media->parent = parent;
+  parent->children = g_list_append (parent->children, media);
 
   return media;
 }
@@ -230,6 +230,85 @@ lp_media_get_reference_count (const lp_media_t *media)
   assert (ref_count > 0);
 
   return (unsigned int) ref_count;
+}
+
+/*-
+ * lp_media_get_parent:
+ * @media: a #lp_media_t
+ *
+ * Returns the parent of @media.
+ *
+ * Return value: the parent of @media, or %NULL if @media has no parent.
+ */
+ATTR_USE_RESULT lp_media_t *
+lp_media_get_parent (const lp_media_t *media)
+{
+  if (unlikely (!_lp_media_is_valid (media)))
+    return NULL;
+  return media->parent;
+}
+
+/*-
+ * lp_media_add_child:
+ * @parent: a #lp_media_t
+ * @child: a #lp_media_t
+ *
+ * Appends @child to @parent's children list and sets its parent to @parent.
+ *
+ * Return value: %TRUE if successful, or %FALSE if @child is already in
+ * children list or if its current parent is not %NULL.
+ */
+int
+lp_media_add_child (lp_media_t *parent, lp_media_t *child)
+{
+  if (unlikely (!_lp_media_is_valid (parent)
+                || !_lp_media_is_valid (child)))
+    return FALSE;
+
+  if (unlikely (parent == child))
+    return FALSE;
+
+  if (unlikely (child->parent != NULL))
+    return FALSE;
+
+  if (unlikely (g_list_find (parent->children, child) != NULL))
+    return FALSE;
+
+  child->parent = parent;
+  parent->children = g_list_append (parent->children, child);
+  assert (parent->children != NULL);
+  return TRUE;
+}
+
+/*-
+ * lp_media_remove_child:
+ * @parent: a #lp_media_t
+ * @child: a #lp_media_t
+ *
+ * Removes @child from @parent's children list and set its parent to %NULL.
+ *
+ * Return value: %TRUE if successful, or %FALSE if @child is not in children
+ * list.
+ */
+int
+lp_media_remove_child (lp_media_t *parent, lp_media_t *child)
+{
+  GList *link;
+
+  if (unlikely (!_lp_media_is_valid (parent)))
+    return FALSE;
+
+  if (unlikely (child->parent != parent))
+    return FALSE;
+
+  link = g_list_find (parent->children, child);
+  if (unlikely (link == NULL))
+    return FALSE;
+
+  child->parent = NULL;
+  parent->children = g_list_remove_link (parent->children, link);
+  g_list_free (link);
+  return TRUE;
 }
 
 /*-

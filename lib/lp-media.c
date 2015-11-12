@@ -49,7 +49,7 @@ static void __lp_media_free (lp_media_t *);
 
 /* Returns a reference to an invalid #lp_media_t.  */
 
-static ATTR_PURE lp_media_t *
+static ATTR_PURE ATTR_USE_RESULT lp_media_t *
 __lp_media_create_in_error (lp_status_t status)
 {
   lp_media_t *media;
@@ -112,7 +112,7 @@ __lp_media_free (lp_media_t *media)
  *
  * This function always returns a valid pointer.
  */
-lp_media_t *
+ATTR_USE_RESULT lp_media_t *
 lp_media_create (const char *uri)
 {
   return __lp_media_alloc (uri);
@@ -132,7 +132,7 @@ lp_media_create (const char *uri)
  *
  * This function always returns a valid pointer.
  */
-lp_media_t *
+ATTR_USE_RESULT lp_media_t *
 lp_media_create_for_parent (lp_media_t *parent, const char *uri)
 {
   lp_media_t *media;
@@ -182,7 +182,7 @@ lp_media_destroy (lp_media_t *media)
  *
  * Return value: the current status of @media, see #lp_status_t.
  */
-lp_status_t ATTR_PURE
+lp_status_t ATTR_PURE ATTR_USE_RESULT
 lp_media_status (const lp_media_t *media)
 {
   assert (media != NULL);
@@ -215,7 +215,7 @@ lp_media_reference (lp_media_t *media)
  *
  * Return value: the current reference count of @media.
  */
-unsigned int
+ATTR_USE_RESULT unsigned int
 lp_media_get_reference_count (const lp_media_t *media)
 {
   gint ref_count;

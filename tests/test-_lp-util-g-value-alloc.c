@@ -22,11 +22,15 @@ main (void)
 {
   GValue *value;
 
-  value = _lp_util_g_value_alloc (G_TYPE_INT);
+  value = _lp_util_g_value_alloc ();
+  assert (value != NULL);
+  g_value_init (value, G_TYPE_INT);
   assert (G_VALUE_TYPE (value) == G_TYPE_INT);
   _lp_util_g_value_free (value);
 
-  value = _lp_util_g_value_alloc (G_TYPE_STRING);
+  value = _lp_util_g_value_alloc ();
+  assert (value != NULL);
+  g_value_init (value, G_TYPE_STRING);
   assert (G_VALUE_TYPE (value) == G_TYPE_STRING);
   g_value_set_string (value, "abc");
   _lp_util_g_value_free (value);

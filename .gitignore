@@ -71,6 +71,7 @@
 /tests/test-_lp-util-g-value-alloc
 /tests/test-_lp-util-g-value-free
 /tests/test-_lp-util-g-value-dup
+/tests/test-_lp-util-g-value-init-and-set
 /tests/test-_lp-properties-alloc
 /tests/test-_lp-properties-free
 /tests/test-_lp-properties-size

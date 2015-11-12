@@ -79,12 +79,15 @@ struct _lp_media_t
 /* lp-util */
 
 GValue *
-_lp_util_g_value_alloc (GType);
+_lp_util_g_value_alloc (void);
 
 void
 _lp_util_g_value_free (GValue *);
 
 GValue *
 _lp_util_g_value_dup (const GValue *);
+
+GValue *
+_lp_util_g_value_init_and_set (GValue *, GType, const void *);
 
 #endif /* PLAY_INTERNAL */

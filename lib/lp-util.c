@@ -25,11 +25,10 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
    This function always returns a valid pointer.  */
 
 ATTR_USE_RESULT GValue *
-_lp_util_g_value_alloc (GType type)
+_lp_util_g_value_alloc (void)
 {
   GValue *value = g_slice_new0 (GValue);
   assert (value != NULL);
-  g_value_init (value, type);
   return value;
 }
 
@@ -38,7 +37,7 @@ _lp_util_g_value_alloc (GType type)
 void
 _lp_util_g_value_free (GValue *value)
 {
-  if (unlikely (value == NULL))
+  if (unlikely (!G_IS_VALUE (deconst (GValue *, value))))
     return;
 
   g_value_unset (value);
@@ -51,15 +50,44 @@ ATTR_USE_RESULT GValue *
 _lp_util_g_value_dup (const GValue *value)
 {
   GValue *new_value;
-  GType type;
 
-  if (unlikely (value == NULL))
+  if (unlikely (!G_IS_VALUE (deconst (GValue *, value))))
     return NULL;
 
-  type = G_VALUE_TYPE (deconst (GValue *, value));
-  new_value = _lp_util_g_value_alloc (type);
+  new_value = _lp_util_g_value_alloc ();
   assert (new_value != NULL);
+  g_value_init (new_value, G_VALUE_TYPE (deconst (GValue *, value)));
   g_value_copy (value, new_value);
 
   return new_value;
+}
+
+/* Initializes #GValue with @type and sets it to the value pointed by
+   @ptr.  */
+
+GValue *
+_lp_util_g_value_init_and_set (GValue *value, GType type, const void *ptr)
+{
+  if (unlikely (value == NULL))
+    return NULL;
+
+  g_value_init (value, type);
+  switch (type)
+    {
+    case G_TYPE_INT:
+      g_value_set_int (value, *(deconst (int *, ptr)));
+      break;
+    case G_TYPE_DOUBLE:
+      g_value_set_double (value, *(deconst (double *, ptr)));
+      break;
+    case G_TYPE_STRING:
+      g_value_set_string (value, *(deconst (char **, ptr)));
+      break;
+    case G_TYPE_POINTER:
+      g_value_set_pointer (value, *(deconst (void **, ptr)));
+      break;
+    default:
+      ASSERT_NOT_REACHED;
+    }
+  return value;
 }

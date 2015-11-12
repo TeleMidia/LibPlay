@@ -20,22 +20,27 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
+  GValue invalid = G_VALUE_INIT;
   GValue *v1;
   GValue *v2;
 
   /* no-op: NULL pointer */
-  v1 = _lp_util_g_value_dup (NULL);
-  _lp_util_g_value_free (v1);
+  assert (_lp_util_g_value_dup (NULL) == NULL);
+
+  /* no-op: invalid value */
+  assert (_lp_util_g_value_dup (&invalid) == NULL);
 
   /* success */
-  v1 = _lp_util_g_value_alloc (G_TYPE_STRING);
+  v1 = _lp_util_g_value_alloc ();
+  assert (v1 != NULL);
+  g_value_init (v1, G_TYPE_STRING);
   assert (G_VALUE_TYPE (v1) == G_TYPE_STRING);
   g_value_set_string (v1, "abc");
 
   v2 = _lp_util_g_value_dup (v1);
-  ASSERT (v2 != NULL);
-  ASSERT (G_VALUE_TYPE (v1) == G_VALUE_TYPE (v2));
-  ASSERT (streq (g_value_get_string (v1), g_value_get_string (v2)));
+  assert (v2 != NULL);
+  assert (G_VALUE_TYPE (v1) == G_VALUE_TYPE (v2));
+  assert (streq (g_value_get_string (v1), g_value_get_string (v2)));
 
   _lp_util_g_value_free (v1);
   _lp_util_g_value_free (v2);

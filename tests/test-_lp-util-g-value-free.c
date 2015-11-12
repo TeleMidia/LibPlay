@@ -20,14 +20,19 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
+  GValue invalid = G_VALUE_INIT;
   GValue *value;
 
   /* no-op: NULL pointer */
   _lp_util_g_value_free (NULL);
 
+  /* no-op: invalid value */
+  _lp_util_g_value_free (&invalid);
+
   /* success */
-  value = _lp_util_g_value_alloc (G_TYPE_INT);
-  assert (G_VALUE_TYPE (value) == G_TYPE_INT);
+  value = _lp_util_g_value_alloc ();
+  assert (value != NULL);
+  g_value_init (value, G_TYPE_INT);
   _lp_util_g_value_free (value);
 
   exit (EXIT_SUCCESS);

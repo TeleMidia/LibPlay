@@ -75,7 +75,6 @@ __lp_media_alloc (const char *uri)
 
   media = (lp_media_t *) g_malloc (sizeof (*media));
   _lp_assert (media != NULL);
-  memset (media, 0, sizeof (*media));
 
   media->status = LP_STATUS_SUCCESS;
   media->ref_count = 1;
@@ -145,12 +144,6 @@ __lp_media_dispatch_helper (lp_media_t *media, lp_media_t *target,
 unsigned int
 _lp_media_dispatch (lp_media_t *media, lp_event_t *event)
 {
-  if (unlikely (!_lp_media_is_valid (media)))
-    return 0;
-
-  if (unlikely (event == NULL))
-    return 0;
-
   return __lp_media_dispatch_helper (media, media, event);
 }
 

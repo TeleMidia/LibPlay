@@ -24,7 +24,8 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 /* Property table data.  */
 struct _lp_properties_t
 {
-  GHashTable *hash;             /* hash table */
+  GHashTable *table;             /* primary table */
+  lp_properties_t *metatable;    /* fallback table */
 };
 
 /* Property descriptor data.  */
@@ -90,16 +91,17 @@ ATTR_USE_RESULT lp_properties_t *
 _lp_properties_alloc (void)
 {
   lp_properties_t *props;
-  GHashTable *hash;
+  GHashTable *table;
 
-  hash = g_hash_table_new_full (g_str_hash, g_str_equal,
+  table = g_hash_table_new_full (g_str_hash, g_str_equal,
                                 (GDestroyNotify) g_free,
                                 (GDestroyNotify) _lp_util_g_value_free);
-  _lp_assert (hash != NULL);
+  _lp_assert (table != NULL);
 
   props = (lp_properties_t *) g_malloc (sizeof (*props));
   _lp_assert (props != NULL);
-  props->hash = hash;
+  props->table = table;
+  props->metatable = NULL;
 
   return props;
 }
@@ -110,9 +112,8 @@ void
 _lp_properties_free (lp_properties_t *props)
 {
   if (unlikely (props == NULL))
-    return;
-
-  g_hash_table_destroy (props->hash);
+      return;
+  g_hash_table_destroy (props->table);
   g_free (props);
 }
 
@@ -121,10 +122,8 @@ _lp_properties_free (lp_properties_t *props)
 ATTR_USE_RESULT unsigned int
 _lp_properties_size (const lp_properties_t *props)
 {
-  if (unlikely (props == NULL))
-    return 0;
-
-  return g_hash_table_size (props->hash);
+  _lp_assert (props != NULL);
+  return g_hash_table_size (props->table);
 }
 
 /* Gets #lp_properties_t property @name and stores it in @desc.
@@ -137,13 +136,10 @@ _lp_properties_get (const lp_properties_t *props, const char *name,
   GValue default_value = G_VALUE_INIT;
   GValue *result;
 
-  if (unlikely (props == NULL))
-    return FALSE;
+  _lp_assert (props != NULL);
+  _lp_assert (name != NULL);
 
-  if (unlikely (name == NULL))
-    return FALSE;
-
-  result = (GValue *) g_hash_table_lookup (props->hash, name);
+  result = (GValue *) g_hash_table_lookup (props->table, name);
   if (result == NULL)
     {
       lp_properties_desc_t *desc;
@@ -183,14 +179,9 @@ _lp_properties_set (lp_properties_t *props, const char *name,
   lp_properties_desc_t *desc;
   GType type;
 
-  if (unlikely (props == NULL))
-    return FALSE;
-
-  if (unlikely (name == NULL))
-    return FALSE;
-
-  if (unlikely (value == NULL))
-    return FALSE;
+  _lp_assert (props != NULL);
+  _lp_assert (name != NULL);
+  _lp_assert (G_IS_VALUE (deconst (GValue *, value)));
 
   type = G_VALUE_TYPE (deconst (GValue *, value));
   if (unlikely (__lp_properties_get_desc (name, &desc)
@@ -199,7 +190,7 @@ _lp_properties_set (lp_properties_t *props, const char *name,
       return FALSE;             /* bad type */
     }
 
-  g_hash_table_insert (props->hash, g_strdup (name),
+  g_hash_table_insert (props->table, g_strdup (name),
                        _lp_util_g_value_dup (value));
   return TRUE;
 }
@@ -210,13 +201,9 @@ _lp_properties_set (lp_properties_t *props, const char *name,
 ATTR_USE_RESULT int
 _lp_properties_reset (lp_properties_t *props, const char *name)
 {
-  if (unlikely (props == NULL))
-    return FALSE;
-
-  if (unlikely (name == NULL))
-    return FALSE;
-
-  return g_hash_table_remove (props->hash, name);
+  _lp_assert (props != NULL);
+  _lp_assert (name != NULL);
+  return g_hash_table_remove (props->table, name);
 }
 
 /* Resets all #lp_properties_t properties to their default values.  */
@@ -224,7 +211,6 @@ _lp_properties_reset (lp_properties_t *props, const char *name)
 void
 _lp_properties_reset_all (lp_properties_t *props)
 {
-  if (unlikely (props == NULL))
-    return;
-  g_hash_table_remove_all (props->hash);
+  _lp_assert (props != NULL);
+  g_hash_table_remove_all (props->table);
 }

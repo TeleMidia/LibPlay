@@ -23,21 +23,6 @@ main (void)
   lp_properties_t *props;
   GValue value = G_VALUE_INIT;
 
-  /* no-op: NULL props */
-  assert (_lp_properties_set (NULL, NULL, NULL) == FALSE);
-
-  /* no-op: NULL name */
-  props = _lp_properties_alloc ();
-  assert (props != NULL);
-  assert (_lp_properties_set (props, NULL, NULL) == FALSE);
-  _lp_properties_free (props);
-
-  /* no-op: NULL value */
-  props = _lp_properties_alloc ();
-  assert (props != NULL);
-  assert (_lp_properties_set (props, "@unknown", NULL) == FALSE);
-  _lp_properties_free (props);
-
   /* no-op: wrong type for known property */
   props = _lp_properties_alloc ();
   assert (props != NULL);

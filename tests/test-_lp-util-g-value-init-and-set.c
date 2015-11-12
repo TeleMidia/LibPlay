@@ -26,10 +26,6 @@ main (void)
   const char *s = "s";
   void *p = pointerof (main);
 
-  /* no-op: NULL pointer */
-  assert (_lp_util_g_value_init_and_set (NULL, G_TYPE_INT, &i) == NULL);
-
-  /* success */
   assert (_lp_util_g_value_init_and_set (&value, G_TYPE_INT, &i) == &value);
   assert (g_value_get_int (&value) == i);
   g_value_unset (&value);

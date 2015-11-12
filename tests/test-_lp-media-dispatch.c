@@ -59,23 +59,6 @@ main (void)
   lp_media_t *m2;
   lp_media_t *m3;
 
-  /* no-op: NULL media */
-  lp_event_init_start (&event);
-  assert (_lp_media_dispatch (NULL, &event) == 0);
-
-  /* no-op: invalid media */
-  media = lp_media_create_for_parent (NULL, NULL);
-  assert (media != NULL);
-  lp_event_init_start (&event);
-  assert (_lp_media_dispatch (media, &event) == 0);
-  lp_media_destroy (media);
-
-  /* no-op: NULL event */
-  media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
-  assert (_lp_media_dispatch (media, NULL) == 0);
-  lp_media_destroy (media);
-
   /* success: NULL parent */
   media = lp_media_create (NULL);
   assert_media_is_empty (media, NULL);

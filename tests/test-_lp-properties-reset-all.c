@@ -23,10 +23,6 @@ main (void)
   lp_properties_t *props;
   GValue value = G_VALUE_INIT;
 
-  /* no-op: NULL pointer */
-  _lp_properties_reset_all (NULL);
-
-  /* success */
   props = _lp_properties_alloc ();
   assert (props != NULL);
 

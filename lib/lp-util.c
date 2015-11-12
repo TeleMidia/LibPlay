@@ -37,10 +37,10 @@ _lp_util_g_value_alloc (void)
 void
 _lp_util_g_value_free (GValue *value)
 {
-  if (unlikely (!G_IS_VALUE (deconst (GValue *, value))))
+  if (unlikely (value == NULL))
     return;
-
-  g_value_unset (value);
+  if (likely (G_IS_VALUE (deconst (GValue *, value))))
+    g_value_unset (value);
   g_slice_free (GValue, value);
 }
 
@@ -51,8 +51,7 @@ _lp_util_g_value_dup (const GValue *value)
 {
   GValue *new_value;
 
-  if (unlikely (!G_IS_VALUE (deconst (GValue *, value))))
-    return NULL;
+  _lp_assert (G_IS_VALUE (deconst (GValue *, value)));
 
   new_value = _lp_util_g_value_alloc ();
   _lp_assert (new_value != NULL);
@@ -68,9 +67,7 @@ _lp_util_g_value_dup (const GValue *value)
 GValue *
 _lp_util_g_value_init_and_set (GValue *value, GType type, const void *ptr)
 {
-  if (unlikely (value == NULL))
-    return NULL;
-
+  _lp_assert (value != NULL);
   g_value_init (value, type);
   switch (type)
     {

@@ -21,8 +21,6 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "play.h"
 #include "play-internal.h"
 
-/* Exported functions.  */
-
 /*-
  * lp_event_init_start:
  * @event: a #lp_event_t
@@ -52,8 +50,8 @@ lp_event_init_stop (lp_event_t *event)
  * @e1: a #lp_event_t
  * @e2: a #lp_event_t
  *
- * Checks whether events @e1 and @2 are equal, if they have the same
- * type and carry identical data.
+ * Checks whether events @e1 and @2 have the same type and carry identical
+ * data.
  *
  * Return value: %TRUE if successful, or %FALSE otherwise.
  */

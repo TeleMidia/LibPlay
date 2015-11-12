@@ -197,6 +197,7 @@ _lp_properties_set (lp_properties_t *props, const char *name,
                     const GValue *value)
 {
   lp_properties_desc_t *desc;
+  GType type;
 
   if (unlikely (props == NULL))
     return FALSE;
@@ -207,8 +208,9 @@ _lp_properties_set (lp_properties_t *props, const char *name,
   if (unlikely (value == NULL))
     return FALSE;
 
+  type = G_VALUE_TYPE (deconst (GValue *, value));
   if (unlikely (__lp_properties_get_desc (name, &desc)
-                && G_VALUE_TYPE (value) != desc->type))
+                && type != desc->type))
     {
       return FALSE;             /* bad type */
     }

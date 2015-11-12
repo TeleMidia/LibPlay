@@ -62,7 +62,7 @@ __lp_media_create_in_error (lp_status_t status)
   return media;
 }
 
-/* Allocates a new #lp_media_t with the given @uri.
+/* Allocates and returns a #lp_media_t with the given @uri.
    This function always return a valid pointer.  */
 
 static ATTR_USE_RESULT lp_media_t *
@@ -97,18 +97,20 @@ __lp_media_free (lp_media_t *media)
   g_free (media);
 }
 
-/* Exported functions.  */
+/*************************** Exported functions ***************************/
 
 /*-
  * lp_media_create:
  * @uri: content URI for the object or %NULL
  *
- * Creates a new #lp_media_t object.
- * If @uri is not %NULL, sets the object content URI to @uri.
+ * Creates a new #lp_media_t.
+ * If @uri is not %NULL, sets the object's URI to @uri.
  *
  * Return value: a newly allocated #lp_media_t with a reference count of 1.
  * The caller owns the returned object and should call lp_media_destroy()
- * when finished with it.  This function never returns %NULL.
+ * when finished with it.
+ *
+ * This function always returns a valid pointer.
  */
 lp_media_t *
 lp_media_create (const char *uri)
@@ -121,13 +123,14 @@ lp_media_create (const char *uri)
  * @parent: parent #lp_media_t
  * @uri: content URI for the object or %NULL
  *
- * Creates a new #lp_media_t object and add it to @parent.
+ * Creates a new #lp_media_t and add it to @parent.
  * If @uri is not %NULL, sets the object content URI to @uri.
  *
  * Return value: a newly allocated #lp_media_t.  The returned object is
  * owned by the @parent; the caller should call lp_media_reference() if the
- * returned object is to be retained after the @parent is destroyed.  This
- * function never returns %NULL.
+ * returned object is to be retained after the @parent is destroyed.
+ *
+ * This function always returns a valid pointer.
  */
 lp_media_t *
 lp_media_create_for_parent (lp_media_t *parent, const char *uri)
@@ -152,7 +155,7 @@ lp_media_create_for_parent (lp_media_t *parent, const char *uri)
  * lp_media_destroy:
  * @media: a #lp_media_t
  *
- * Decreases the reference count on @media by 1.
+ * Decreases the reference count of @media by 1.
  * If the result is 0, then @media and all associated resources are freed.
  */
 void
@@ -175,12 +178,12 @@ lp_media_destroy (lp_media_t *media)
  * lp_media_status:
  * @media: a #lp_media_t
  *
- * Checks whether an error has previously occurred for this media.
+ * Checks whether an error has previously occurred for @media.
  *
- * Return value: the current status of this media, see #lp_status_t.
+ * Return value: the current status of @media, see #lp_status_t.
  */
 lp_status_t ATTR_PURE
-lp_media_status (lp_media_t *media)
+lp_media_status (const lp_media_t *media)
 {
   assert (media != NULL);
   return media->status;
@@ -190,8 +193,8 @@ lp_media_status (lp_media_t *media)
  * lp_media_reference:
  * @media: a #lp_media_t
  *
- * Increases the reference count on @media by 1.
- * This prevents @media from being destroyed until a matching call to
+ * Increases the reference count on @media by 1.  This prevents the
+ * #lp_media_t from being destroyed until a matching call to
  * lp_media_destroy() is made.
  *
  * Return value: the referenced #lp_media_t.
@@ -211,7 +214,6 @@ lp_media_reference (lp_media_t *media)
  * Returns the current reference count of @media.
  *
  * Return value: the current reference count of @media.
- * If @media is %NULL, returns 0.
  */
 unsigned int
 lp_media_get_reference_count (const lp_media_t *media)

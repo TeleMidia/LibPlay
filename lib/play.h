@@ -77,7 +77,7 @@ LP_API void
 lp_media_destroy (lp_media_t *);
 
 LP_API lp_status_t
-lp_media_status (lp_media_t *);
+lp_media_status (const lp_media_t *);
 
 LP_API lp_media_t *
 lp_media_reference (lp_media_t *);

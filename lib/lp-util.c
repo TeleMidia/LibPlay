@@ -21,7 +21,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "play.h"
 #include "play-internal.h"
 
-/* Allocates a new #GValue of the given #GType.
+/* Allocates and returns a #GValue of the given #GType.
    This function always returns a valid pointer.  */
 
 ATTR_USE_RESULT GValue *

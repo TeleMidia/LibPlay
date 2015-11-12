@@ -51,7 +51,11 @@ INDENT_TYPES=\
   $(NULL)
 
 SC_USELESS_IF_BEFORE_FREE_ALIASES=\
+  _lp_properties_free\
+  _lp_util_g_value_free\
   g_free\
+  g_hash_table_destroy\
+  g_list_free\
   lp_media_destroy\
   $(NULL)
 

@@ -83,7 +83,9 @@ main (void)
   ASSERT_MEDIA_IS_EMPTY (parent, NULL);
   child = lp_media_create_for_parent (parent, NULL);
   ASSERT (child != NULL);
+  child->parent = NULL;
   ASSERT (lp_media_add_child (parent, child) == FALSE);
+  child->parent = parent;
   lp_media_destroy (parent);
 
   /* success */

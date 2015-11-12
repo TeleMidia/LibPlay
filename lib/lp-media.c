@@ -27,8 +27,9 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
     -1,             /* ref_count */             \
     NULL,           /* parent */                \
     NULL,           /* uri */                   \
-    NULL,           /* properties */            \
     NULL,           /* children */              \
+    NULL,           /* handlers */              \
+    NULL,           /* properties */            \
   }
 
 static const lp_media_t __lp_media_nil[] = {
@@ -80,6 +81,7 @@ __lp_media_alloc (const char *uri)
 
   media->uri = g_strdup (uri);
   media->children = NULL;
+  media->handlers = NULL;
   media->properties = _lp_properties_alloc ();
   assert (media->properties != NULL);
 
@@ -93,6 +95,7 @@ __lp_media_free (lp_media_t *media)
 {
   g_free (media->uri);
   g_list_free_full (media->children, (GDestroyNotify) lp_media_destroy);
+  g_list_free (media->handlers);
   _lp_properties_free (media->properties);
   g_free (media);
 }
@@ -227,4 +230,61 @@ lp_media_get_reference_count (const lp_media_t *media)
   assert (ref_count > 0);
 
   return (unsigned int) ref_count;
+}
+
+/*-
+ * lp_media_register:
+ * @media: a #lp_media_t
+ * @func: a #lp_event_func_t
+ *
+ * Appends @func to @media's event-handler list.
+ *
+ * Return value: %TRUE if successful, or %FALSE if @func is already
+ * in handler list.
+ */
+int
+lp_media_register (lp_media_t *media, lp_event_func_t func)
+{
+  if (unlikely (!_lp_media_is_valid (media)))
+    return FALSE;
+
+  if (unlikely (func == NULL))
+    return FALSE;
+
+  if (unlikely (g_list_find (media->handlers, pointerof (func)) != NULL))
+    return FALSE;
+
+  media->handlers = g_list_append (media->handlers, pointerof (func));
+  assert (media->handlers != NULL);
+  return TRUE;
+}
+
+/*-
+ * lp_media_unregister:
+ * @media: a #lp_media_t
+ * @func: a #lp_event_func_t
+ *
+ * Removes @func from @media's event-handler list.
+ *
+ * Return value: %TRUE if successful, or %FALSE if @func is not in handler
+ * list.
+ */
+int
+lp_media_unregister (lp_media_t *media, lp_event_func_t func)
+{
+  GList *link;
+
+  if (unlikely (!_lp_media_is_valid (media)))
+    return FALSE;
+
+  if (unlikely (func == NULL))
+    return FALSE;
+
+  link = g_list_find (media->handlers, pointerof (func));
+  if (unlikely (link == NULL))
+    return FALSE;
+
+  media->handlers = g_list_remove_link (media->handlers, link);
+  g_list_free (link);
+  return TRUE;
 }

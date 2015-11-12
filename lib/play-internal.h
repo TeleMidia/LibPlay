@@ -70,6 +70,7 @@ struct _lp_media_t
   lp_media_t *parent;            /* parent */
   char *uri;                     /* content URI */
   GList *children;               /* children list */
+  GList *handlers;               /* event-handler list */
   lp_properties_t *properties;   /* property table */
 };
 

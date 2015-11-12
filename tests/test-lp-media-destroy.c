@@ -27,6 +27,7 @@ main (void)
 
   /* no-op: invalid media */
   media = lp_media_create_for_parent (NULL, NULL);
+  ASSERT (media != NULL);
   lp_media_destroy (media);
 
   /* no-op: invalid ref_count */

@@ -28,7 +28,7 @@ main (void)
   ASSERT (lp_event_equals (&e1, &e2) == FALSE);
 
   lp_event_init_start (&e2);
-  ASSERT (lp_event_equals (&e1, &e2) == TRUE);
+  ASSERT (lp_event_equals (&e1, &e2));
 
   exit (EXIT_SUCCESS);
 }

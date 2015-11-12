@@ -22,12 +22,12 @@ main (void)
 {
   lp_media_t *media;
 
-  /* success: NULL URI */
+  /* success: NULL uri */
   media = lp_media_create (NULL);
   ASSERT_MEDIA_IS_EMPTY (media, NULL);
   lp_media_destroy (media);
 
-  /* success: non-NULL URI */
+  /* success: non-NULL uri */
   media = lp_media_create ("abc");
   ASSERT_MEDIA_IS_EMPTY (media, "abc");
   lp_media_destroy (media);

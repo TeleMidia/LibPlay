@@ -46,6 +46,7 @@ ASSERT_MEDIA_IS_EMPTY (lp_media_t *media, const char *uri)
   ASSERT (media->parent == NULL);
   ASSERT (g_strcmp0 (media->uri, uri) == 0);
   ASSERT (media->children == NULL);
+  ASSERT (media->handlers == NULL);
   ASSERT (media->properties != NULL);
 }
 

@@ -47,6 +47,12 @@ _lp_properties_alloc (void);
 void
 _lp_properties_free (lp_properties_t *);
 
+lp_properties_t *
+_lp_properties_get_metatable (const lp_properties_t *);
+
+lp_properties_t *
+_lp_properties_set_metatable (lp_properties_t *, const lp_properties_t *);
+
 unsigned int
 _lp_properties_size (const lp_properties_t *);
 

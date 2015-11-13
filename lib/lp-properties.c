@@ -33,6 +33,7 @@ typedef struct _lp_properties_desc_t
 {
   const char *name;             /* property name */
   GType type;                   /* property type */
+  int inherited;                /* true if property is inherited */
   int has_default;              /* true if property has default */
   union                         /* property default value */
   {
@@ -46,11 +47,11 @@ typedef struct _lp_properties_desc_t
 /* List of known properties.  */
 static const lp_properties_desc_t known_properties[] = {
   /* KEEP THIS SORTED ALPHABETICALLY */
-  {"height", G_TYPE_INT, FALSE, {NULL}},
-  {"width", G_TYPE_INT, FALSE, {NULL}},
-  {"x", G_TYPE_INT, TRUE, {LP_PROPERTY_DEFAULT_X}},
-  {"y", G_TYPE_INT, TRUE, {LP_PROPERTY_DEFAULT_Y}},
-  {"z", G_TYPE_INT, TRUE, {LP_PROPERTY_DEFAULT_Z}},
+  {"height", G_TYPE_INT, TRUE, FALSE, {NULL}},
+  {"width", G_TYPE_INT, TRUE, FALSE, {NULL}},
+  {"x", G_TYPE_INT, FALSE, TRUE, {LP_PROPERTY_DEFAULT_X}},
+  {"y", G_TYPE_INT, FALSE, TRUE, {LP_PROPERTY_DEFAULT_Y}},
+  {"z", G_TYPE_INT, FALSE, TRUE, {LP_PROPERTY_DEFAULT_Z}},
 };
 
 /* Compares two property descriptors.  */
@@ -117,6 +118,33 @@ _lp_properties_free (lp_properties_t *props)
   g_free (props);
 }
 
+/* Returns #lp_properties_t metatable.  */
+
+ATTR_USE_RESULT lp_properties_t *
+_lp_properties_get_metatable (const lp_properties_t *props)
+{
+  _lp_assert (props != NULL);
+  return props->metatable;
+}
+
+/* Sets #lp_properties_t metatable to @metatable.
+   Returns the previous metatable value of @props.  */
+
+lp_properties_t *
+_lp_properties_set_metatable (lp_properties_t *props,
+                              const lp_properties_t *metatable)
+{
+  lp_properties_t *prev;
+
+  _lp_assert (props != NULL);
+  _lp_assert (props != metatable);
+
+  prev = props->metatable;
+  props->metatable = deconst (lp_properties_t *, metatable);
+
+  return prev;
+}
+
 /* Returns the number of key-value pairs defined in #lp_properties_t.  */
 
 ATTR_USE_RESULT unsigned int
@@ -133,40 +161,43 @@ ATTR_USE_RESULT int
 _lp_properties_get (const lp_properties_t *props, const char *name,
                     GValue *value)
 {
+  lp_properties_desc_t *desc;
   GValue default_value = G_VALUE_INIT;
   GValue *result;
 
   _lp_assert (props != NULL);
   _lp_assert (name != NULL);
+  _lp_assert (value != NULL);
 
   result = (GValue *) g_hash_table_lookup (props->table, name);
-  if (result == NULL)
+  if (result != NULL)
     {
-      lp_properties_desc_t *desc;
-      if (__lp_properties_get_desc (name, &desc) && desc->has_default)
-        {
-          ptrdiff_t ptr = (ptrdiff_t) desc;
-          ptr += (ptrdiff_t) offsetof (lp_properties_desc_t, default_value);
-          _lp_util_g_value_init_and_set (&default_value, desc->type,
-                                         pointerof (ptr));
-          result = &default_value;
-        }
-      else
-        {
-          return FALSE;
-        }
+      g_value_init (value, G_VALUE_TYPE (result));
+      g_value_copy (result, value);
+      return TRUE;
     }
 
-  if (value != NULL)
-  {
-    g_value_init (value, G_VALUE_TYPE (result));
-    g_value_copy (result, value);
-  }
+  if (!__lp_properties_get_desc (name, &desc))
+    return FALSE;               /* unknown property, nothing to do */
 
-  if (result == &default_value)
-    g_value_unset (&default_value);
+  if (desc->has_default)
+    {
+      ptrdiff_t ptr = (ptrdiff_t) desc;
 
-  return TRUE;
+      ptr += (ptrdiff_t) offsetof (lp_properties_desc_t, default_value);
+      _lp_util_g_value_init_and_set (&default_value, desc->type,
+                                     pointerof (ptr));
+      g_value_init (value, G_VALUE_TYPE (&default_value));
+      g_value_copy (&default_value, value);
+      g_value_unset (&default_value);
+
+      return TRUE;
+    }
+
+  if (desc->inherited && props->metatable != NULL)
+    return _lp_properties_get (props->metatable, name, value);
+
+  return FALSE;
 }
 
 /* Sets #lp_properties_t property @name to @value.

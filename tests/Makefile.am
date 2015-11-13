@@ -68,6 +68,7 @@ programs+= test-_lp-util-g-value-init-and-set
 # _lp-properties
 programs+= test-_lp-properties-alloc
 programs+= test-_lp-properties-free
+programs+= test-_lp-properties-get+set-metatable
 programs+= test-_lp-properties-size
 programs+= test-_lp-properties-get
 programs+= test-_lp-properties-set

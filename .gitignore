@@ -74,6 +74,7 @@
 /tests/test-_lp-util-g-value-init-and-set
 /tests/test-_lp-properties-alloc
 /tests/test-_lp-properties-free
+/tests/test-_lp-properties-get+set-metatable
 /tests/test-_lp-properties-size
 /tests/test-_lp-properties-get
 /tests/test-_lp-properties-set

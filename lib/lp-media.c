@@ -398,7 +398,7 @@ lp_media_get_reference_count (const lp_media_t *media)
  *
  * Return value: the parent of @media, or %NULL if @media has no parent.
  */
-ATTR_USE_RESULT lp_media_t *
+ATTR_PURE ATTR_USE_RESULT lp_media_t *
 lp_media_get_parent (const lp_media_t *media)
 {
   if (unlikely (!_lp_media_is_valid (media)))

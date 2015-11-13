@@ -120,7 +120,7 @@ _lp_properties_free (lp_properties_t *props)
 
 /* Returns #lp_properties_t metatable.  */
 
-ATTR_USE_RESULT lp_properties_t *
+ATTR_PURE ATTR_USE_RESULT lp_properties_t *
 _lp_properties_get_metatable (const lp_properties_t *props)
 {
   _lp_assert (props != NULL);

@@ -23,6 +23,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* *INDENT-OFF* */
 PRAGMA_DIAG_PUSH ()
+PRAGMA_DIAG_IGNORE (-Wcast-align)
 PRAGMA_DIAG_IGNORE (-Wcast-qual)
 PRAGMA_DIAG_IGNORE (-Wconversion)
 PRAGMA_DIAG_IGNORE (-Wpedantic)

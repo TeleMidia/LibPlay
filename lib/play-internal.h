@@ -37,9 +37,9 @@ PRAGMA_DIAG_POP ()
 
 typedef struct _lp_properties_t lp_properties_t;
 
-#define LP_PROPERTY_DEFAULT_X 0
-#define LP_PROPERTY_DEFAULT_Y 0
-#define LP_PROPERTY_DEFAULT_Z 0
+#define _LP_PROPERTY_DEFAULT_X 0
+#define _LP_PROPERTY_DEFAULT_Y 0
+#define _LP_PROPERTY_DEFAULT_Z 0
 
 lp_properties_t *
 _lp_properties_alloc (void);

@@ -92,6 +92,14 @@ programs+= test-lp-media-add-child
 programs+= test-lp-media-remove-child
 programs+= test-lp-media-register
 programs+= test-lp-media-unregister
+programs+= test-lp-media-get-property-int
+programs+= test-lp-media-set-property-int
+programs+= test-lp-media-get-property-double
+programs+= test-lp-media-set-property-double
+programs+= test-lp-media-get-property-string
+programs+= test-lp-media-set-property-string
+programs+= test-lp-media-get-property-pointer
+programs+= test-lp-media-set-property-pointer
 # _lp-media
 programs+= test-_lp-media-dispatch
 check_PROGRAMS= $(programs)

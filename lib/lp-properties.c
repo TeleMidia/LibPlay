@@ -49,9 +49,9 @@ static const lp_properties_desc_t known_properties[] = {
   /* KEEP THIS SORTED ALPHABETICALLY */
   {"height", G_TYPE_INT, TRUE, FALSE, {NULL}},
   {"width", G_TYPE_INT, TRUE, FALSE, {NULL}},
-  {"x", G_TYPE_INT, FALSE, TRUE, {LP_PROPERTY_DEFAULT_X}},
-  {"y", G_TYPE_INT, FALSE, TRUE, {LP_PROPERTY_DEFAULT_Y}},
-  {"z", G_TYPE_INT, FALSE, TRUE, {LP_PROPERTY_DEFAULT_Z}},
+  {"x", G_TYPE_INT, FALSE, TRUE, {_LP_PROPERTY_DEFAULT_X}},
+  {"y", G_TYPE_INT, FALSE, TRUE, {_LP_PROPERTY_DEFAULT_Y}},
+  {"z", G_TYPE_INT, FALSE, TRUE, {_LP_PROPERTY_DEFAULT_Z}},
 };
 
 /* Compares two property descriptors.  */

@@ -95,6 +95,14 @@
 /tests/test-lp-media-remove-child
 /tests/test-lp-media-register
 /tests/test-lp-media-unregister
+/tests/test-lp-media-get-property-int
+/tests/test-lp-media-set-property-int
+/tests/test-lp-media-get-property-double
+/tests/test-lp-media-set-property-double
+/tests/test-lp-media-get-property-string
+/tests/test-lp-media-set-property-string
+/tests/test-lp-media-get-property-pointer
+/tests/test-lp-media-set-property-pointer
 /tests/test-_lp-media-dispatch
 Makefile
 Makefile.in

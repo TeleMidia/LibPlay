@@ -30,7 +30,7 @@ main (void)
   assert (props != NULL);
 
   assert (_lp_properties_get (props, "x", &value));
-  assert (g_value_get_int (&value) == LP_PROPERTY_DEFAULT_X);
+  assert (g_value_get_int (&value) == _LP_PROPERTY_DEFAULT_X);
   g_value_unset (&value);
   _lp_properties_free (props);
 

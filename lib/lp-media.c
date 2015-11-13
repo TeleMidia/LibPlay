@@ -50,6 +50,8 @@ static lp_media_t *__lp_media_alloc (const char *);
 static void __lp_media_free (lp_media_t *);
 static void __lp_media_set_parent (lp_media_t *, lp_media_t *);
 static unsigned int __lp_media_dispatch_helper (lp_media_t *, lp_media_t *, lp_event_t *);
+static int __lp_media_get_property_helper (lp_media_t *, const char *, GType, void *);
+static int __lp_media_set_property_helper (lp_media_t *, const char *, GType, void *);
 
 /* Returns a reference to an invalid #lp_media_t.  */
 

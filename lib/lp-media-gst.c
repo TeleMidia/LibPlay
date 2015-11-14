@@ -38,10 +38,46 @@ typedef struct _lp_media_gst_t
   GstPipeline *pipeline;
 } lp_media_gst_t;
 
+/* Forward declarations: */
+/* *INDENT-OFF* */
+static lp_media_gst_t *__lp_media_gst_check (const lp_media_t *);
+static GstPipeline *__lp_media_gst_get_pipeline (lp_media_t *);
+/* *INDENT-ON* */
+
+/* Checks and returns the back-end data associated with @media.  */
+
+static lp_media_gst_t *
+__lp_media_gst_check (const lp_media_t *media)
+{
+  _lp_assert (media != NULL);
+  _lp_assert (media->backend.data != NULL);
+  return (lp_media_gst_t *) media->backend.data;
+}
+
+/* Gets #GstPipeline associated with @media.  Returns a #GstPipeline if
+   successful, or %NULL if @media has no associated #GstPipeline.  */
+
+static ATTR_UNUSED GstPipeline *
+__lp_media_gst_get_pipeline (lp_media_t *media)
+{
+  lp_media_gst_t *gst;
+
+  gst = __lp_media_gst_check (media);
+  if (gst->pipeline != NULL)
+    return gst->pipeline;
+
+  if (media->parent != NULL)
+    return __lp_media_gst_get_pipeline (media->parent);
+
+  return NULL;
+}
+
+/*************************** Back-end callbacks ***************************/
+
 /* Frees @media's back-end data.  */
 
 static void
-__lp_media_gst_free (void *data)
+__lp_media_gst_free_func (void *data)
 {
   g_free (data);
 }
@@ -49,7 +85,7 @@ __lp_media_gst_free (void *data)
 /* Posts @event to @media.  */
 
 static int
-__lp_media_gst_post (lp_media_t *media, lp_event_t *event)
+__lp_media_gst_post_func (lp_media_t *media, lp_event_t *event)
 {
   _lp_assert (media != NULL);
   _lp_assert (event != NULL);
@@ -91,6 +127,6 @@ _lp_media_gst_init (lp_media_t *media)
   memset (gst, 0, sizeof (*gst));
 
   media->backend.data = gst;
-  media->backend.free = __lp_media_gst_free;
-  media->backend.post = __lp_media_gst_post;
+  media->backend.free = __lp_media_gst_free_func;
+  media->backend.post = __lp_media_gst_post_func;
 }

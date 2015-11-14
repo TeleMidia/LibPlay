@@ -42,6 +42,7 @@ libplay_la_CFLAGS= $(AM_CFLAGS) $(CFLAG_VISIBILITY)\
 libplay_la_LDFLAGS= -version-info $(LIBPLAY_LIBTOOL_STRING) -no-undefined\
   $(GLIB_CFLAGS) $(GSTREAMER_LIBS)
 libplay_la_SOURCES=\
+  gstx-macros.h\
   lp-event.c\
   lp-media-gst.c\
   lp-media.c\

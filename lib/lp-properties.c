@@ -24,8 +24,8 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 /* Property table data.  */
 struct _lp_properties_t
 {
-  GHashTable *table;             /* primary table */
-  lp_properties_t *metatable;    /* fallback table */
+  GHashTable *table;            /* primary table */
+  lp_properties_t *metatable;   /* fallback table */
 };
 
 /* Property descriptor data.  */
@@ -95,8 +95,8 @@ _lp_properties_alloc (void)
   GHashTable *table;
 
   table = g_hash_table_new_full (g_str_hash, g_str_equal,
-                                (GDestroyNotify) g_free,
-                                (GDestroyNotify) _lp_util_g_value_free);
+                                 (GDestroyNotify) g_free,
+                                 (GDestroyNotify) _lp_util_g_value_free);
   _lp_assert (table != NULL);
 
   props = (lp_properties_t *) g_malloc (sizeof (*props));
@@ -113,7 +113,7 @@ void
 _lp_properties_free (lp_properties_t *props)
 {
   if (unlikely (props == NULL))
-      return;
+    return;
   g_hash_table_destroy (props->table);
   g_free (props);
 }

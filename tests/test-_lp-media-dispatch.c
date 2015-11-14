@@ -45,9 +45,11 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
     return name##_return++;                                             \
   }
 
+/* *INDENT-OFF* */
 DEFINE_HANDLER (h1)
 DEFINE_HANDLER (h2)
 DEFINE_HANDLER (h3)
+/* INDENT-ON* */
 
 int
 main (void)

@@ -25,7 +25,7 @@ handler (lp_media_t *media, lp_media_t *target, lp_event_t *event)
   assert (target != NULL);
   assert (event != NULL);
   assert (event->type == LP_EVENT_USER);
-  counter ++;
+  counter++;
   return FALSE;
 }
 

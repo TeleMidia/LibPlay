@@ -19,17 +19,17 @@
 COPYRIGHT_YEAR= 2015
 COPYRIGHT_HOLDER= PUC-Rio/Laboratorio TeleMidia
 
-INDENT_OPTIONS=\
-  --brace-indent0\
-  --case-brace-indentation0\
-  --case-indentation2\
-  --else-endif-column0\
-  --gnu-style\
-  --indent-label-1\
-  --leave-preprocessor-space\
-  --no-tabs\
-  -l76\
-  $(NULL)
+# INDENT_OPTIONS=\
+#   --brace-indent0\
+#   --case-brace-indentation0\
+#   --case-indentation2\
+#   --else-endif-column0\
+#   --gnu-style\
+#   --indent-label-1\
+#   --leave-preprocessor-space\
+#   --no-tabs\
+#   -l76\
+#   $(NULL)
 
 INDENT_EXCLUDE=\
   lib/play-internal.h\

@@ -64,6 +64,7 @@
 /lib/play.pc
 /lib/playconf.h
 /lib/stamp-h1
+/src/play
 /tests/env.csh
 /tests/env.sh
 /tests/gdb.cfg
@@ -106,7 +107,7 @@
 /tests/test-lp-media-set-property-string
 /tests/test-lp-media-get-property-pointer
 /tests/test-lp-media-set-property-pointer
-tests/test-_lp-media-get-root-ancestor
+/tests/test-_lp-media-get-root-ancestor
 /tests/test-_lp-media-dispatch
 /tests/test-lp-media-post
 Makefile

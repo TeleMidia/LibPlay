@@ -30,6 +30,15 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
     NULL,           /* children */              \
     NULL,           /* handlers */              \
     NULL,           /* properties */            \
+    {                                           \
+      NULL,         /* back-end data */         \
+      NULL,         /* free */                  \
+      NULL,         /* add_child */             \
+      NULL,         /* remove_child */          \
+      NULL,         /* post */                  \
+      NULL,         /* get_property */          \
+      NULL,         /* set_property */          \
+    }                                           \
   }
 
 static const lp_media_t __lp_media_nil[] = {
@@ -78,6 +87,7 @@ __lp_media_alloc (const char *uri)
 
   media = (lp_media_t *) g_malloc (sizeof (*media));
   _lp_assert (media != NULL);
+  memset (media, 0, sizeof (*media));
 
   media->status = LP_STATUS_SUCCESS;
   media->ref_count = 1;
@@ -87,6 +97,7 @@ __lp_media_alloc (const char *uri)
   media->properties = _lp_properties_alloc ();
   _lp_assert (media->properties != NULL);
   __lp_media_set_parent (media, NULL);
+  _lp_media_gst_init (media);
 
   return media;
 }
@@ -101,6 +112,8 @@ __lp_media_free (lp_media_t *media)
   g_list_free_full (media->children, (GDestroyNotify) lp_media_destroy);
   g_list_free (media->handlers);
   _lp_properties_free (media->properties);
+  _lp_assert (media->backend.free != NULL);
+  media->backend.free (media->backend.data);
   g_free (media);
 }
 
@@ -306,8 +319,7 @@ lp_media_create_for_parent (lp_media_t *parent, const char *uri)
 
   media = __lp_media_alloc (uri);
   _lp_assert (media != NULL);
-  __lp_media_set_parent (media, parent);
-  parent->children = g_list_append (parent->children, media);
+  _lp_assert (lp_media_add_child (parent, media));
 
   return media;
 }
@@ -467,6 +479,29 @@ lp_media_remove_child (lp_media_t *parent, lp_media_t *child)
   parent->children = g_list_remove_link (parent->children, link);
   g_list_free (link);
   return TRUE;
+}
+
+/*-
+ * lp_media_post:
+ * @media: a #lp_media_t
+ * @event: a #lp_event_t
+ *
+ * Posts @event to @media.
+ *
+ * Return value: %TRUE if successful, or %FALSE otherwise.
+ */
+
+int
+lp_media_post (lp_media_t *media, lp_event_t *event)
+{
+  if (unlikely (!_lp_media_is_valid (media)))
+    return FALSE;
+
+  if (unlikely (event == NULL))
+    return FALSE;
+
+  _lp_assert (media->backend.post != NULL);
+  return media->backend.post (media, event);
 }
 
 /*-

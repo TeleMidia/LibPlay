@@ -23,14 +23,9 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* *INDENT-OFF* */
 PRAGMA_DIAG_PUSH ()
-PRAGMA_DIAG_IGNORE (-Wcast-align)
-PRAGMA_DIAG_IGNORE (-Wcast-qual)
-PRAGMA_DIAG_IGNORE (-Wconversion)
-PRAGMA_DIAG_IGNORE (-Wpedantic)
 PRAGMA_DIAG_IGNORE (-Wvariadic-macros)
 #include <glib.h>
 #include <glib-object.h>
-#include <gst/gst.h>
 PRAGMA_DIAG_POP ()
 /* *INDENT-ON* */
 
@@ -73,19 +68,34 @@ _lp_properties_reset_all (lp_properties_t *);
 
 struct _lp_media_t
 {
-  lp_status_t status;            /* error status */
-  gint ref_count;                /* reference counter */
-  lp_media_t *parent;            /* parent */
-  char *uri;                     /* content URI */
-  GList *children;               /* children list */
-  GList *handlers;               /* event-handler list */
-  lp_properties_t *properties;   /* property table */
+  lp_status_t status;           /* error status */
+  gint ref_count;               /* reference counter */
+  lp_media_t *parent;           /* parent */
+  char *uri;                    /* content URI */
+  GList *children;              /* children list */
+  GList *handlers;              /* event-handler list */
+  lp_properties_t *properties;  /* property table */
+  struct
+  {
+    void *data;
+    void (*free) (void *);
+    int (*add_child) (lp_media_t *, lp_media_t *);
+    int (*remove_child) (lp_media_t *, lp_media_t *);
+    int (*post) (lp_media_t *, lp_event_t *);
+    int (*get_property) (lp_media_t *, const char *, GValue *);
+    int (*set_property) (lp_media_t *, const char *, const GValue *);
+  } backend;
 };
 
 #define _lp_media_is_valid(m) ((m) != NULL && !(m)->status)
 
 unsigned int
 _lp_media_dispatch (lp_media_t *, lp_event_t *);
+
+/* lp-media-gst */
+
+void
+_lp_media_gst_init (lp_media_t *);
 
 /* lp-util */
 

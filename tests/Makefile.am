@@ -79,6 +79,7 @@ programs+= test-lp-status-to-string
 # lp-event
 programs+= test-lp-event-init-start
 programs+= test-lp-event-init-stop
+programs+= test-lp-event-init-user
 programs+= test-lp-event-equals
 # lp-media
 programs+= test-lp-media-create
@@ -100,8 +101,8 @@ programs+= test-lp-media-get-property-string
 programs+= test-lp-media-set-property-string
 programs+= test-lp-media-get-property-pointer
 programs+= test-lp-media-set-property-pointer
-# _lp-media
 programs+= test-_lp-media-dispatch
+programs+= test-lp-media-post
 check_PROGRAMS= $(programs)
 
 TESTS=\

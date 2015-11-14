@@ -45,7 +45,8 @@ lp_status_to_string (lp_status_t);
 typedef enum _lp_event_type_t
 {
   LP_EVENT_START = 0,
-  LP_EVENT_STOP
+  LP_EVENT_STOP,
+  LP_EVENT_USER
 } lp_event_type_t;
 
 typedef struct _lp_event_t
@@ -58,6 +59,9 @@ lp_event_init_start (lp_event_t *);
 
 LP_API void
 lp_event_init_stop (lp_event_t *);
+
+LP_API void
+lp_event_init_user (lp_event_t *);
 
 LP_API int
 lp_event_equals (const lp_event_t *, const lp_event_t *);
@@ -93,6 +97,9 @@ lp_media_add_child (lp_media_t *, lp_media_t *);
 
 LP_API int
 lp_media_remove_child (lp_media_t *, lp_media_t *);
+
+LP_API int
+lp_media_post (lp_media_t *, lp_event_t *);
 
 LP_API int
 lp_media_register (lp_media_t *, lp_event_func_t);

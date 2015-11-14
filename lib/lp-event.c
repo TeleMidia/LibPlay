@@ -46,6 +46,18 @@ lp_event_init_stop (lp_event_t *event)
 }
 
 /*-
+ * lp_event_init_user:
+ * @event: a #lp_event_t
+ *
+ * Initializes @event as %LP_EVENT_USER.
+ */
+void
+lp_event_init_user (lp_event_t *event)
+{
+  event->type = LP_EVENT_USER;
+}
+
+/*-
  * lp_event_equals:
  * @e1: a #lp_event_t
  * @e2: a #lp_event_t

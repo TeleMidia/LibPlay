@@ -38,6 +38,7 @@ libplay_la_LDFLAGS= -version-info $(LIBPLAY_LIBTOOL_STRING) -no-undefined\
   $(GLIB_CFLAGS) $(GSTREAMER_LIBS)
 libplay_la_SOURCES=\
   lp-event.c\
+  lp-media-gst.c\
   lp-media.c\
   lp-properties.c\
   lp-status.c\

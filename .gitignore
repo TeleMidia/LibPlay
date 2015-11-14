@@ -83,6 +83,7 @@
 /tests/test-lp-status-to-string
 /tests/test-lp-event-init-start
 /tests/test-lp-event-init-stop
+/tests/test-lp-event-init-user
 /tests/test-lp-event-equals
 /tests/test-lp-media-create
 /tests/test-lp-media-create-for-parent
@@ -104,6 +105,7 @@
 /tests/test-lp-media-get-property-pointer
 /tests/test-lp-media-set-property-pointer
 /tests/test-_lp-media-dispatch
+/tests/test-lp-media-post
 Makefile
 Makefile.in
 autom4te.cache

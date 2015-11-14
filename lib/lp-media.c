@@ -263,6 +263,18 @@ __lp_media_set_property_helper (lp_media_t *media, const char *name,
 
 /*************************** Internal functions ***************************/
 
+/* Gets the root ancestor of @media.
+   Returns @media if it has no parent.  */
+
+lp_media_t *
+_lp_media_get_root_ancestor (lp_media_t *media)
+{
+  _lp_assert (_lp_media_is_valid (media));
+  if (media->parent == NULL)
+    return media;
+  return _lp_media_get_root_ancestor (media->parent);
+}
+
 /* Dispatches @event to all handlers registered in @media and its ancestors.
    Stops processing (calling handlers) if any of them returns %TRUE.
    Returns the total number of handlers called.  */

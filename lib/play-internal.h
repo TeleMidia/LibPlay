@@ -89,6 +89,9 @@ struct _lp_media_t
 
 #define _lp_media_is_valid(m) ((m) != NULL && !(m)->status)
 
+lp_media_t *
+_lp_media_get_root_ancestor (lp_media_t *);
+
 unsigned int
 _lp_media_dispatch (lp_media_t *, lp_event_t *);
 

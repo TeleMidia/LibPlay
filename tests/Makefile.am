@@ -104,6 +104,7 @@ programs+= test-lp-media-get-property-string
 programs+= test-lp-media-set-property-string
 programs+= test-lp-media-get-property-pointer
 programs+= test-lp-media-set-property-pointer
+programs+= test-_lp-media-get-root-ancestor
 programs+= test-_lp-media-dispatch
 programs+= test-lp-media-post
 check_PROGRAMS= $(programs)

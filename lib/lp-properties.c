@@ -33,8 +33,8 @@ typedef struct _lp_properties_desc_t
 {
   const char *name;             /* property name */
   GType type;                   /* property type */
-  int inherited;                /* true if property is inherited */
-  int has_default;              /* true if property has default */
+  lp_bool_t inherited;          /* true if property is inherited */
+  lp_bool_t has_default;        /* true if property has default */
   union                         /* property default value */
   {
     int i;
@@ -66,7 +66,7 @@ __lp_properties_desc_compar (const void *desc1, const void *desc2)
 /* Gets the descriptor of property @name and stores it in @desc.
    Returns %TRUE if successful, or %FALSE if @name is unknown.  */
 
-static int
+static lp_bool_t
 __lp_properties_get_desc (const char *name, lp_properties_desc_t **desc)
 {
   lp_properties_desc_t key;
@@ -157,7 +157,7 @@ _lp_properties_size (const lp_properties_t *props)
 /* Gets #lp_properties_t property @name and stores it in @desc.
    Returns %TRUE if successful, or %FALSE if @name is not set.  */
 
-ATTR_USE_RESULT int
+ATTR_USE_RESULT lp_bool_t
 _lp_properties_get (const lp_properties_t *props, const char *name,
                     GValue *value)
 {
@@ -203,7 +203,7 @@ _lp_properties_get (const lp_properties_t *props, const char *name,
 /* Sets #lp_properties_t property @name to @value.
    Returns %TRUE if successful, or %FALSE otherwise.  */
 
-ATTR_USE_RESULT int
+ATTR_USE_RESULT lp_bool_t
 _lp_properties_set (lp_properties_t *props, const char *name,
                     const GValue *value)
 {
@@ -229,7 +229,7 @@ _lp_properties_set (lp_properties_t *props, const char *name,
 /* Resets #lp_properties_t property @name to its default value.
    Returns %TRUE if successful, or %FALSE otherwise.  */
 
-ATTR_USE_RESULT int
+ATTR_USE_RESULT lp_bool_t
 _lp_properties_reset (lp_properties_t *props, const char *name)
 {
   _lp_assert (props != NULL);

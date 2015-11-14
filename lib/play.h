@@ -104,13 +104,14 @@ lp_event_init_stop (lp_event_t *);
 LP_API void
 lp_event_init_user (lp_event_t *);
 
-LP_API int
+LP_API lp_bool_t
 lp_event_equals (const lp_event_t *, const lp_event_t *);
 
 /* media */
 
 typedef struct _lp_media_t lp_media_t;
-typedef int (*lp_event_func_t) (lp_media_t *, lp_media_t *, lp_event_t *);
+typedef lp_bool_t (*lp_event_func_t) (lp_media_t *, lp_media_t *,
+                                      lp_event_t *);
 
 LP_API lp_media_t *
 lp_media_create (const char *uri);
@@ -133,43 +134,43 @@ lp_media_get_reference_count (const lp_media_t *);
 LP_API lp_media_t *
 lp_media_get_parent (const lp_media_t *);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_add_child (lp_media_t *, lp_media_t *);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_remove_child (lp_media_t *, lp_media_t *);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_post (lp_media_t *, lp_event_t *);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_register (lp_media_t *, lp_event_func_t);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_unregister (lp_media_t *, lp_event_func_t);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_get_property_int (lp_media_t *, const char *, int *);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_set_property_int (lp_media_t *, const char *, int);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_get_property_double (lp_media_t *, const char *, double *);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_set_property_double (lp_media_t *, const char *, double);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_get_property_string (lp_media_t *, const char *, char **);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_set_property_string (lp_media_t *, const char *, const char *);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_get_property_pointer (lp_media_t *, const char *, void **);
 
-LP_API int
+LP_API lp_bool_t
 lp_media_set_property_pointer (lp_media_t *, const char *, const void *);
 
 LP_END_DECLS

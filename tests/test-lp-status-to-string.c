@@ -27,7 +27,6 @@ main (void)
   for (i = 0; i <= LP_STATUS_LAST_STATUS; i++)
     {
       lp_status_t s = (lp_status_t) i;
-      printf ("%d\n", (int) i);
       switch (i)
         {
         case LP_STATUS_SUCCESS:

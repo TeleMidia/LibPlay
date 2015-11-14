@@ -84,7 +84,7 @@ __lp_media_gst_free_func (void *data)
 
 /* Posts @event to @media.  */
 
-static int
+static lp_bool_t
 __lp_media_gst_post_func (lp_media_t *media, lp_event_t *event)
 {
   _lp_assert (media != NULL);

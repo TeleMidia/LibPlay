@@ -67,7 +67,7 @@ lp_event_init_user (lp_event_t *event)
  *
  * Return value: %TRUE if successful, or %FALSE otherwise.
  */
-ATTR_PURE int
+ATTR_PURE lp_bool_t
 lp_event_equals (const lp_event_t *e1, const lp_event_t *e2)
 {
   return e1->type == e2->type;

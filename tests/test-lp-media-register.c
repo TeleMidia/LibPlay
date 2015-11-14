@@ -17,21 +17,21 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "tests.h"
 
-static int
+static lp_bool_t
 h1 (arg_unused (lp_media_t *m), arg_unused (lp_media_t *t),
     arg_unused (lp_event_t *e))
 {
   return TRUE;
 }
 
-static int
+static lp_bool_t
 h2 (arg_unused (lp_media_t *m), arg_unused (lp_media_t *t),
     arg_unused (lp_event_t *e))
 {
   return TRUE;
 }
 
-static int
+static lp_bool_t
 h3 (arg_unused (lp_media_t *m), arg_unused (lp_media_t *t),
     arg_unused (lp_event_t *e))
 {

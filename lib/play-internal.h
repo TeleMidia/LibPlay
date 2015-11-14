@@ -52,13 +52,13 @@ _lp_properties_set_metatable (lp_properties_t *, const lp_properties_t *);
 unsigned int
 _lp_properties_size (const lp_properties_t *);
 
-int
+lp_bool_t
 _lp_properties_get (const lp_properties_t *, const char *, GValue *);
 
-int
+lp_bool_t
 _lp_properties_set (lp_properties_t *, const char *, const GValue *);
 
-int
+lp_bool_t
 _lp_properties_reset (lp_properties_t *, const char *);
 
 void
@@ -79,11 +79,11 @@ struct _lp_media_t
   {
     void *data;
     void (*free) (void *);
-    int (*add_child) (lp_media_t *, lp_media_t *);
-    int (*remove_child) (lp_media_t *, lp_media_t *);
-    int (*post) (lp_media_t *, lp_event_t *);
-    int (*get_property) (lp_media_t *, const char *, GValue *);
-    int (*set_property) (lp_media_t *, const char *, const GValue *);
+    lp_bool_t (*add_child) (lp_media_t *, lp_media_t *);
+    lp_bool_t (*remove_child) (lp_media_t *, lp_media_t *);
+    lp_bool_t (*post) (lp_media_t *, lp_event_t *);
+    lp_bool_t (*get_property) (lp_media_t *, const char *, GValue *);
+    lp_bool_t (*set_property) (lp_media_t *, const char *, const GValue *);
   } backend;
 };
 

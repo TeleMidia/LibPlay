@@ -32,7 +32,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
     name##_return = FALSE;                                              \
     name##_count = 0;                                                   \
   }                                                                     \
-  static ATTR_UNUSED int                                                \
+  static ATTR_UNUSED lp_bool_t                                          \
   name (lp_media_t *media, lp_media_t *target, lp_event_t *event)       \
   {                                                                     \
     assert (_lp_media_is_valid (media));                                \

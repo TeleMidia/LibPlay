@@ -60,8 +60,8 @@ static lp_media_t *__lp_media_alloc (const char *);
 static void __lp_media_free (lp_media_t *);
 static void __lp_media_set_parent (lp_media_t *, lp_media_t *);
 static unsigned int __lp_media_dispatch_helper (lp_media_t *, lp_media_t *, lp_event_t *);
-static int __lp_media_get_property_helper (lp_media_t *, const char *, GType, void *);
-static int __lp_media_set_property_helper (lp_media_t *, const char *, GType, void *);
+static lp_bool_t __lp_media_get_property_helper (lp_media_t *, const char *, GType, void *);
+static lp_bool_t __lp_media_set_property_helper (lp_media_t *, const char *, GType, void *);
 /* *INDENT-ON* */
 
 /* Returns a reference to an invalid #lp_media_t.  */
@@ -180,7 +180,7 @@ __lp_media_dispatch_helper (lp_media_t *media, lp_media_t *target,
 
 /* Helper function used by property getters.  */
 
-static int
+static lp_bool_t
 __lp_media_get_property_helper (lp_media_t *media, const char *name,
                                 GType type, void *ptr)
 {
@@ -225,12 +225,12 @@ __lp_media_get_property_helper (lp_media_t *media, const char *name,
 
 /* Helper function used by property setters.  */
 
-static int
+static lp_bool_t
 __lp_media_set_property_helper (lp_media_t *media, const char *name,
                                 GType type, void *ptr)
 {
   GValue value = G_VALUE_INIT;
-  int status;
+  lp_bool_t status;
 
   if (unlikely (!_lp_media_is_valid (media)))
     return FALSE;
@@ -430,7 +430,7 @@ lp_media_get_parent (const lp_media_t *media)
  * Return value: %TRUE if successful, or %FALSE if @child is already in
  * children list or if its current parent is not %NULL.
  */
-int
+lp_bool_t
 lp_media_add_child (lp_media_t *parent, lp_media_t *child)
 {
   if (unlikely (!_lp_media_is_valid (parent)
@@ -462,7 +462,7 @@ lp_media_add_child (lp_media_t *parent, lp_media_t *child)
  * Return value: %TRUE if successful, or %FALSE if @child is not in children
  * list.
  */
-int
+lp_bool_t
 lp_media_remove_child (lp_media_t *parent, lp_media_t *child)
 {
   GList *link;
@@ -493,7 +493,7 @@ lp_media_remove_child (lp_media_t *parent, lp_media_t *child)
  * Return value: %TRUE if successful, or %FALSE otherwise.
  */
 
-int
+lp_bool_t
 lp_media_post (lp_media_t *media, lp_event_t *event)
 {
   if (unlikely (!_lp_media_is_valid (media)))
@@ -516,7 +516,7 @@ lp_media_post (lp_media_t *media, lp_event_t *event)
  * Return value: %TRUE if successful, or %FALSE if @func is already
  * in handler list.
  */
-int
+lp_bool_t
 lp_media_register (lp_media_t *media, lp_event_func_t func)
 {
   if (unlikely (!_lp_media_is_valid (media)))
@@ -543,7 +543,7 @@ lp_media_register (lp_media_t *media, lp_event_func_t func)
  * Return value: %TRUE if successful, or %FALSE if @func is not in handler
  * list.
  */
-int
+lp_bool_t
 lp_media_unregister (lp_media_t *media, lp_event_func_t func)
 {
   GList *link;
@@ -574,7 +574,7 @@ lp_media_unregister (lp_media_t *media, lp_event_func_t func)
  * Return value: %TRUE if successful.  %FALSE if property @name is not
  * defined or its current value is not of type #int.
  */
-LP_API int
+lp_bool_t
 lp_media_get_property_int (lp_media_t *media, const char *name, int *i)
 {
   return __lp_media_get_property_helper (media, name, G_TYPE_INT, i);
@@ -590,7 +590,7 @@ lp_media_get_property_int (lp_media_t *media, const char *name, int *i)
  *
  * Return value: %TRUE if successful.  %FALSE otherwise.
  */
-LP_API int
+lp_bool_t
 lp_media_set_property_int (lp_media_t *media, const char *name, int i)
 {
   return __lp_media_set_property_helper (media, name, G_TYPE_INT, &i);
@@ -607,7 +607,7 @@ lp_media_set_property_int (lp_media_t *media, const char *name, int i)
  * Return value: %TRUE if successful.  %FALSE if property @name is not
  * defined or its current value is not of type #double.
  */
-LP_API int
+lp_bool_t
 lp_media_get_property_double (lp_media_t *media, const char *name,
                               double *d)
 {
@@ -624,7 +624,7 @@ lp_media_get_property_double (lp_media_t *media, const char *name,
  *
  * Return value: %TRUE if successful.  %FALSE otherwise.
  */
-LP_API int
+lp_bool_t
 lp_media_set_property_double (lp_media_t *media, const char *name,
                               double d)
 {
@@ -643,7 +643,7 @@ lp_media_set_property_double (lp_media_t *media, const char *name,
  * Return value: %TRUE if successful.  %FALSE if property @name is not
  * defined or its current value is not of type #string.
  */
-LP_API int
+lp_bool_t
 lp_media_get_property_string (lp_media_t *media, const char *name,
                               char **s)
 {
@@ -660,7 +660,7 @@ lp_media_get_property_string (lp_media_t *media, const char *name,
  *
  * Return value: %TRUE if successful.  %FALSE otherwise.
  */
-LP_API int
+lp_bool_t
 lp_media_set_property_string (lp_media_t *media, const char *name,
                               const char *s)
 {
@@ -678,7 +678,7 @@ lp_media_set_property_string (lp_media_t *media, const char *name,
  * Return value: %TRUE if successful.  %FALSE if property @name is not
  * defined or its current value is not of type #pointer.
  */
-LP_API int
+lp_bool_t
 lp_media_get_property_pointer (lp_media_t *media, const char *name,
                                void **p)
 {
@@ -695,7 +695,7 @@ lp_media_get_property_pointer (lp_media_t *media, const char *name,
  *
  * Return value: %TRUE if successful.  %FALSE otherwise.
  */
-LP_API int
+lp_bool_t
 lp_media_set_property_pointer (lp_media_t *media, const char *name,
                                const void *p)
 {

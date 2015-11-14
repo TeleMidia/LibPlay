@@ -80,6 +80,8 @@
 /tests/test-_lp-properties-set
 /tests/test-_lp-properties-reset
 /tests/test-_lp-properties-reset-all
+/tests/test-lp-version
+/tests/test-lp-version-string
 /tests/test-lp-status-to-string
 /tests/test-lp-event-init-start
 /tests/test-lp-event-init-stop

@@ -1,4 +1,4 @@
-/* playconf.h -- LibPlay configuration.
+/* lp-version.c -- Library version.
    Copyright (C) 2015 PUC-Rio/Laboratorio TeleMidia
 
 This file is part of LibPlay.
@@ -16,13 +16,18 @@ License for more details.
 You should have received a copy of the GNU General Public License
 along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
-/* @configure_input@ */
+#include <config.h>
 
-#ifndef LIBPLAYCONF_H
-#define LIBPLAYCONF_H
+#include "play.h"
 
-#define LP_VERSION_MAJOR @LIBPLAY_VERSION_MAJOR@
-#define LP_VERSION_MINOR @LIBPLAY_VERSION_MINOR@
-#define LP_VERSION_MICRO @LIBPLAY_VERSION_MICRO@
+int
+lp_version (void)
+{
+  return LP_VERSION;
+}
 
-#endif /* LIBPLAYCONF_H */
+const char *
+lp_version_string (void)
+{
+  return LP_VERSION_STRING;
+}

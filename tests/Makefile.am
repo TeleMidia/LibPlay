@@ -74,6 +74,9 @@ programs+= test-_lp-properties-get
 programs+= test-_lp-properties-set
 programs+= test-_lp-properties-reset
 programs+= test-_lp-properties-reset-all
+# lp-version
+programs+= test-lp-version
+programs+= test-lp-version-string
 # lp-status
 programs+= test-lp-status-to-string
 # lp-event

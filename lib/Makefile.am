@@ -30,8 +30,13 @@ include_HEADERS= play.h playconf.h
 noinst_HEADERS= macros.h
 lib_LTLIBRARIES= libplay.la
 
+LP_BUILDING= -DLP_BUILDING
+if HAVE_VISIBILITY
+LP_BUILDING+= -DLP_HAVE_VISIBILITY
+endif
+
 libplay_la_DEPENDENCIES= $(include_HEADERS) $(noinst_HEADERS)
-libplay_la_CPPFLAGS= -DLP_BUILDING
+libplay_la_CPPFLAGS= $(LP_BUILDING)
 libplay_la_CFLAGS= $(AM_CFLAGS) $(CFLAG_VISIBILITY)\
   $(GLIB_CFLAGS) $(GSTREAMER_CFLAGS)
 libplay_la_LDFLAGS= -version-info $(LIBPLAY_LIBTOOL_STRING) -no-undefined\
@@ -43,6 +48,7 @@ libplay_la_SOURCES=\
   lp-properties.c\
   lp-status.c\
   lp-util.c\
+  lp-version.c\
   play-internal.h\
   play.h\
   playconf.h\

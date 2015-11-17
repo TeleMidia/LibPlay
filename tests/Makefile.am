@@ -43,7 +43,7 @@ AM_COLOR_TESTS= always
 DISABLE_HARD_ERRORS= true
 TEST_EXTENSIONS= .sh
 LOG_COMPILER= $(_VALGRIND)
-VALGRIND_OPTIONS+= --show-reachable=yes --errors-for-leak-kinds=all
+#VALGRIND_OPTIONS+= --show-reachable=yes --errors-for-leak-kinds=all
 SH_LOG_COMPILER= $(SHELL)
 
 AM_TESTS_ENVIRONMENT=\

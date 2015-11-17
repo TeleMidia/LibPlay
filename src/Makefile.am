@@ -18,39 +18,13 @@
 
 include $(top_srcdir)/build-aux/Makefile.am.common
 
+AM_CPPFLAGS= -I$(top_srcdir)/lib -I$(top_builddir)/lib
 AM_CFLAGS= $(WERROR_CFLAGS) $(WARN_CFLAGS)
 
-EXTRA_DIST= play.pc.in playconf.h.in
-DISTCLEANFILES+= play.pc playconf.h
-
-pkgconfigdir= $(libdir)/pkgconfig
-pkgconfig_DATA= play.pc
-
-include_HEADERS= play.h playconf.h
-noinst_HEADERS= macros.h
-lib_LTLIBRARIES= libplay.la
-
-LP_BUILDING= -DLP_BUILDING
-if HAVE_VISIBILITY
-LP_BUILDING+= -DLP_HAVE_VISIBILITY
-endif
-
-libplay_la_DEPENDENCIES= $(include_HEADERS) $(noinst_HEADERS)
-libplay_la_CPPFLAGS= $(LP_BUILDING)
-libplay_la_CFLAGS= $(AM_CFLAGS) $(CFLAG_VISIBILITY)\
-  $(GLIB_CFLAGS) $(GSTREAMER_CFLAGS)
-libplay_la_LDFLAGS= -version-info $(LIBPLAY_LIBTOOL_STRING) -no-undefined\
-  $(GLIB_CFLAGS) $(GSTREAMER_LIBS)
-libplay_la_SOURCES=\
-  gstx-macros.h\
-  lp-event.c\
-  lp-media-gst.c\
-  lp-media.c\
-  lp-properties.c\
-  lp-status.c\
-  lp-util.c\
-  lp-version.c\
-  play-internal.h\
-  play.h\
-  playconf.h\
+bin_PROGRAMS= play
+play_CFLAGS= $(AM_CFLAGS) $(GLIB_CFLAGS)
+play_LDADD= $(top_builddir)/lib/libplay.la
+play_LDFLAGS= $(AM_LDFLAGS) $(GLIB_LIBS)
+play_SOURCES=\
+  play.c\
   $(NULL)

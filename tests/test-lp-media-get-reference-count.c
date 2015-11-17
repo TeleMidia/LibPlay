@@ -20,21 +20,29 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  lp_media_t *m;
+  lp_media_t *media;
 
-  m = lp_media_create ("xyz");
-  ASSERT (m != NULL);
+  /* no-op: NULL media */
+  assert (lp_media_get_reference_count (NULL) == 0);
 
-  ASSERT (lp_media_get_reference_count (m) == 1);
-  ASSERT (lp_media_reference (m) == m);
-  ASSERT (lp_media_get_reference_count (m) == 2);
-  lp_media_destroy (m);
-  ASSERT (lp_media_get_reference_count (m) == 1);
-  lp_media_destroy (m);
+  /* no-op: invalid media */
+  media = lp_media_create_for_parent (NULL, NULL);
+  assert (media != NULL);
+  assert (lp_media_get_reference_count (NULL) == 0);
+  lp_media_destroy (NULL);
 
-  ASSERT (lp_media_get_reference_count (NULL) == 0);
+  /* success */
+  media = lp_media_create (NULL);
+  assert (media != NULL);
+  assert (lp_media_get_reference_count (media) == 1);
 
-  _lp_media_destroy_default_parent ();
+  assert (lp_media_reference (media) == media);
+  assert (lp_media_get_reference_count (media) == 2);
+
+  lp_media_destroy (media);
+  assert (lp_media_get_reference_count (media) == 1);
+
+  lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);
 }

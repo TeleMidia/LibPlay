@@ -20,10 +20,10 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  lp_event_t evt;
+  const char *version;
 
-  lp_event_init_stop (&evt);
-  assert (evt.type == LP_EVENT_STOP);
+  version = lp_version_string ();
+  assert (streq (version, LP_VERSION_STRING));
 
   exit (EXIT_SUCCESS);
 }

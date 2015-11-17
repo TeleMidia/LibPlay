@@ -1,4 +1,4 @@
-/* event.c -- Event object.
+/* lp-version.c -- Library version.
    Copyright (C) 2015 PUC-Rio/Laboratorio TeleMidia
 
 This file is part of LibPlay.
@@ -19,32 +19,30 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <config.h>
 
 #include "play.h"
-#include "macros.h"
 
 /*-
- * Initializes EVENT as a start event.
+ * lp_version:
+ *
+ * Returns the version of LibPlay encoded in a single integer.
+ * The encoding ensures that later version generate bigger numbers.
+ *
+ * Return value: the encoded version.
  */
-void
-lp_event_init_start (lp_event_t *event)
+int
+lp_version (void)
 {
-  event->type = LP_EVENT_START;
+  return LP_VERSION;
 }
 
 /*-
- * Initializes EVENT as a stop event.
+ * lp_version_string:
+ *
+ * Returns the version of LibPlay as a human-readable string.
+ *
+ * Return value: a string containing the version.
  */
-void
-lp_event_init_stop (lp_event_t *event)
+const char *
+lp_version_string (void)
 {
-  event->type = LP_EVENT_STOP;
-}
-
-/*-
- * Returns true if events E1 and E2 are equal, i.e., if they have the same
- * type and carry identical data.  Otherwise, returns false.
- */
-ATTR_PURE int
-lp_event_equals (const lp_event_t *e1, const lp_event_t *e2)
-{
-  return e1->type == e2->type;
+  return LP_VERSION_STRING;
 }

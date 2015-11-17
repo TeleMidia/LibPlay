@@ -20,10 +20,19 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  lp_event_t evt;
+  lp_media_t *media;
 
-  lp_event_init_stop (&evt);
-  assert (evt.type == LP_EVENT_STOP);
+  /* no-op: invalid media */
+  media = lp_media_create_for_parent (NULL, NULL);
+  assert (media != NULL);
+  assert (lp_media_status (media) == LP_STATUS_NULL_POINTER);
+  lp_media_destroy (media);
+
+  /* success */
+  media = lp_media_create (NULL);
+  assert (media != NULL);
+  assert (lp_media_status (media) == LP_STATUS_SUCCESS);
+  lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);
 }

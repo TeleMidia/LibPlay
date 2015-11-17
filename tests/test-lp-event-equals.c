@@ -25,10 +25,10 @@ main (void)
 
   lp_event_init_start (&e1);
   lp_event_init_stop (&e2);
-  ASSERT (lp_event_equals (&e1, &e2) == FALSE);
+  assert (lp_event_equals (&e1, &e2) == FALSE);
 
   lp_event_init_start (&e2);
-  ASSERT (lp_event_equals (&e1, &e2) == TRUE);
+  assert (lp_event_equals (&e1, &e2));
 
   exit (EXIT_SUCCESS);
 }

@@ -24,84 +24,95 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 /* *INDENT-OFF* */
 PRAGMA_DIAG_PUSH ()
 PRAGMA_DIAG_IGNORE (-Wvariadic-macros)
-PRAGMA_DIAG_IGNORE (-Wcast-qual)
-PRAGMA_DIAG_IGNORE (-Wconversion)
-PRAGMA_DIAG_IGNORE (-Wpedantic)
 #include <glib.h>
 #include <glib-object.h>
-#include <gst/gst.h>
 PRAGMA_DIAG_POP ()
 /* *INDENT-ON* */
 
-/* Media object data.  */
-struct _lp_media_t
+/* lp-properties */
+typedef struct _lp_properties_t lp_properties_t;
+
+#define _LP_PROPERTY_DEFAULT_X 0
+#define _LP_PROPERTY_DEFAULT_Y 0
+#define _LP_PROPERTY_DEFAULT_Z 0
+
+lp_properties_t *
+_lp_properties_alloc (void);
+
+void
+_lp_properties_free (lp_properties_t *);
+
+lp_properties_t *
+_lp_properties_get_metatable (const lp_properties_t *);
+
+lp_properties_t *
+_lp_properties_set_metatable (lp_properties_t *, const lp_properties_t *);
+
+unsigned int
+_lp_properties_size (const lp_properties_t *);
+
+lp_bool_t
+_lp_properties_get (const lp_properties_t *, const char *, GValue *);
+
+lp_bool_t
+_lp_properties_set (lp_properties_t *, const char *, const GValue *);
+
+lp_bool_t
+_lp_properties_reset (lp_properties_t *, const char *);
+
+void
+_lp_properties_reset_all (lp_properties_t *);
+
+/* lp-media */
+
+typedef struct _lp_media_backend_t
 {
-  lp_media_t *parent;               /* parent */
-  guint refcount;                   /* reference counter */
-  GMutex mutex;                     /* sync access to object */
-  
-  char *uri;                        /* content URI */
-  GHashTable *properties;           /* property table */
-  GSList *handlers;                 /* handler list */
-  lp_media_type_t type;             /* LP_MEDIA_ATOM or LP_MEDIA_SCENE */     
-  
-  GHashTable *elements;             /* GStreamer elements table  */
-  GstClockTime start_offset;        /* set the start offset */
-  GMainLoop *loop;                  /* loop to get pipeline messages  */
-  GThread *loop_thread;             /* thread running the gmainloop. Ewe need 
-                                       this pointer to free resources when the
-                                       thread exits */
-};
+  lp_media_t *media;
+  void *data;
+  void (*free) (void *);
+  lp_bool_t (*add_child) (lp_media_t *, lp_media_t *);
+  lp_bool_t (*remove_child) (lp_media_t *, lp_media_t *);
+  lp_bool_t (*post) (lp_media_t *, lp_event_t *);
+  lp_bool_t (*get_property) (lp_media_t *, const char *, GValue *);
+  lp_bool_t (*set_property) (lp_media_t *, const char *, const GValue *);
+} lp_media_backend_t;
 
-#define _lp_media_lock(m)   g_mutex_lock (&(m)->mutex)
-#define _lp_media_unlock(m) g_mutex_unlock (&(m)->mutex)
+void
+_lp_media_lock (lp_media_t *);
 
-#define _lp_media_get_element(m,e) \
-  (GstElement *) g_hash_table_lookup(m->elements, e)
+void
+_lp_media_unlock (lp_media_t *);
 
-#define _lp_media_add_element(m,k,v) \
-  g_hash_table_insert (m->elements,k,v)
+lp_media_backend_t *
+_lp_media_get_backend (lp_media_t *);
 
 lp_media_t *
-_lp_media_get_default_parent (void);
+_lp_media_get_root_ancestor (lp_media_t *);
+
+unsigned int
+_lp_media_dispatch (lp_media_t *, lp_event_t *);
+
+/* lp-media-gst */
 
 void
-_lp_media_destroy_default_parent (void);
+_lp_media_gst_init (lp_media_backend_t *);
+
+/* lp-util */
+
+#define _lp_assert assert
+#define _LP_ASSERT_NOT_REACHED ASSERT_NOT_REACHED
+#define _LP_STATIC_ASSERT G_STATIC_ASSERT
+
+GValue *
+_lp_util_g_value_alloc (void);
 
 void
-_lp_media_atom_start (lp_media_t *);
+_lp_util_g_value_free (GValue *);
 
-void
-_lp_media_scene_start (lp_media_t *);
+GValue *
+_lp_util_g_value_dup (const GValue *);
 
-void
-_lp_media_atom_stop (lp_media_t *);
-
-void
-_lp_media_scene_stop (lp_media_t *);
-
-int
-_lp_media_set_video_bin (lp_media_t *, GstPad *);
-
-int
-_lp_media_set_audio_bin (lp_media_t *, GstPad *);
-
-int
-_lp_media_recursive_get_property_int (lp_media_t *, const char*, int *);
-
-int
-_lp_media_recursive_get_property_double(lp_media_t *, const char*, double *);
-
-int
-_lp_media_recursive_get_property_string (lp_media_t *, const char*, char **);
-
-int
-_lp_media_recursive_get_property_pointer (lp_media_t *, const char*, void **);
-
-void
-_lp_media_notify_handlers (lp_media_t *, lp_media_t *, lp_event_t *);
-
-GstElement *
-_lp_media_recursive_get_element (lp_media_t *, const char *);
+GValue *
+_lp_util_g_value_init_and_set (GValue *, GType, const void *);
 
 #endif /* PLAY_INTERNAL */

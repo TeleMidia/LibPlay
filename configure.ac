@@ -54,8 +54,10 @@ AU_LIBTOOL_VERSION([LIBPLAY], [0], [0], [0])
 # Dependencies version.
 m4_define([glib_required_version], [2.32.4])
 m4_define([gstreamer_required_version], [1.6.0])
+m4_define([lua_required_version], [5.2])
 AC_SUBST([GLIB_REQUIRED_VERSION], glib_required_version)
 AC_SUBST([GSTREAMER_REQUIRED_VERSION], gstreamer_required_version)
+AC_SUBST([LUA_REQUIRED_VERSION], lua_required_version)
 
 # Tool checks.
 AU_PROG_CC_VISIBILITY
@@ -77,18 +79,8 @@ AU_ARG_ENABLE_WARNINGS
 AC_CHECK_LIBM
 AU_CHECK_MACROS_H
 
-# Helper macro: Breaks version into major, minor, and micro.
-m4_define([_my_break_version],[dnl
-AC_DEFINE(m4_toupper([$1])[_REQUIRED_]m4_toupper([$3]),
-  m4_default(au_version_$3([$2]), [0]),
- [$1 required $3 version])])
-m4_define([my_break_version],[dnl
-_my_break_version([$1], [$2], [major])
-_my_break_version([$1], [$2], [minor])
-_my_break_version([$1], [$2], [micro])])
-
 # Check for GLib.
-my_break_version([glib], glib_required_version)
+AU_VERSION_BREAK([glib], glib_required_version)
 AU_CHECK_PKG([GLIB],
   glib-2.0 >= glib_required_version,
  [AC_LANG_PROGRAM([[
@@ -102,8 +94,8 @@ AU_CHECK_PKG([GLIB],
  ]])],
  [AC_LANG_PROGRAM([[]], [[glib_check_version (0, 0, 0);]])])
 
-# Check for GStreamer (optional).
-my_break_version([gstreamer], gstreamer_required_version)
+# Check for GStreamer.
+AU_VERSION_BREAK([gstreamer], gstreamer_required_version)
 AU_CHECK_PKG([GSTREAMER],
   gstreamer-1.0 >= gstreamer_required_version
   gstreamer-video-1.0 >= gstreamer_required_version,
@@ -121,13 +113,28 @@ gst_init (0, 0);
 gst_video_info_from_caps (0, 0);
  ]])])
 
+# Check for Lua (optional).
+AU_CHECK_LUA(lua_required_version, [with_lua=yes], [with_lua=no])
+AS_IF([test "$with_lua" = yes],
+ [LUA_LIBS="$LUA_LIBS -export-dynamic"
+  AS_IF([test "$au_lua_version" = 5.3],
+   [AC_DEFINE([LUA_COMPAT_APIINTCASTS], [1],
+     [Define to 1 to enable Lua macros for integer manipulation])])])
+AM_CONDITIONAL([WITH_LUA],
+ [test "$with_lua" = yes])
+
 AC_CONFIG_FILES([
 Makefile
 lib/Makefile
 lib/play.pc
 lib/playconf.h
+src/Makefile
 tests/Makefile
 ])
+
+# Format messages for optional packages.
+AS_IF([test "$with_lua" = no],
+ [with_lua="no	(requires lua >= lua_required_version)"])
 
 AC_OUTPUT
 AC_MSG_NOTICE([summary of main build options:
@@ -141,4 +148,6 @@ AC_MSG_NOTICE([summary of main build options:
   Warning flags:      ${WERROR_CFLAGS} ${WARN_CFLAGS}
   Library types:      Shared=${enable_shared}, Static=${enable_static}
   Valgrind:           ${VALGRIND}
+
+  Build Lua bindings: ${with_lua}
 ])

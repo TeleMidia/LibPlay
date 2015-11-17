@@ -20,22 +20,17 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #define TESTS_H
 
 #include <config.h>
-#include <ctype.h>
-#include <errno.h>
-#include <float.h>
-#include <limits.h>
-#include <math.h>
-#include <setjmp.h>
-#include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 
 #include "play.h"
 #include "play-internal.h"
 
-#define ASSERT(cond)                                            \
+/* *INDENT-OFF* */
+PRAGMA_DIAG_IGNORE (-Wfloat-equal)
+/* *INDENT-ON* */
+
+#undef assert
+#define assert(cond)                                            \
   STMT_BEGIN                                                    \
   {                                                             \
     if (unlikely (!(cond)))                                     \
@@ -46,4 +41,5 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
       }                                                         \
   }                                                             \
   STMT_END
+
 #endif /* TESTS_H */

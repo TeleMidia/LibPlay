@@ -20,22 +20,20 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  lp_media_t *m;
-  void *p;
+  GValue *value;
 
-  m = lp_media_create (NULL);
-  ASSERT (m != NULL);
+  value = _lp_util_g_value_alloc ();
+  assert (value != NULL);
+  g_value_init (value, G_TYPE_INT);
+  assert (G_VALUE_TYPE (value) == G_TYPE_INT);
+  _lp_util_g_value_free (value);
 
-  ASSERT (!lp_media_get_property_pointer (m, "p", NULL));
-
-  ASSERT (lp_media_set_property_pointer (m, "p", pointerof (main)));
-  ASSERT (lp_media_get_property_pointer (m, "p", &p));
-  ASSERT (p == pointerof (main));
-
-  ASSERT (!lp_media_get_property_int (m, "p", NULL));
-
-  lp_media_destroy (m);
-  _lp_media_destroy_default_parent ();
+  value = _lp_util_g_value_alloc ();
+  assert (value != NULL);
+  g_value_init (value, G_TYPE_STRING);
+  assert (G_VALUE_TYPE (value) == G_TYPE_STRING);
+  g_value_set_string (value, "abc");
+  _lp_util_g_value_free (value);
 
   exit (EXIT_SUCCESS);
 }

@@ -252,11 +252,11 @@ AC_ARG_WITH([lualibdir],
  [AS_HELP_STRING([--with-lualibdir=DIR],
    [install Lua C modules into DIR])])
 dnl Check the given minimal version.
-AS_CASE("m4_default([$2], [5.1])",
+AS_CASE("m4_default([$1], [5.1])",
  [5.1], [au_lua_min_version_minor=1],
  [5.2], [au_lua_min_version_minor=2],
  [5.3], [au_lua_min_version_minor=3],
-        [AC_MSG_ERROR([invalid Lua version '$2'])])
+        [AC_MSG_ERROR([invalid Lua version '$1'])])
 au_lua_min_version="5.$au_lua_min_version_minor"
 au_lua_min_version_num="50$au_lua_min_version_minor"
 AC_DEFINE_UNQUOTED([LUA_REQUIRED_VERSION],
@@ -574,12 +574,16 @@ AS_CASE([" $CFLAGS "], [*[[\ \	]]-pipe[[\ \	]]*], [:],
 # Defines the pre-processor macro HAVE_VISIBILITY to 1 if compiler supports
 # visibility flags.
 #
+# Defines the conditional HAVE_VISIBILITY.
+#
 # WARNING: Depends on Gnulib's visibility.m4.
 #
 AC_DEFUN_ONCE([AU_PROG_CC_VISIBILITY],[dnl
 AC_REQUIRE([AU_PROG_CC])
 AC_REQUIRE_AUX_FILE([visibility.m4])
-AC_REQUIRE([gl_VISIBILITY])])
+AC_REQUIRE([gl_VISIBILITY])
+AM_CONDITIONAL([HAVE_VISIBILITY],
+ [test "$HAVE_VISIBILITY" = 1])])
 
 # AU_PROG_PKG_CONFIG
 # ------------------
@@ -703,6 +707,24 @@ m4_ifnblank([$2], [$1="[$]$1 $2"])])
 AC_DEFUN([AU_VAR_POP],[dnl
 $1="$au_saved_$1"
 AS_UNSET([au_saved_$1])])
+
+# AU_VERSION_BREAK(PREFIX, VERSION-STRING)
+# ----------------------------------------
+# Breaks VERSION-STRING into major, minor, and micro parts.
+#
+# Substitutes the variables:
+# - [PREFIX]_REQUIRED_MAJOR    major version number
+# - [PREFIX]_REQUIRED_MINOR    minor version number
+# - [PREFIX]_REQUIRED_MICRO    micro version number
+#
+m4_define([_AU_VERSION_BREAK],[dnl
+AC_DEFINE(m4_toupper([$1])[_REQUIRED_]m4_toupper([$3]),
+  m4_default(au_version_$3([$2]), [0]),
+ [$1 required $3 version])])
+m4_define([AU_VERSION_BREAK],[dnl
+_AU_VERSION_BREAK([$1], [$2], [major])
+_AU_VERSION_BREAK([$1], [$2], [minor])
+_AU_VERSION_BREAK([$1], [$2], [micro])])
 
 # Local Variables:
 # mode: autoconf

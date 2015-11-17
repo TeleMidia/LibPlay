@@ -21,33 +21,38 @@ int
 main (void)
 {
   lp_media_t *media;
+  void *p;
+  char *s;
 
   /* no-op: NULL media */
-  assert (lp_media_reference (NULL) == NULL);
+  assert (lp_media_set_property_string (NULL, "s", "frege") == FALSE);
 
   /* no-op: invalid media */
   media = lp_media_create_for_parent (NULL, NULL);
   assert (media != NULL);
-  assert (lp_media_reference (media) == media);
+  assert (lp_media_set_property_string (media, "s", "frege") == FALSE);
+  lp_media_destroy (media);
+
+  /* no-op: NULL name */
+  media = lp_media_create (NULL);
+  assert (media != NULL);
+  assert (lp_media_set_property_string (media, NULL, "frege") == FALSE);
+  lp_media_destroy (media);
+
+  /* no-op: bad type for known property */
+  media = lp_media_create (NULL);
+  assert (media != NULL);
+  assert (lp_media_set_property_string (media, "width", "frege") == FALSE);
   lp_media_destroy (media);
 
   /* success */
   media = lp_media_create (NULL);
   assert (media != NULL);
-  assert (lp_media_get_reference_count (media) == 1);
-
-  assert (lp_media_reference (media) == media);
-  assert (lp_media_get_reference_count (media) == 2);
-
-  assert (lp_media_reference (media) == media);
-  assert (lp_media_get_reference_count (media) == 3);
-
-  lp_media_destroy (media);
-  assert (lp_media_get_reference_count (media) == 2);
-
-  lp_media_destroy (media);
-  assert (lp_media_get_reference_count (media) == 1);
-
+  assert (lp_media_set_property_string (media, "s", "frege"));
+  assert (lp_media_get_property_pointer (media, "s", &p) == FALSE);
+  assert (lp_media_get_property_string (media, "s", &s));
+  assert (streq (s, "frege"));
+  free (s);
   lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);

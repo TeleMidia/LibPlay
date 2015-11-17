@@ -16,27 +16,22 @@ You should have received a copy of the GNU General Public License
 along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "tests.h"
+#include "gstx-macros.h"
 
 int
 main (void)
 {
-  lp_media_t *m;
-  lp_media_t *parent;
+  lp_media_t *media;
 
-  m = lp_media_create ("xyz");
-  ASSERT (m != NULL);
+  /* success: NULL uri */
+  media = lp_media_create (NULL);
+  assert (media != NULL);
+  lp_media_destroy (media);
 
-  parent = lp_media_get_parent (m);
-  ASSERT (parent != NULL);
-  ASSERT (parent == _lp_media_get_default_parent ());
-
-  ASSERT (m->parent == parent);
-  ASSERT (m->refcount == 1);
-  ASSERT (streq (m->uri, "xyz"));
-  ASSERT (m->properties != NULL);
-
-  lp_media_destroy (m);
-  _lp_media_destroy_default_parent ();
+  /* success: non-NULL uri */
+  media = lp_media_create ("abc");
+  assert (media != NULL);
+  lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);
 }

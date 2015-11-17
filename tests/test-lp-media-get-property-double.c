@@ -21,33 +21,40 @@ int
 main (void)
 {
   lp_media_t *media;
+  void *p;
+  double d;
 
   /* no-op: NULL media */
-  assert (lp_media_reference (NULL) == NULL);
+  assert (lp_media_get_property_double (NULL, "d", &d) == FALSE);
 
   /* no-op: invalid media */
   media = lp_media_create_for_parent (NULL, NULL);
   assert (media != NULL);
-  assert (lp_media_reference (media) == media);
+  assert (lp_media_get_property_double (media, "d", &d) == FALSE);
   lp_media_destroy (media);
 
-  /* success */
+  /* no-op: NULL name */
   media = lp_media_create (NULL);
   assert (media != NULL);
-  assert (lp_media_get_reference_count (media) == 1);
-
-  assert (lp_media_reference (media) == media);
-  assert (lp_media_get_reference_count (media) == 2);
-
-  assert (lp_media_reference (media) == media);
-  assert (lp_media_get_reference_count (media) == 3);
-
+  assert (lp_media_get_property_double (media, NULL, &d) == FALSE);
   lp_media_destroy (media);
-  assert (lp_media_get_reference_count (media) == 2);
 
+  /* no-op: unset property, unknown */
+  media = lp_media_create (NULL);
+  assert (media != NULL);
+  assert (lp_media_get_property_double (media, "unknown", &d) == FALSE);
   lp_media_destroy (media);
-  assert (lp_media_get_reference_count (media) == 1);
 
+  /* TODO: success: unset property, with default */
+  /* TODO: success: unset property, inherited */
+
+  /* success: set property */
+  media = lp_media_create (NULL);
+  assert (media != NULL);
+  assert (lp_media_set_property_double (media, "d", 11.58));
+  assert (lp_media_get_property_pointer (media, "d", &p) == FALSE);
+  assert (lp_media_get_property_double (media, "d", &d));
+  assert (d == 11.58);
   lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);

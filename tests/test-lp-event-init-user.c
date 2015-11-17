@@ -17,29 +17,13 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "tests.h"
 
-/* *INDENT-OFF* */
-PRAGMA_DIAG_IGNORE (-Wfloat-equal)
-/* *INDENT-ON* */
-
 int
 main (void)
 {
-  lp_media_t *m;
-  double d;
+  lp_event_t evt;
 
-  m = lp_media_create (NULL);
-  ASSERT (m != NULL);
-
-  ASSERT (!lp_media_get_property_double (m, "d", NULL));
-
-  ASSERT (lp_media_set_property_double (m, "d", 0.0));
-  ASSERT (lp_media_get_property_double (m, "d", &d));
-  ASSERT (d == 0);
-
-  ASSERT (!lp_media_get_property_int (m, "d", NULL));
-
-  lp_media_destroy (m);
-  _lp_media_destroy_default_parent ();
+  lp_event_init_user (&evt);
+  assert (evt.type == LP_EVENT_USER);
 
   exit (EXIT_SUCCESS);
 }

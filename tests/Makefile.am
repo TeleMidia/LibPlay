@@ -43,13 +43,14 @@ AM_COLOR_TESTS= always
 DISABLE_HARD_ERRORS= true
 TEST_EXTENSIONS= .sh
 LOG_COMPILER= $(_VALGRIND)
+#VALGRIND_OPTIONS+= --show-reachable=yes --errors-for-leak-kinds=all
 SH_LOG_COMPILER= $(SHELL)
 
 AM_TESTS_ENVIRONMENT=\
   export G_DEBUG="all";\
   export G_SLICE="always-malloc";\
   export LD_LIBRARY_PATH="$(top_builddir)/lib/.libs";\
-  export LD_PRELOAD="$(LD_PRELOAD)";\
+  export LD_PRELOAD="libplay$(SOEXT)";\
   export MALLOC_CHECK_=1;\
   $(NULL)
 
@@ -59,24 +60,53 @@ check_SCRIPTS= $(scripts)
 
 # Test programs.
 programs=
-# event
+# _lp-util
+programs+= test-_lp-util-g-value-alloc
+programs+= test-_lp-util-g-value-free
+programs+= test-_lp-util-g-value-dup
+programs+= test-_lp-util-g-value-init-and-set
+# _lp-properties
+programs+= test-_lp-properties-alloc
+programs+= test-_lp-properties-free
+programs+= test-_lp-properties-get+set-metatable
+programs+= test-_lp-properties-size
+programs+= test-_lp-properties-get
+programs+= test-_lp-properties-set
+programs+= test-_lp-properties-reset
+programs+= test-_lp-properties-reset-all
+# lp-version
+programs+= test-lp-version
+programs+= test-lp-version-string
+# lp-status
+programs+= test-lp-status-to-string
+# lp-event
 programs+= test-lp-event-init-start
 programs+= test-lp-event-init-stop
+programs+= test-lp-event-init-user
 programs+= test-lp-event-equals
-# media
+# lp-media
 programs+= test-lp-media-create
+programs+= test-lp-media-create-for-parent
 programs+= test-lp-media-destroy
-programs+= test-lp-media-get-reference-count
-programs+= test-lp-media-handler
+programs+= test-lp-media-status
 programs+= test-lp-media-reference
-programs+= test-lp-media-register-unregister
-programs+= test-lp-media-set-get-property-double
-programs+= test-lp-media-set-get-property-int
-programs+= test-lp-media-set-get-property-pointer
-programs+= test-lp-media-set-get-property-string
-programs+= test-lp-media-start
-# examples
-programs+= example-lp-media-change-dimensions
+programs+= test-lp-media-get-reference-count
+programs+= test-lp-media-get-parent
+programs+= test-lp-media-add-child
+programs+= test-lp-media-remove-child
+programs+= test-lp-media-register
+programs+= test-lp-media-unregister
+programs+= test-lp-media-get-property-int
+programs+= test-lp-media-set-property-int
+programs+= test-lp-media-get-property-double
+programs+= test-lp-media-set-property-double
+programs+= test-lp-media-get-property-string
+programs+= test-lp-media-set-property-string
+programs+= test-lp-media-get-property-pointer
+programs+= test-lp-media-set-property-pointer
+programs+= test-_lp-media-get-root-ancestor
+programs+= test-_lp-media-dispatch
+programs+= test-lp-media-post
 check_PROGRAMS= $(programs)
 
 TESTS=\

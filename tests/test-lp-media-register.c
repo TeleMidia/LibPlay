@@ -17,37 +17,55 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "tests.h"
 
+static lp_bool_t
+h1 (arg_unused (lp_media_t *m), arg_unused (lp_media_t *t),
+    arg_unused (lp_event_t *e))
+{
+  return TRUE;
+}
+
+static lp_bool_t
+h2 (arg_unused (lp_media_t *m), arg_unused (lp_media_t *t),
+    arg_unused (lp_event_t *e))
+{
+  return TRUE;
+}
+
+static lp_bool_t
+h3 (arg_unused (lp_media_t *m), arg_unused (lp_media_t *t),
+    arg_unused (lp_event_t *e))
+{
+  return TRUE;
+}
+
 int
 main (void)
 {
   lp_media_t *media;
 
   /* no-op: NULL media */
-  assert (lp_media_reference (NULL) == NULL);
+  assert (lp_media_register (NULL, h1) == FALSE);
 
   /* no-op: invalid media */
   media = lp_media_create_for_parent (NULL, NULL);
   assert (media != NULL);
-  assert (lp_media_reference (media) == media);
+  assert (lp_media_register (media, h1) == FALSE);
+  lp_media_destroy (media);
+
+  /* no-op: NULL func */
+  media = lp_media_create (NULL);
+  assert (media != NULL);
+  assert (lp_media_register (media, NULL) == FALSE);
   lp_media_destroy (media);
 
   /* success */
   media = lp_media_create (NULL);
-  assert (media != NULL);
-  assert (lp_media_get_reference_count (media) == 1);
-
-  assert (lp_media_reference (media) == media);
-  assert (lp_media_get_reference_count (media) == 2);
-
-  assert (lp_media_reference (media) == media);
-  assert (lp_media_get_reference_count (media) == 3);
-
-  lp_media_destroy (media);
-  assert (lp_media_get_reference_count (media) == 2);
-
-  lp_media_destroy (media);
-  assert (lp_media_get_reference_count (media) == 1);
-
+  assert (lp_media_register (media, h1));
+  assert (lp_media_register (media, h1) == FALSE);
+  assert (lp_media_register (media, h2));
+  assert (lp_media_register (media, h2) == FALSE);
+  assert (lp_media_register (media, h3));
+  assert (lp_media_register (media, h3) == FALSE);
   lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);

@@ -1,9 +1,9 @@
-# Makefile.am.valgrind -- Generate Valgrind suppressions.
+# Makefile.am.link -- Create symbolic links to shared libraries in .libs.
 # Copyright (C) 2013-2015 Free Software Foundation, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 2 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -14,22 +14,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-VALGRIND_OPTIONS=
+.PHONY: link-so
+link-so: $(LTLIBRARIES)
+	@for soname in $(LTLIBRARIES:.la=$(SOEXT)); do\
+	  if ! test -f $$soname; then\
+	    rm -f $$soname;\
+	    $(LN_S) .libs/$$soname $$soname;\
+	  fi;\
+	done
 
-if ENABLE_VALGRIND
-_VALGRIND= $(VALGRIND) $(VALGRIND_OPTIONS)
+.PHONY: unlink-so
+unlink-so:
+	-for soname in $(LTLIBRARIES:.la=$(SOEXT)); do\
+	  rm -f $$soname;\
+	done
 
-if HAVE_M4
-noinst_SCRIPTS+= $(builddir)/suppfile
-CLEANFILES+= $(builddir)/suppfile
-VALGRIND_OPTIONS+= --suppressions=$(builddir)/suppfile
-$(builddir)/suppfile: $(srcdir)/suppfile.m4
-	$(AM_V_GEN)$(M4) $(srcdir)/suppfile.m4 > $@
-endif
-
-else
-_VALGRIND=
-endif
+all-local: link-so
+clean-local: unlink-so
 
 # Local Variables:
 # mode: makefile

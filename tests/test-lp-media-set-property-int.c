@@ -21,33 +21,33 @@ int
 main (void)
 {
   lp_media_t *media;
+  void *p;
+  int i;
 
   /* no-op: NULL media */
-  assert (lp_media_reference (NULL) == NULL);
+  assert (lp_media_set_property_int (NULL, "i", -1) == FALSE);
 
   /* no-op: invalid media */
   media = lp_media_create_for_parent (NULL, NULL);
   assert (media != NULL);
-  assert (lp_media_reference (media) == media);
+  assert (lp_media_set_property_int (media, "i", -1) == FALSE);
   lp_media_destroy (media);
+
+  /* no-op: NULL name */
+  media = lp_media_create (NULL);
+  assert (media != NULL);
+  assert (lp_media_set_property_int (media, NULL, -1) == FALSE);
+  lp_media_destroy (media);
+
+  /* TODO: no-op: bad type for known property */
 
   /* success */
   media = lp_media_create (NULL);
   assert (media != NULL);
-  assert (lp_media_get_reference_count (media) == 1);
-
-  assert (lp_media_reference (media) == media);
-  assert (lp_media_get_reference_count (media) == 2);
-
-  assert (lp_media_reference (media) == media);
-  assert (lp_media_get_reference_count (media) == 3);
-
-  lp_media_destroy (media);
-  assert (lp_media_get_reference_count (media) == 2);
-
-  lp_media_destroy (media);
-  assert (lp_media_get_reference_count (media) == 1);
-
+  assert (lp_media_set_property_int (media, "i", 237));
+  assert (lp_media_get_property_pointer (media, "i", &p) == FALSE);
+  assert (lp_media_get_property_int (media, "i", &i));
+  assert (i == 237);
   lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);

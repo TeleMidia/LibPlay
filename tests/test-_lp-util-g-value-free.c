@@ -20,10 +20,21 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  lp_event_t evt;
+  GValue *value;
 
-  lp_event_init_stop (&evt);
-  assert (evt.type == LP_EVENT_STOP);
+  /* no-op: NULL pointer */
+  _lp_util_g_value_free (NULL);
+
+  /* success: uninitialized value */
+  value = _lp_util_g_value_alloc ();
+  assert (value != NULL);
+  _lp_util_g_value_free (value);
+
+  /* success: initialized value */
+  value = _lp_util_g_value_alloc ();
+  assert (value != NULL);
+  g_value_init (value, G_TYPE_INT);
+  _lp_util_g_value_free (value);
 
   exit (EXIT_SUCCESS);
 }

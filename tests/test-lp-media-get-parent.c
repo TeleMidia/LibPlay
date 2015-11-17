@@ -16,32 +16,29 @@ You should have received a copy of the GNU General Public License
 along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "tests.h"
-#include <unistd.h>
 
 int
-main (int argc, char *argv[])
+main (void)
 {
-  lp_media_t *m;
   lp_media_t *parent;
-  lp_event_t evt;
+  lp_media_t *media;
 
-  if (argc < 2)
-  {
-    printf ("Usage: %s <uri>\n", argv[0]);
-    exit (EXIT_FAILURE);
-  }
+  /* no-op: NULL media */
+  assert (lp_media_get_parent (NULL) == NULL);
 
-  m = lp_media_create (argv[1]);
-  parent = lp_media_get_parent (m);
+  /* no-op: invalid media */
+  media = lp_media_create_for_parent (NULL, NULL);
+  assert (media != NULL);
+  assert (lp_media_get_parent (media) == NULL);
+  lp_media_destroy (media);
 
-  lp_event_init_start (&evt);
-  ASSERT (evt.type == LP_EVENT_START);
-
-  lp_media_post (m, &evt);
-
-  sleep (1000);
-  
-  lp_media_destroy (m);
+  /* success */
+  parent = lp_media_create (NULL);
+  assert (parent != NULL);
+  media = lp_media_create_for_parent (parent, NULL);
+  assert (media != NULL);
+  assert (lp_media_get_parent (parent) == NULL);
+  assert (lp_media_get_parent (media) == parent);
   lp_media_destroy (parent);
 
   exit (EXIT_SUCCESS);

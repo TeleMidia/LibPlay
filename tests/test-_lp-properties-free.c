@@ -20,23 +20,15 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  lp_media_t *m;
-  char *s;
+  lp_properties_t *props;
 
-  m = lp_media_create (NULL);
-  ASSERT (m != NULL);
+  /* no-op: NULL pointer */
+  _lp_properties_free (NULL);
 
-  ASSERT (!lp_media_get_property_string (m, "s", NULL));
-
-  ASSERT (lp_media_set_property_string (m, "s", "abc"));
-  ASSERT (lp_media_get_property_string (m, "s", &s));
-  ASSERT (streq (s, "abc"));
-  g_free (s);
-
-  ASSERT (!lp_media_get_property_int (m, "s", NULL));
-
-  lp_media_destroy (m);
-  _lp_media_destroy_default_parent ();
+  /* success */
+  props = _lp_properties_alloc ();
+  assert (props != NULL);
+  _lp_properties_free (props);
 
   exit (EXIT_SUCCESS);
 }

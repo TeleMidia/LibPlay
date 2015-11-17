@@ -20,10 +20,12 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  lp_event_t evt;
+  lp_properties_t *props;
 
-  lp_event_init_stop (&evt);
-  assert (evt.type == LP_EVENT_STOP);
+  props = _lp_properties_alloc ();
+  assert (props != NULL);
+  assert (_lp_properties_size (props) == 0);
+  _lp_properties_free (props);
 
   exit (EXIT_SUCCESS);
 }

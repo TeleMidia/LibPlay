@@ -19,21 +19,22 @@
 COPYRIGHT_YEAR= 2015
 COPYRIGHT_HOLDER= PUC-Rio/Laboratorio TeleMidia
 
-INDENT_OPTIONS=\
-  --brace-indent0\
-  --case-brace-indentation0\
-  --case-indentation2\
-  --else-endif-column0\
-  --gnu-style\
-  --indent-label-1\
-  --leave-preprocessor-space\
-  --no-tabs\
-  -l76\
-  $(NULL)
+# INDENT_OPTIONS=\
+#   --brace-indent0\
+#   --case-brace-indentation0\
+#   --case-indentation2\
+#   --else-endif-column0\
+#   --gnu-style\
+#   --indent-label-1\
+#   --leave-preprocessor-space\
+#   --no-tabs\
+#   -l76\
+#   $(NULL)
 
 INDENT_EXCLUDE=\
   lib/play-internal.h\
   lib/play.h\
+  lua/luax-macros.h\
   tests/tests.h\
   $(NULL)
 
@@ -44,11 +45,17 @@ INDENT_TYPES=\
   GValue\
   lp_event_t\
   lp_media_t\
+  lp_properties_desc_t\
+  lp_properties_t\
   lp_value_t\
   $(NULL)
 
 SC_USELESS_IF_BEFORE_FREE_ALIASES=\
+  _lp_properties_free\
+  _lp_util_g_value_free\
   g_free\
+  g_hash_table_destroy\
+  g_list_free\
   lp_media_destroy\
   $(NULL)
 
@@ -60,8 +67,10 @@ SC_COPYRIGHT_EXCLUDE=\
   build-aux/Makefile.am.coverage\
   build-aux/Makefile.am.env\
   build-aux/Makefile.am.gitlog\
+  build-aux/Makefile.am.link\
   build-aux/Makefile.am.valgrind\
   lib/macros.h\
+  lua/luax-macros.h\
   maint.mk\
   $(NULL)
 
@@ -89,9 +98,11 @@ NCLUA_FILES+= build-aux/Makefile.am.common
 NCLUA_FILES+= build-aux/Makefile.am.coverage
 NCLUA_FILES+= build-aux/Makefile.am.env
 NCLUA_FILES+= build-aux/Makefile.am.gitlog
+NCLUA_FILES+= build-aux/Makefile.am.link
 NCLUA_FILES+= build-aux/Makefile.am.valgrind
 NCLUA_FILES+= build-aux/util.m4
 NCLUA_FILES+= lib/macros.h
+NCLUA_FILES+= lib/luax-macros.h
 NCLUA_FILES+= maint.mk
 NCLUA_SCRIPTS+= bootstrap
 NCLUA_SCRIPTS+= build-aux/syntax-check
@@ -100,5 +111,10 @@ REMOTE_FILES+= $(NCLUA_FILES)
 REMOTE_SCRIPTS+= $(NCLUA_SCRIPTS)
 fetch-remote-local:
 	$(V_at)for path in $(NCLUA_FILES) $(NCLUA_SCRIPTS); do\
-	  $(FETCH) -dir=`dirname "$$path"` "$(nclua)/$$path" || exit 1;\
+	  if test "$$path" = "lib/luax-macros.h"; then\
+	    dir=lua;\
+	  else\
+	    dir=`dirname "$$path"`;\
+	  fi;\
+	  $(FETCH) -dir="$$dir" "$(nclua)/$$path" || exit 1;\
 	done

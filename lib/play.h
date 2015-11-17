@@ -87,6 +87,7 @@ typedef enum _lp_event_type_t
 {
   LP_EVENT_START = 0,
   LP_EVENT_STOP,
+  LP_EVENT_TICK,
   LP_EVENT_USER
 } lp_event_type_t;
 
@@ -100,6 +101,9 @@ lp_event_init_start (lp_event_t *);
 
 LP_API void
 lp_event_init_stop (lp_event_t *);
+
+LP_API void
+lp_event_init_tick (lp_event_t *);
 
 LP_API void
 lp_event_init_user (lp_event_t *);

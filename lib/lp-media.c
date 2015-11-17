@@ -298,7 +298,7 @@ _lp_media_unlock (lp_media_t *media)
 lp_media_backend_t *
 _lp_media_get_backend (lp_media_t *media)
 {
-  _lp_assert (__lp_media_is_valid (media));
+  /* TODO: Update to atomic int.  */
   return media->backend;
 }
 
@@ -308,10 +308,21 @@ _lp_media_get_backend (lp_media_t *media)
 lp_media_t *
 _lp_media_get_root_ancestor (lp_media_t *media)
 {
+  lp_media_t *result;
   _lp_assert (__lp_media_is_valid (media));
+
+  _lp_media_lock (media);
   if (media->parent == NULL)
-    return media;
-  return _lp_media_get_root_ancestor (media->parent);
+    {
+      result = media;
+    }
+  else
+    {
+      result = _lp_media_get_root_ancestor (media->parent);
+    }
+  _lp_media_unlock (media);
+
+  return result;
 }
 
 /* Dispatches @event to all handlers registered in @media and its ancestors.
@@ -411,7 +422,8 @@ lp_media_destroy (lp_media_t *media)
 lp_status_t ATTR_PURE ATTR_USE_RESULT
 lp_media_status (const lp_media_t *media)
 {
-  _lp_assert (media != NULL);
+  if (unlikely (media == NULL))
+    return LP_STATUS_NULL_POINTER;
   return media->status;
 }
 

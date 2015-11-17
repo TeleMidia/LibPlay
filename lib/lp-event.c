@@ -46,6 +46,18 @@ lp_event_init_stop (lp_event_t *event)
 }
 
 /*-
+ * lp_event_init_tick:
+ * @event: a #lp_event_t
+ *
+ * Initializes @event as %LP_EVENT_TICK.
+ */
+void
+lp_event_init_tick (lp_event_t *event)
+{
+  event->type = LP_EVENT_TICK;
+}
+
+/*-
  * lp_event_init_user:
  * @event: a #lp_event_t
  *

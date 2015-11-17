@@ -87,8 +87,6 @@ struct _lp_media_t
   } backend;
 };
 
-#define _lp_media_is_valid(m) ((m) != NULL && !(m)->status)
-
 lp_media_t *
 _lp_media_get_root_ancestor (lp_media_t *);
 

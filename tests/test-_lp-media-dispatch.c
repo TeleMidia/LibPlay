@@ -35,8 +35,8 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
   static ATTR_UNUSED lp_bool_t                                          \
   name (lp_media_t *media, lp_media_t *target, lp_event_t *event)       \
   {                                                                     \
-    assert (_lp_media_is_valid (media));                                \
-    assert (_lp_media_is_valid (target));                               \
+    assert (media != NULL);                                             \
+    assert (media != NULL);                                             \
     assert (event != NULL);                                             \
     name##_media = media;                                               \
     name##_target = target;                                             \

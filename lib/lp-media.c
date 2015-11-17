@@ -64,6 +64,10 @@ static lp_bool_t __lp_media_get_property_helper (lp_media_t *, const char *, GTy
 static lp_bool_t __lp_media_set_property_helper (lp_media_t *, const char *, GType, void *);
 /* *INDENT-ON* */
 
+/* Checks if @media is valid.  */
+#define __lp_media_is_valid(media)\
+  ((media) != NULL && !(media)->status)
+
 /* Returns a reference to an invalid #lp_media_t.  */
 
 static ATTR_PURE ATTR_USE_RESULT lp_media_t *
@@ -151,8 +155,8 @@ __lp_media_dispatch_helper (lp_media_t *media, lp_media_t *target,
   GList *list;
   unsigned int count;
 
-  _lp_assert (_lp_media_is_valid (media));
-  _lp_assert (_lp_media_is_valid (target));
+  _lp_assert (__lp_media_is_valid (media));
+  _lp_assert (__lp_media_is_valid (target));
   _lp_assert (event != NULL);
 
   list = media->handlers;
@@ -186,7 +190,7 @@ __lp_media_get_property_helper (lp_media_t *media, const char *name,
 {
   GValue value = G_VALUE_INIT;
 
-  if (unlikely (!_lp_media_is_valid (media)))
+  if (unlikely (!__lp_media_is_valid (media)))
     return FALSE;
 
   if (unlikely (name == NULL))
@@ -232,7 +236,7 @@ __lp_media_set_property_helper (lp_media_t *media, const char *name,
   GValue value = G_VALUE_INIT;
   lp_bool_t status;
 
-  if (unlikely (!_lp_media_is_valid (media)))
+  if (unlikely (!__lp_media_is_valid (media)))
     return FALSE;
 
   if (unlikely (name == NULL))
@@ -269,7 +273,7 @@ __lp_media_set_property_helper (lp_media_t *media, const char *name,
 lp_media_t *
 _lp_media_get_root_ancestor (lp_media_t *media)
 {
-  _lp_assert (_lp_media_is_valid (media));
+  _lp_assert (__lp_media_is_valid (media));
   if (media->parent == NULL)
     return media;
   return _lp_media_get_root_ancestor (media->parent);
@@ -348,7 +352,7 @@ lp_media_create_for_parent (lp_media_t *parent, const char *uri)
 void
 lp_media_destroy (lp_media_t *media)
 {
-  if (unlikely (!_lp_media_is_valid (media)))
+  if (unlikely (!__lp_media_is_valid (media)))
     return;
 
   if (unlikely (g_atomic_int_get (&(media)->ref_count) < 0))
@@ -389,7 +393,7 @@ lp_media_status (const lp_media_t *media)
 lp_media_t *
 lp_media_reference (lp_media_t *media)
 {
-  if (likely (_lp_media_is_valid (media)))
+  if (likely (__lp_media_is_valid (media)))
     g_atomic_int_inc (&media->ref_count);
   return media;
 }
@@ -407,7 +411,7 @@ lp_media_get_reference_count (const lp_media_t *media)
 {
   gint ref_count;
 
-  if (unlikely (!_lp_media_is_valid (media)))
+  if (unlikely (!__lp_media_is_valid (media)))
     return 0;
 
   ref_count = g_atomic_int_get (&media->ref_count);
@@ -427,7 +431,7 @@ lp_media_get_reference_count (const lp_media_t *media)
 ATTR_PURE ATTR_USE_RESULT lp_media_t *
 lp_media_get_parent (const lp_media_t *media)
 {
-  if (unlikely (!_lp_media_is_valid (media)))
+  if (unlikely (!__lp_media_is_valid (media)))
     return NULL;
   return media->parent;
 }
@@ -445,8 +449,8 @@ lp_media_get_parent (const lp_media_t *media)
 lp_bool_t
 lp_media_add_child (lp_media_t *parent, lp_media_t *child)
 {
-  if (unlikely (!_lp_media_is_valid (parent)
-                || !_lp_media_is_valid (child)))
+  if (unlikely (!__lp_media_is_valid (parent)
+                || !__lp_media_is_valid (child)))
     return FALSE;
 
   if (unlikely (parent == child))
@@ -479,7 +483,7 @@ lp_media_remove_child (lp_media_t *parent, lp_media_t *child)
 {
   GList *link;
 
-  if (unlikely (!_lp_media_is_valid (parent)))
+  if (unlikely (!__lp_media_is_valid (parent)))
     return FALSE;
 
   if (unlikely (child->parent != parent))
@@ -508,7 +512,7 @@ lp_media_remove_child (lp_media_t *parent, lp_media_t *child)
 lp_bool_t
 lp_media_post (lp_media_t *media, lp_event_t *event)
 {
-  if (unlikely (!_lp_media_is_valid (media)))
+  if (unlikely (!__lp_media_is_valid (media)))
     return FALSE;
 
   if (unlikely (event == NULL))
@@ -531,7 +535,7 @@ lp_media_post (lp_media_t *media, lp_event_t *event)
 lp_bool_t
 lp_media_register (lp_media_t *media, lp_event_func_t func)
 {
-  if (unlikely (!_lp_media_is_valid (media)))
+  if (unlikely (!__lp_media_is_valid (media)))
     return FALSE;
 
   if (unlikely (func == NULL))
@@ -560,7 +564,7 @@ lp_media_unregister (lp_media_t *media, lp_event_func_t func)
 {
   GList *link;
 
-  if (unlikely (!_lp_media_is_valid (media)))
+  if (unlikely (!__lp_media_is_valid (media)))
     return FALSE;
 
   if (unlikely (func == NULL))

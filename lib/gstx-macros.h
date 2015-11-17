@@ -42,11 +42,12 @@ GSTX_INCLUDE_EPILOGUE
 /* *INDENT-ON* */
 
 static inline void
-gstx_dump_message (GstMessage *message)
+gstx_dump_message (const char *prefix, GstMessage *message)
 {
   const GstStructure *st;
 
-  g_print ("%s (thread: %p): ",
+  g_print ("%s: %s (thread: %p): ",
+           prefix,
            GST_STR_NULL (GST_ELEMENT_NAME (GST_MESSAGE_SRC (message))),
            (void *) g_thread_self ());
 

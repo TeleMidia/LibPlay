@@ -54,48 +54,34 @@ main (void)
 
   /* no-op: NULL func */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_unregister (media, NULL) == FALSE);
   lp_media_destroy (media);
 
   /* success */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
-  assert (g_list_length (media->handlers) == 0);
+  assert (media != NULL);
 
   assert (lp_media_register (media, h1));
   assert (lp_media_register (media, h2));
   assert (lp_media_register (media, h3));
-  assert (g_list_length (media->handlers) == 3);
 
   assert (lp_media_unregister (media, h2));
   assert (lp_media_unregister (media, h2) == FALSE);
-  assert (g_list_length (media->handlers) == 2);
-
-  assert (g_list_nth_data (media->handlers, 0) == pointerof (h1));
-  assert (g_list_nth_data (media->handlers, 1) == pointerof (h3));
 
   assert (lp_media_unregister (media, h1));
   assert (lp_media_unregister (media, h1) == FALSE);
-  assert (g_list_length (media->handlers) == 1);
-
-  assert (g_list_nth_data (media->handlers, 0) == pointerof (h3));
 
   assert (lp_media_unregister (media, h3));
   assert (lp_media_unregister (media, h3) == FALSE);
-  assert (g_list_length (media->handlers) == 0);
 
   assert (lp_media_register (media, h3));
   assert (lp_media_register (media, h2));
   assert (lp_media_register (media, h1));
-  assert (g_list_length (media->handlers) == 3);
 
   assert (lp_media_unregister (media, h3));
   assert (lp_media_unregister (media, h3) == FALSE);
-  assert (g_list_length (media->handlers) == 2);
 
-  assert (g_list_nth_data (media->handlers, 0) == pointerof (h2));
-  assert (g_list_nth_data (media->handlers, 1) == pointerof (h1));
   lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);

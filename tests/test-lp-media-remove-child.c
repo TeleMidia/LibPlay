@@ -32,7 +32,7 @@ main (void)
 
   /* no-op: NULL parent */
   child = lp_media_create (NULL);
-  assert_media_is_empty (child, NULL);
+  assert (child != NULL);
   assert (lp_media_remove_child (NULL, child) == FALSE);
   lp_media_destroy (child);
 
@@ -40,28 +40,26 @@ main (void)
   parent = lp_media_create_for_parent (NULL, NULL);
   assert (parent != NULL);
   child = lp_media_create (NULL);
-  assert_media_is_empty (child, NULL);
+  assert (child != NULL);
   assert (lp_media_remove_child (parent, child) == FALSE);
   lp_media_destroy (parent);
   lp_media_destroy (child);
 
   /* no-op: child->parent != parent  */
   parent = lp_media_create (NULL);
-  assert_media_is_empty (parent, NULL);
+  assert (parent != NULL);
   assert (lp_media_remove_child (parent, parent) == FALSE);
   lp_media_destroy (parent);
 
   /* no-op: child is not in parent's children list */
   parent = lp_media_create (NULL);
-  assert_media_is_empty (parent, NULL);
-  parent->parent = parent;
+  assert (parent != NULL);
   assert (lp_media_remove_child (parent, parent) == FALSE);
-  parent->parent = NULL;
   lp_media_destroy (parent);
 
   /* success */
   P = lp_media_create (NULL);
-  assert_media_is_empty (P, NULL);
+  assert (P != NULL);
   p1 = lp_media_create_for_parent (P, NULL);
   assert (p1 != NULL);
   p2 = lp_media_create_for_parent (P, NULL);
@@ -79,13 +77,6 @@ main (void)
   assert (lp_media_get_parent (P) == NULL);
   assert (lp_media_get_parent (p1) == NULL);
   assert (lp_media_get_parent (c3) == NULL);
-
-  assert (g_list_length (P->children) == 1);
-  assert (g_list_length (p1->children) == 2);
-  assert (g_list_length (p2->children) == 0);
-  assert (g_list_length (c1->children) == 0);
-  assert (g_list_length (c2->children) == 0);
-  assert (g_list_length (c3->children) == 0);
 
   lp_media_destroy (P);
   lp_media_destroy (p1);

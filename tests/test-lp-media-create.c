@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "tests.h"
+#include "gstx-macros.h"
 
 int
 main (void)
@@ -24,12 +25,12 @@ main (void)
 
   /* success: NULL uri */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   lp_media_destroy (media);
 
   /* success: non-NULL uri */
   media = lp_media_create ("abc");
-  assert_media_is_empty (media, "abc");
+  assert (media != NULL);
   lp_media_destroy (media);
 
   exit (EXIT_SUCCESS);

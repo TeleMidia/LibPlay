@@ -33,20 +33,20 @@ main (void)
 
   /* success */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
-  assert (media->ref_count == 1);
+  assert (media != NULL);
+  assert (lp_media_get_reference_count (media) == 1);
 
   assert (lp_media_reference (media) == media);
-  assert (media->ref_count == 2);
+  assert (lp_media_get_reference_count (media) == 2);
 
   assert (lp_media_reference (media) == media);
-  assert (media->ref_count == 3);
+  assert (lp_media_get_reference_count (media) == 3);
 
   lp_media_destroy (media);
-  assert (media->ref_count == 2);
+  assert (lp_media_get_reference_count (media) == 2);
 
   lp_media_destroy (media);
-  assert (media->ref_count == 1);
+  assert (lp_media_get_reference_count (media) == 1);
 
   lp_media_destroy (media);
 

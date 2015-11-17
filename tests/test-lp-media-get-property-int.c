@@ -36,26 +36,26 @@ main (void)
 
   /* no-op: NULL name */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_get_property_int (media, NULL, &i) == FALSE);
   lp_media_destroy (media);
 
   /* no-op: unset property, unknown */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_get_property_int (media, "unknown", &i) == FALSE);
   lp_media_destroy (media);
 
   /* success: unset property, with default */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_get_property_int (media, "x", &i));
   assert (i == _LP_PROPERTY_DEFAULT_X);
   lp_media_destroy (media);
 
   /* success: unset property, inherited */
   parent = lp_media_create (NULL);
-  assert_media_is_empty (parent, NULL);
+  assert (parent != NULL);
   media = lp_media_create_for_parent (parent, NULL);
   assert (media != NULL);
   assert (lp_media_get_property_int (media, "width", &i) == FALSE);
@@ -66,7 +66,7 @@ main (void)
 
   /* success: set property */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_set_property_int (media, "i", 237));
   assert (lp_media_get_property_pointer (media, "i", &p) == FALSE);
   assert (lp_media_get_property_int (media, "i", &i));

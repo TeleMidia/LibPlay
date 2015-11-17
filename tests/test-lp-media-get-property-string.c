@@ -35,13 +35,13 @@ main (void)
 
   /* no-op: NULL name */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_get_property_string (media, NULL, &s) == FALSE);
   lp_media_destroy (media);
 
   /* no-op: unset property, unknown */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_get_property_string (media, "unknown", &s) == FALSE);
   lp_media_destroy (media);
 
@@ -50,7 +50,7 @@ main (void)
 
   /* success: set property */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_set_property_string (media, "s", "russell"));
   assert (lp_media_get_property_pointer (media, "s", &p) == FALSE);
   assert (lp_media_get_property_string (media, "s", &s));

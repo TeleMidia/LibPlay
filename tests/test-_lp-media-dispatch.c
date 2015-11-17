@@ -63,7 +63,7 @@ main (void)
 
   /* success: NULL parent */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_register (media, h1));
   assert (lp_media_register (media, h2));
   assert (lp_media_register (media, h3));
@@ -107,7 +107,7 @@ main (void)
 
   /* success: three-level hierarchy */
   m1 = lp_media_create (NULL);
-  assert_media_is_empty (m1, NULL);
+  assert (m1 != NULL);
   m2 = lp_media_create_for_parent (m1, NULL);
   assert (m2 != NULL);
   m3 = lp_media_create_for_parent (m2, NULL);

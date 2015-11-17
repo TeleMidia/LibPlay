@@ -66,26 +66,26 @@ _lp_properties_reset_all (lp_properties_t *);
 
 /* lp-media */
 
-struct _lp_media_t
+typedef struct _lp_media_backend_t
 {
-  lp_status_t status;           /* error status */
-  gint ref_count;               /* reference counter */
-  lp_media_t *parent;           /* parent */
-  char *uri;                    /* content URI */
-  GList *children;              /* children list */
-  GList *handlers;              /* event-handler list */
-  lp_properties_t *properties;  /* property table */
-  struct
-  {
-    void *data;
-    void (*free) (void *);
-    lp_bool_t (*add_child) (lp_media_t *, lp_media_t *);
-    lp_bool_t (*remove_child) (lp_media_t *, lp_media_t *);
-    lp_bool_t (*post) (lp_media_t *, lp_event_t *);
-    lp_bool_t (*get_property) (lp_media_t *, const char *, GValue *);
-    lp_bool_t (*set_property) (lp_media_t *, const char *, const GValue *);
-  } backend;
-};
+  lp_media_t *media;
+  void *data;
+  void (*free) (void *);
+  lp_bool_t (*add_child) (lp_media_t *, lp_media_t *);
+  lp_bool_t (*remove_child) (lp_media_t *, lp_media_t *);
+  lp_bool_t (*post) (lp_media_t *, lp_event_t *);
+  lp_bool_t (*get_property) (lp_media_t *, const char *, GValue *);
+  lp_bool_t (*set_property) (lp_media_t *, const char *, const GValue *);
+} lp_media_backend_t;
+
+void
+_lp_media_lock (lp_media_t *);
+
+void
+_lp_media_unlock (lp_media_t *);
+
+lp_media_backend_t *
+_lp_media_get_backend (lp_media_t *);
 
 lp_media_t *
 _lp_media_get_root_ancestor (lp_media_t *);
@@ -96,7 +96,7 @@ _lp_media_dispatch (lp_media_t *, lp_event_t *);
 /* lp-media-gst */
 
 void
-_lp_media_gst_init (lp_media_t *);
+_lp_media_gst_init (lp_media_backend_t *);
 
 /* lp-util */
 

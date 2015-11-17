@@ -35,7 +35,7 @@ main (void)
 
   /* no-op: NULL name */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_set_property_int (media, NULL, -1) == FALSE);
   lp_media_destroy (media);
 
@@ -43,7 +43,7 @@ main (void)
 
   /* success */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_set_property_int (media, "i", 237));
   assert (lp_media_get_property_pointer (media, "i", &p) == FALSE);
   assert (lp_media_get_property_int (media, "i", &i));

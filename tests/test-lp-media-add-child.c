@@ -32,13 +32,13 @@ main (void)
 
   /* no-op: NULL parent */
   child = lp_media_create (NULL);
-  assert_media_is_empty (child, NULL);
+  assert (child != NULL);
   assert (lp_media_add_child (NULL, child) == FALSE);
   lp_media_destroy (child);
 
   /* no-op: NULL child */
   parent = lp_media_create (NULL);
-  assert_media_is_empty (parent, NULL);
+  assert (parent != NULL);
   assert (lp_media_add_child (parent, NULL) == FALSE);
   lp_media_destroy (parent);
 
@@ -46,7 +46,7 @@ main (void)
   parent = lp_media_create_for_parent (NULL, NULL);
   assert (parent != NULL);
   child = lp_media_create (NULL);
-  assert_media_is_empty (child, NULL);
+  assert (child != NULL);
   assert (lp_media_add_child (parent, child) == FALSE);
   lp_media_destroy (parent);
   lp_media_destroy (child);
@@ -55,52 +55,50 @@ main (void)
   child = lp_media_create_for_parent (NULL, NULL);
   assert (child != NULL);
   parent = lp_media_create (NULL);
-  assert_media_is_empty (parent, NULL);
+  assert (parent != NULL);
   assert (lp_media_add_child (parent, child) == FALSE);
   lp_media_destroy (parent);
   lp_media_destroy (child);
 
   /* no-op: parent == child */
   parent = lp_media_create (NULL);
-  assert_media_is_empty (parent, NULL);
+  assert (parent != NULL);
   assert (lp_media_add_child (parent, parent) == FALSE);
   lp_media_destroy (parent);
 
   /* no-op: child->parent != NULL  */
   p1 = lp_media_create (NULL);
-  assert_media_is_empty (p1, NULL);
+  assert (p1 != NULL);
   c1 = lp_media_create_for_parent (p1, NULL);
   assert (c1 != NULL);
 
   p2 = lp_media_create (NULL);
-  assert_media_is_empty (p2, NULL);
+  assert (p2 != NULL);
   assert (lp_media_add_child (p2, c1) == FALSE);
   lp_media_destroy (p1);
   lp_media_destroy (p2);
 
   /* no-op: child is already in parent's children list */
   parent = lp_media_create (NULL);
-  assert_media_is_empty (parent, NULL);
+  assert (parent != NULL);
   child = lp_media_create_for_parent (parent, NULL);
   assert (child != NULL);
-  child->parent = NULL;
   assert (lp_media_add_child (parent, child) == FALSE);
-  child->parent = parent;
   lp_media_destroy (parent);
 
   /* success */
   P = lp_media_create (NULL);
-  assert_media_is_empty (P, NULL);
+  assert (P != NULL);
   p1 = lp_media_create (NULL);
-  assert_media_is_empty (p1, NULL);
+  assert (p1 != NULL);
   p2 = lp_media_create (NULL);
-  assert_media_is_empty (p2, NULL);
+  assert (p2 != NULL);
   c1 = lp_media_create (NULL);
-  assert_media_is_empty (c1, NULL);
+  assert (c1 != NULL);
   c2 = lp_media_create (NULL);
-  assert_media_is_empty (c2, NULL);
+  assert (c2 != NULL);
   c3 = lp_media_create (NULL);
-  assert_media_is_empty (c3, NULL);
+  assert (c3 != NULL);
 
   assert (lp_media_get_parent (P) == NULL);
 
@@ -118,13 +116,6 @@ main (void)
 
   assert (lp_media_add_child (p2, c3));
   assert (lp_media_get_parent (c3) == p2);
-
-  assert (g_list_length (P->children) == 2);
-  assert (g_list_length (p1->children) == 2);
-  assert (g_list_length (p2->children) == 1);
-  assert (g_list_length (c1->children) == 0);
-  assert (g_list_length (c2->children) == 0);
-  assert (g_list_length (c3->children) == 0);
 
   lp_media_destroy (P);
 

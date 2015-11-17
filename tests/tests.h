@@ -42,17 +42,4 @@ PRAGMA_DIAG_IGNORE (-Wfloat-equal)
   }                                                             \
   STMT_END
 
-static ATTR_UNUSED void
-assert_media_is_empty (lp_media_t *media, const char *uri)
-{
-  assert (media != NULL);
-  assert (media->status == LP_STATUS_SUCCESS);
-  assert (media->ref_count == 1);
-  assert (media->parent == NULL);
-  assert (g_strcmp0 (media->uri, uri) == 0);
-  assert (media->children == NULL);
-  assert (media->handlers == NULL);
-  assert (media->properties != NULL);
-}
-
 #endif /* TESTS_H */

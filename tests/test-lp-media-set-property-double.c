@@ -35,19 +35,19 @@ main (void)
 
   /* no-op: NULL name */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_set_property_double (media, NULL, .31) == FALSE);
   lp_media_destroy (media);
 
   /* no-op: bad type for known property */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_set_property_double (media, "width", .31) == FALSE);
   lp_media_destroy (media);
 
   /* success */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_set_property_double (media, "d", .31));
   assert (lp_media_get_property_pointer (media, "d", &p) == FALSE);
   assert (lp_media_get_property_double (media, "d", &d));

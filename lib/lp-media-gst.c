@@ -30,19 +30,24 @@ typedef struct _lp_media_gst_t
 
 /* Forward declarations: */
 /* *INDENT-OFF* */
-static lp_media_gst_t *__lp_media_gst_check (const lp_media_t *);
+static lp_media_gst_t *__lp_media_gst_check (lp_media_t *);
 static GstPipeline *__lp_media_gst_get_pipeline (lp_media_t *);
 static gboolean __lp_gst_media_pipeline_bus_async_callback (GstBus *, GstMessage *, gpointer);
+static GstBusSyncReply __lp_gst_media_pipeline_bus_sync_callback (arg_unused (GstBus *), GstMessage *, arg_unused (gpointer));
 /* *INDENT-ON* */
 
 /* Checks and returns the back-end data associated with @media.  */
 
 static lp_media_gst_t *
-__lp_media_gst_check (const lp_media_t *media)
+__lp_media_gst_check (lp_media_t *media)
 {
+  lp_media_backend_t *backend;
+
   _lp_assert (media != NULL);
-  _lp_assert (media->backend.data != NULL);
-  return (lp_media_gst_t *) media->backend.data;
+  backend = _lp_media_get_backend (media);
+
+  _lp_assert (backend != NULL);
+  return (lp_media_gst_t *) backend->data;
 }
 
 /* Gets #GstPipeline associated with @media.  Returns a #GstPipeline if
@@ -79,6 +84,8 @@ __lp_media_gst_install_pipeline (lp_media_t *media)
 
   bus = gst_pipeline_get_bus (pipeline);
   _lp_assert (bus != NULL);
+  gst_bus_set_sync_handler (bus, __lp_gst_media_pipeline_bus_sync_callback,
+                            NULL, NULL);
   gst_bus_add_watch (bus, __lp_gst_media_pipeline_bus_async_callback, NULL);
   g_object_unref (bus);
 
@@ -114,6 +121,21 @@ __lp_media_gst_start_async (lp_media_t *media)
 
 /************************** GStreamer callbacks ***************************/
 
+/* Handles #GstPipeline clock ticks.  */
+
+static gboolean
+__lp_gst_media_pipeline_clock_callback (arg_unused (GstClock *clock),
+                                        GstClockTime time,
+                                        arg_unused (GstClockID id),
+                                        arg_unused (gpointer data))
+{
+  _lp_assert (data != NULL);
+  time = time - gst_element_get_base_time (GST_ELEMENT (data));
+  g_print ("tick (thread %p): %"GST_TIME_FORMAT"\n",
+           (void *) g_thread_self (), GST_TIME_ARGS (time));
+  return TRUE;
+}
+
 /* Handles #GstBus asynchronous messages.  */
 
 static gboolean
@@ -122,24 +144,27 @@ __lp_gst_media_pipeline_bus_async_callback (arg_unused (GstBus *bus),
                                             arg_unused (gpointer data))
 {
   GstObject *obj;
+  lp_media_t *media;
+  lp_media_gst_t *gst;
 
-  gstx_dump_message (message);
+  gstx_dump_message ("async", message);
 
   obj = GST_MESSAGE_SRC (message);
   _lp_assert (obj != NULL);
+
+  media = (lp_media_t *) g_object_get_data (G_OBJECT (obj), "lp_media");
+  if (media != NULL)
+    gst = __lp_media_gst_check (media);
 
   switch (GST_MESSAGE_TYPE (message))
     {
     case GST_MESSAGE_STATE_CHANGED:
       {
         GstState new_state;
-        lp_media_t *media;
         lp_event_t event;
 
-        media = (lp_media_t *) g_object_get_data (G_OBJECT (obj),
-                                                  "lp_media");
         if (media == NULL)
-          break;
+          break;                /* nothing to do */
 
         gst_message_parse_state_changed (message, NULL, &new_state, NULL);
         if (new_state != GST_STATE_PLAYING)
@@ -147,12 +172,51 @@ __lp_gst_media_pipeline_bus_async_callback (arg_unused (GstBus *bus),
 
         lp_event_init_start (&event);
         _lp_media_dispatch (media, &event);
+        break;
+      }
+    case GST_MESSAGE_NEW_CLOCK:
+      {
+        GstClock *clock;
+        GstClockID id;
+        GstClockTime time;
+        GstClockReturn ret;
+
+        _lp_assert (GST_IS_PIPELINE (obj));
+        _lp_assert (media != NULL);
+        _lp_assert (gst != NULL);
+
+        clock = gst_pipeline_get_clock (GST_PIPELINE (obj));
+        _lp_assert (clock != NULL);
+
+        time = gst_clock_get_time (clock);
+        _lp_assert (time != GST_CLOCK_TIME_NONE);
+
+        id = gst_clock_new_periodic_id (clock, time, 1 * GST_SECOND);
+        _lp_assert (id != NULL);
+        g_object_unref (clock);
+
+        ret = gst_clock_id_wait_async
+          (id, __lp_gst_media_pipeline_clock_callback, obj, NULL);
+        _lp_assert (ret == GST_CLOCK_OK);
+        gst_clock_id_unref (id);
+        break;
       }
     default:
       break;
     }
 
   return TRUE;
+}
+
+/* Handles #GstBus synchronous messages.  */
+
+static GstBusSyncReply
+__lp_gst_media_pipeline_bus_sync_callback (arg_unused (GstBus *bus),
+                                           GstMessage *message,
+                                           arg_unused (gpointer data))
+{
+  gstx_dump_message ("sync", message);
+  return GST_BUS_PASS;
 }
 
 /*************************** Back-end callbacks ***************************/
@@ -162,7 +226,10 @@ __lp_gst_media_pipeline_bus_async_callback (arg_unused (GstBus *bus),
 static void
 __lp_media_gst_free_func (void *data)
 {
-  g_free (data);
+  lp_media_gst_t *gst = (lp_media_gst_t *) data;
+  if (gst->pipeline != NULL)
+    gst_object_unref (gst->pipeline);
+  g_free (gst);
 }
 
 /* Posts @event to @media.  */
@@ -191,30 +258,31 @@ __lp_media_gst_post_func (lp_media_t *media, lp_event_t *event)
 
 /*************************** Internal functions ***************************/
 
-/* Allocates and initializes @media's back-end data.  */
+/* Allocates initializes #lp_media_backend_t.  */
 
 void
-_lp_media_gst_init (lp_media_t *media)
+_lp_media_gst_init (lp_media_backend_t *backend)
 {
   lp_media_gst_t *gst;
 
-  if (!gst_is_initialized ())
+  if(!gst_is_initialized ())
     gst_init (NULL, NULL);
 
-  _lp_assert (media != NULL);
-  _lp_assert (media->backend.data == NULL);
-  _lp_assert (media->backend.free == NULL);
-  _lp_assert (media->backend.add_child == NULL);
-  _lp_assert (media->backend.remove_child == NULL);
-  _lp_assert (media->backend.post == NULL);
-  _lp_assert (media->backend.get_property == NULL);
-  _lp_assert (media->backend.set_property == NULL);
+  _lp_assert (backend != NULL);
+  _lp_assert (backend->media != NULL);
+  _lp_assert (backend->data == NULL);
+  _lp_assert (backend->free == NULL);
+  _lp_assert (backend->add_child == NULL);
+  _lp_assert (backend->remove_child == NULL);
+  _lp_assert (backend->post == NULL);
+  _lp_assert (backend->get_property == NULL);
+  _lp_assert (backend->set_property == NULL);
 
   gst = (lp_media_gst_t *) g_malloc (sizeof (*gst));
   _lp_assert (gst != NULL);
   memset (gst, 0, sizeof (*gst));
 
-  media->backend.data = gst;
-  media->backend.free = __lp_media_gst_free_func;
-  media->backend.post = __lp_media_gst_post_func;
+  backend->data = gst;
+  backend->free = __lp_media_gst_free_func;
+  backend->post = __lp_media_gst_post_func;
 }

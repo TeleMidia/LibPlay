@@ -25,12 +25,12 @@ main (void)
   lp_media_t *m3;
 
   m1 = lp_media_create (NULL);
-  assert_media_is_empty (m1, NULL);
+  assert (m1 != NULL);
   assert (lp_media_get_parent (m1) == NULL);
   assert (_lp_media_get_root_ancestor (m1) == m1);
 
   m2 = lp_media_create (NULL);
-  assert_media_is_empty (m2, NULL);
+  assert (m2 != NULL);
   assert (_lp_media_get_root_ancestor (m2) == m2);
   assert (lp_media_add_child (m1, m2));
   assert (lp_media_get_parent (m2) == m1);

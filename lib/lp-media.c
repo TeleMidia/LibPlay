@@ -21,25 +21,22 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "play.h"
 #include "play-internal.h"
 
-#define DEFINE_NIL_MEDIA(status)                \
-  {                                             \
-    status,         /* status */                \
-    -1,             /* ref_count */             \
-    NULL,           /* parent */                \
-    NULL,           /* uri */                   \
-    NULL,           /* children */              \
-    NULL,           /* handlers */              \
-    NULL,           /* properties */            \
-    {                                           \
-      NULL,         /* back-end data */         \
-      NULL,         /* free */                  \
-      NULL,         /* add_child */             \
-      NULL,         /* remove_child */          \
-      NULL,         /* post */                  \
-      NULL,         /* get_property */          \
-      NULL,         /* set_property */          \
-    }                                           \
-  }
+/* Media object data. */
+struct _lp_media_t
+{
+  lp_status_t status;           /* error status */
+  gint ref_count;               /* reference counter */
+  GMutex mutex;                 /* sync access to media */
+  lp_media_t *parent;           /* parent */
+  char *uri;                    /* content URI */
+  GList *children;              /* children list */
+  GList *handlers;              /* event-handler list */
+  lp_properties_t *properties;  /* property table */
+  lp_media_backend_t *backend;  /* back-end data */
+};
+
+#define DEFINE_NIL_MEDIA(status)\
+  {status, -1, {0}, NULL, NULL, NULL, NULL, NULL, NULL}
 
 static const lp_media_t __lp_media_nil[] = {
   DEFINE_NIL_MEDIA (LP_STATUS_NULL_POINTER),
@@ -90,6 +87,7 @@ static ATTR_USE_RESULT lp_media_t *
 __lp_media_alloc (const char *uri)
 {
   lp_media_t *media;
+  lp_media_backend_t *backend;
 
   media = (lp_media_t *) g_malloc (sizeof (*media));
   _lp_assert (media != NULL);
@@ -97,13 +95,20 @@ __lp_media_alloc (const char *uri)
 
   media->status = LP_STATUS_SUCCESS;
   media->ref_count = 1;
+  g_mutex_init (&media->mutex);
   media->uri = g_strdup (uri);
   media->children = NULL;
   media->handlers = NULL;
   media->properties = _lp_properties_alloc ();
   _lp_assert (media->properties != NULL);
   __lp_media_set_parent (media, NULL);
-  _lp_media_gst_init (media);
+
+  backend = (lp_media_backend_t *) g_malloc (sizeof (*backend));
+  _lp_assert (backend != NULL);
+  memset (backend, 0, sizeof (*backend));
+  media->backend = backend;
+  backend->media = media;
+  _lp_media_gst_init (backend);
 
   return media;
 }
@@ -114,12 +119,14 @@ static void
 __lp_media_free (lp_media_t *media)
 {
   _lp_assert (media != NULL);
+  g_mutex_clear (&media->mutex);
   g_free (media->uri);
   g_list_free_full (media->children, (GDestroyNotify) lp_media_destroy);
   g_list_free (media->handlers);
   _lp_properties_free (media->properties);
-  _lp_assert (media->backend.free != NULL);
-  media->backend.free (media->backend.data);
+  _lp_assert (media->backend->free != NULL);
+  media->backend->free (media->backend->data);
+  g_free (media->backend);
   g_free (media);
 }
 
@@ -266,6 +273,34 @@ __lp_media_set_property_helper (lp_media_t *media, const char *name,
 }
 
 /*************************** Internal functions ***************************/
+
+/* Locks @media object.  */
+
+void
+_lp_media_lock (lp_media_t *media)
+{
+  _lp_assert (__lp_media_is_valid (media));
+  g_mutex_lock (&media->mutex);
+}
+
+/* Unlocks @media object.  */
+
+void
+_lp_media_unlock (lp_media_t *media)
+{
+  _lp_assert (__lp_media_is_valid (media));
+  g_mutex_unlock (&media->mutex);
+}
+
+/* Gets the back-end data associated with @media.
+   This function always returns a valid pointer.  */
+
+lp_media_backend_t *
+_lp_media_get_backend (lp_media_t *media)
+{
+  _lp_assert (__lp_media_is_valid (media));
+  return media->backend;
+}
 
 /* Gets the root ancestor of @media.
    Returns @media if it has no parent.  */
@@ -518,8 +553,8 @@ lp_media_post (lp_media_t *media, lp_event_t *event)
   if (unlikely (event == NULL))
     return FALSE;
 
-  _lp_assert (media->backend.post != NULL);
-  return media->backend.post (media, event);
+  _lp_assert (media->backend->post != NULL);
+  return media->backend->post (media, event);
 }
 
 /*-

@@ -34,7 +34,7 @@ main (void)
 
   /* success */
   parent = lp_media_create (NULL);
-  assert_media_is_empty (parent, NULL);
+  assert (parent != NULL);
   media = lp_media_create_for_parent (parent, NULL);
   assert (media != NULL);
   assert (lp_media_get_parent (parent) == NULL);

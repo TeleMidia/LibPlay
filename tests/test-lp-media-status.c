@@ -30,7 +30,7 @@ main (void)
 
   /* success */
   media = lp_media_create (NULL);
-  assert_media_is_empty (media, NULL);
+  assert (media != NULL);
   assert (lp_media_status (media) == LP_STATUS_SUCCESS);
   lp_media_destroy (media);
 

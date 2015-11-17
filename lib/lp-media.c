@@ -26,7 +26,7 @@ struct _lp_media_t
 {
   lp_status_t status;           /* error status */
   gint ref_count;               /* reference counter */
-  GMutex mutex;                 /* sync access to media */
+  GRecMutex mutex;              /* sync access to media */
   lp_media_t *parent;           /* parent */
   char *uri;                    /* content URI */
   GList *children;              /* children list */
@@ -95,7 +95,7 @@ __lp_media_alloc (const char *uri)
 
   media->status = LP_STATUS_SUCCESS;
   media->ref_count = 1;
-  g_mutex_init (&media->mutex);
+  g_rec_mutex_init (&media->mutex);
   media->uri = g_strdup (uri);
   media->children = NULL;
   media->handlers = NULL;
@@ -119,7 +119,7 @@ static void
 __lp_media_free (lp_media_t *media)
 {
   _lp_assert (media != NULL);
-  g_mutex_clear (&media->mutex);
+  g_rec_mutex_clear (&media->mutex);
   g_free (media->uri);
   g_list_free_full (media->children, (GDestroyNotify) lp_media_destroy);
   g_list_free (media->handlers);
@@ -280,7 +280,7 @@ void
 _lp_media_lock (lp_media_t *media)
 {
   _lp_assert (__lp_media_is_valid (media));
-  g_mutex_lock (&media->mutex);
+  g_rec_mutex_lock (&media->mutex);
 }
 
 /* Unlocks @media object.  */
@@ -289,7 +289,7 @@ void
 _lp_media_unlock (lp_media_t *media)
 {
   _lp_assert (__lp_media_is_valid (media));
-  g_mutex_unlock (&media->mutex);
+  g_rec_mutex_unlock (&media->mutex);
 }
 
 /* Gets the back-end data associated with @media.

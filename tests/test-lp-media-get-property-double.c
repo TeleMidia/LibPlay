@@ -45,7 +45,13 @@ main (void)
   assert (lp_media_get_property_double (media, "unknown", &d) == FALSE);
   lp_media_destroy (media);
 
-  /* TODO: success: unset property, with default */
+  /* success: unset property, with default */
+  media = lp_media_create (NULL);
+  assert (media != NULL);
+  assert (lp_media_get_property_double (media, "alpha", &d));
+  assert (d == _LP_PROPERTY_DEFAULT_ALPHA);
+  lp_media_destroy (media);
+
   /* TODO: success: unset property, inherited */
 
   /* success: set property */

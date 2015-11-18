@@ -110,6 +110,7 @@ programs+= test-_lp-media-dispatch
 programs+= test-lp-media-post
 # system checks
 programs+= test-sys-timer-loop-1
+programs+= test-sys-timer-loop-2
 check_PROGRAMS= $(programs)
 
 TESTS=\

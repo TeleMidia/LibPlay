@@ -138,6 +138,9 @@ lp_media_get_reference_count (const lp_media_t *);
 LP_API lp_media_t *
 lp_media_get_parent (const lp_media_t *);
 
+LP_API const char *
+lp_media_get_content_uri (const lp_media_t *);
+
 LP_API lp_bool_t
 lp_media_add_child (lp_media_t *, lp_media_t *);
 

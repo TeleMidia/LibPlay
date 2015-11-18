@@ -32,6 +32,7 @@ PRAGMA_DIAG_POP ()
 /* lp-properties */
 typedef struct _lp_properties_t lp_properties_t;
 
+#define _LP_PROPERTY_DEFAULT_ALPHA 1.0
 #define _LP_PROPERTY_DEFAULT_X 0
 #define _LP_PROPERTY_DEFAULT_Y 0
 #define _LP_PROPERTY_DEFAULT_Z 0

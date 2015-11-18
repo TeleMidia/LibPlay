@@ -260,7 +260,7 @@ __lp_media_gst_set_video_bin (lp_media_t * media, GstPad * source_pad)
     /* TODO: check if the uri is an image */
 
     sink_pad = gst_element_get_static_pad (gst->videoscale, "sink");
-    g_assert (sink_pad);
+    _lp_assert (sink_pad != NULL);
 
     ret = gst_pad_link (source_pad, sink_pad);
     if (GST_PAD_LINK_FAILED (ret))
@@ -277,7 +277,7 @@ __lp_media_gst_set_video_bin (lp_media_t * media, GstPad * source_pad)
 
       videomixer_sink_pad =
         gst_element_get_request_pad (videomixer, "sink_%u");
-      g_assert (videomixer_sink_pad);
+      _lp_assert (videomixer_sink_pad != NULL);
 
       ret = gst_pad_link (ghost_pad, videomixer_sink_pad);
       if (GST_PAD_LINK_FAILED (ret))
@@ -311,7 +311,7 @@ __lp_media_gst_pad_added_callback (arg_unused (GstElement * src),
   const gchar *pad_type = NULL;
   lp_media_t *media = (lp_media_t *) data;
 
-  g_assert (media);
+  _lp_assert (media != NULL);
 
   pad_caps = gst_pad_query_caps (pad, NULL);
   pad_struct = gst_caps_get_structure (pad_caps, 0);

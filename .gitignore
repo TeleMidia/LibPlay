@@ -113,6 +113,7 @@
 /tests/test-_lp-media-dispatch
 /tests/test-lp-media-post
 /tests/test-sys-timer-loop-1
+/tests/test-sys-timer-loop-2
 Makefile
 Makefile.in
 autom4te.cache

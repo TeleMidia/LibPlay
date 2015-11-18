@@ -82,6 +82,7 @@ programs+= test-lp-status-to-string
 # lp-event
 programs+= test-lp-event-init-start
 programs+= test-lp-event-init-stop
+programs+= test-lp-event-init-tick
 programs+= test-lp-event-init-user
 programs+= test-lp-event-equals
 # lp-media
@@ -107,6 +108,8 @@ programs+= test-lp-media-set-property-pointer
 programs+= test-_lp-media-get-root-ancestor
 programs+= test-_lp-media-dispatch
 programs+= test-lp-media-post
+# system checks
+programs+= test-sys-timer-loop-1
 check_PROGRAMS= $(programs)
 
 TESTS=\

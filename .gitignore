@@ -87,6 +87,7 @@
 /tests/test-lp-status-to-string
 /tests/test-lp-event-init-start
 /tests/test-lp-event-init-stop
+/tests/test-lp-event-init-tick
 /tests/test-lp-event-init-user
 /tests/test-lp-event-equals
 /tests/test-lp-media-create
@@ -111,6 +112,7 @@
 /tests/test-_lp-media-get-root-ancestor
 /tests/test-_lp-media-dispatch
 /tests/test-lp-media-post
+/tests/test-sys-timer-loop-1
 Makefile
 Makefile.in
 autom4te.cache

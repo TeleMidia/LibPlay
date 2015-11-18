@@ -70,7 +70,7 @@ _lp_util_g_value_init_and_set (GValue *value, GType type, const void *ptr)
   _lp_assert (value != NULL);
   g_value_init (value, type);
   switch (type)
-    {
+  {
     case G_TYPE_INT:
       g_value_set_int (value, *(deconst (int *, ptr)));
       break;
@@ -85,6 +85,6 @@ _lp_util_g_value_init_and_set (GValue *value, GType type, const void *ptr)
       break;
     default:
       _LP_ASSERT_NOT_REACHED;
-    }
+  }
   return value;
 }

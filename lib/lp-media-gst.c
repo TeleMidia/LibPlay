@@ -67,7 +67,6 @@ static lp_bool_t __lp_media_gst_set_video_bin (lp_media_t *, GstPad *);
 /*static void __lp_media_gst_set_audio_bin (lp_media_gst_t *, GstPad *); */
 /* *INDENT-ON* */
 
-
 /* Checks and returns the back-end data associated with @media.  */
 
 static lp_media_gst_t *
@@ -131,7 +130,7 @@ __lp_media_gst_install_pipeline (lp_media_t *media)
    Returns a pointer (GstElement *) to the mixer*/
 
 static GstElement *
-__lp_media_gst_get_mixer (lp_media_t * media, const char *mixer_type)
+__lp_media_gst_get_mixer (lp_media_t *media, const char *mixer_type)
 {
   GstElement *mixer = NULL;
   lp_media_t *root;
@@ -209,7 +208,7 @@ __lp_media_gst_get_mixer (lp_media_t * media, const char *mixer_type)
 /* Allocates and links appropriate elements to handle video streams 
    Returns %TRUE if successful, or %FALSE otherwise */
 static lp_bool_t
-__lp_media_gst_set_video_bin (lp_media_t * media, GstPad * source_pad)
+__lp_media_gst_set_video_bin (lp_media_t *media, GstPad *source_pad)
 {
   GstElement *videomixer = NULL;
   GstCaps *caps = NULL;
@@ -304,7 +303,7 @@ __lp_media_gst_set_video_bin (lp_media_t * media, GstPad * source_pad)
 /* Callback called whenever a new pad is created by the uridecoderbin  */
 static void
 __lp_media_gst_pad_added_callback (arg_unused (GstElement * src),
-                                   GstPad * pad, gpointer data)
+                                   GstPad *pad, gpointer data)
 {
   GstCaps *pad_caps = NULL;
   GstStructure *pad_struct = NULL;

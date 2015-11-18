@@ -116,7 +116,7 @@ __lp_media_alloc (const char *uri)
 /* Frees a #lp_media_t allocated with __lp_media_alloc().  */
 
 static void
-__lp_media_free (lp_media_t * media)
+__lp_media_free (lp_media_t *media)
 {
   _lp_assert (media != NULL);
   g_rec_mutex_clear (&media->mutex);
@@ -134,7 +134,7 @@ __lp_media_free (lp_media_t * media)
    %NULL if @parent is %NULL.  */
 
 static void
-__lp_media_set_parent (lp_media_t * media, lp_media_t * parent)
+__lp_media_set_parent (lp_media_t *media, lp_media_t *parent)
 {
   _lp_assert (media != NULL);
   _lp_assert (media->properties != NULL);
@@ -156,8 +156,8 @@ __lp_media_set_parent (lp_media_t * media, lp_media_t * parent)
 /* Helper function used by _lp_media_dispatch().  */
 
 static unsigned int
-__lp_media_dispatch_helper (lp_media_t * media, lp_media_t * target,
-                            lp_event_t * event)
+__lp_media_dispatch_helper (lp_media_t *media, lp_media_t *target,
+                            lp_event_t *event)
 {
   GList *list;
   unsigned int count;
@@ -192,7 +192,7 @@ __lp_media_dispatch_helper (lp_media_t * media, lp_media_t * target,
 /* Helper function used by property getters.  */
 
 static lp_bool_t
-__lp_media_get_property_helper (lp_media_t * media, const char *name,
+__lp_media_get_property_helper (lp_media_t *media, const char *name,
                                 GType type, void *ptr)
 {
   GValue value = G_VALUE_INIT;
@@ -237,7 +237,7 @@ __lp_media_get_property_helper (lp_media_t * media, const char *name,
 /* Helper function used by property setters.  */
 
 static lp_bool_t
-__lp_media_set_property_helper (lp_media_t * media, const char *name,
+__lp_media_set_property_helper (lp_media_t *media, const char *name,
                                 GType type, void *ptr)
 {
   GValue value = G_VALUE_INIT;
@@ -277,7 +277,7 @@ __lp_media_set_property_helper (lp_media_t * media, const char *name,
 /* Locks @media object.  */
 
 void
-_lp_media_lock (lp_media_t * media)
+_lp_media_lock (lp_media_t *media)
 {
   _lp_assert (__lp_media_is_valid (media));
   g_rec_mutex_lock (&media->mutex);
@@ -286,7 +286,7 @@ _lp_media_lock (lp_media_t * media)
 /* Unlocks @media object.  */
 
 void
-_lp_media_unlock (lp_media_t * media)
+_lp_media_unlock (lp_media_t *media)
 {
   _lp_assert (__lp_media_is_valid (media));
   g_rec_mutex_unlock (&media->mutex);
@@ -296,7 +296,7 @@ _lp_media_unlock (lp_media_t * media)
    This function always returns a valid pointer.  */
 
 lp_media_backend_t *
-_lp_media_get_backend (lp_media_t * media)
+_lp_media_get_backend (lp_media_t *media)
 {
   /* TODO: Update to atomic int.  */
   return media->backend;
@@ -306,7 +306,7 @@ _lp_media_get_backend (lp_media_t * media)
    Returns @media if it has no parent.  */
 
 lp_media_t *
-_lp_media_get_root_ancestor (lp_media_t * media)
+_lp_media_get_root_ancestor (lp_media_t *media)
 {
   lp_media_t *result;
   _lp_assert (__lp_media_is_valid (media));
@@ -330,7 +330,7 @@ _lp_media_get_root_ancestor (lp_media_t * media)
    Returns the total number of handlers called.  */
 
 unsigned int
-_lp_media_dispatch (lp_media_t * media, lp_event_t * event)
+_lp_media_dispatch (lp_media_t *media, lp_event_t *event)
 {
   return __lp_media_dispatch_helper (media, media, event);
 }
@@ -371,7 +371,7 @@ lp_media_create (const char *uri)
  * This function always returns a valid pointer.
  */
 ATTR_USE_RESULT lp_media_t *
-lp_media_create_for_parent (lp_media_t * parent, const char *uri)
+lp_media_create_for_parent (lp_media_t *parent, const char *uri)
 {
   lp_media_t *media;
 
@@ -396,7 +396,7 @@ lp_media_create_for_parent (lp_media_t * parent, const char *uri)
  * If the result is 0, then @media and all associated resources are freed.
  */
 void
-lp_media_destroy (lp_media_t * media)
+lp_media_destroy (lp_media_t *media)
 {
   if (unlikely (!__lp_media_is_valid (media)))
     return;
@@ -420,7 +420,7 @@ lp_media_destroy (lp_media_t * media)
  * Return value: the current status of @media, see #lp_status_t.
  */
 lp_status_t ATTR_PURE ATTR_USE_RESULT
-lp_media_status (const lp_media_t * media)
+lp_media_status (const lp_media_t *media)
 {
   if (unlikely (media == NULL))
     return LP_STATUS_NULL_POINTER;
@@ -438,7 +438,7 @@ lp_media_status (const lp_media_t * media)
  * Return value: the referenced #lp_media_t.
  */
 lp_media_t *
-lp_media_reference (lp_media_t * media)
+lp_media_reference (lp_media_t *media)
 {
   if (likely (__lp_media_is_valid (media)))
     g_atomic_int_inc (&media->ref_count);
@@ -454,7 +454,7 @@ lp_media_reference (lp_media_t * media)
  * Return value: the current reference count of @media.
  */
 ATTR_USE_RESULT unsigned int
-lp_media_get_reference_count (const lp_media_t * media)
+lp_media_get_reference_count (const lp_media_t *media)
 {
   gint ref_count;
 
@@ -476,7 +476,7 @@ lp_media_get_reference_count (const lp_media_t * media)
  * Return value: a copy of the content uri set at the creation of @media.
  */
 ATTR_PURE ATTR_USE_RESULT const char *
-lp_media_get_content_uri (const lp_media_t * media)
+lp_media_get_content_uri (const lp_media_t *media)
 {
   if (unlikely (!__lp_media_is_valid (media)))
     return NULL;
@@ -492,7 +492,7 @@ lp_media_get_content_uri (const lp_media_t * media)
  * Return value: the parent of @media, or %NULL if @media has no parent.
  */
 ATTR_PURE ATTR_USE_RESULT lp_media_t *
-lp_media_get_parent (const lp_media_t * media)
+lp_media_get_parent (const lp_media_t *media)
 {
   if (unlikely (!__lp_media_is_valid (media)))
     return NULL;
@@ -510,7 +510,7 @@ lp_media_get_parent (const lp_media_t * media)
  * children list or if its current parent is not %NULL.
  */
 lp_bool_t
-lp_media_add_child (lp_media_t * parent, lp_media_t * child)
+lp_media_add_child (lp_media_t *parent, lp_media_t *child)
 {
   if (unlikely (!__lp_media_is_valid (parent)
                 || !__lp_media_is_valid (child)))
@@ -542,7 +542,7 @@ lp_media_add_child (lp_media_t * parent, lp_media_t * child)
  * list.
  */
 lp_bool_t
-lp_media_remove_child (lp_media_t * parent, lp_media_t * child)
+lp_media_remove_child (lp_media_t *parent, lp_media_t *child)
 {
   GList *link;
 
@@ -573,7 +573,7 @@ lp_media_remove_child (lp_media_t * parent, lp_media_t * child)
  */
 
 lp_bool_t
-lp_media_post (lp_media_t * media, lp_event_t * event)
+lp_media_post (lp_media_t *media, lp_event_t *event)
 {
   if (unlikely (!__lp_media_is_valid (media)))
     return FALSE;
@@ -596,7 +596,7 @@ lp_media_post (lp_media_t * media, lp_event_t * event)
  * in handler list.
  */
 lp_bool_t
-lp_media_register (lp_media_t * media, lp_event_func_t func)
+lp_media_register (lp_media_t *media, lp_event_func_t func)
 {
   if (unlikely (!__lp_media_is_valid (media)))
     return FALSE;
@@ -623,7 +623,7 @@ lp_media_register (lp_media_t * media, lp_event_func_t func)
  * list.
  */
 lp_bool_t
-lp_media_unregister (lp_media_t * media, lp_event_func_t func)
+lp_media_unregister (lp_media_t *media, lp_event_func_t func)
 {
   GList *link;
 
@@ -654,7 +654,7 @@ lp_media_unregister (lp_media_t * media, lp_event_func_t func)
  * defined or its current value is not of type #int.
  */
 lp_bool_t
-lp_media_get_property_int (lp_media_t * media, const char *name, int *i)
+lp_media_get_property_int (lp_media_t *media, const char *name, int *i)
 {
   return __lp_media_get_property_helper (media, name, G_TYPE_INT, i);
 }
@@ -670,7 +670,7 @@ lp_media_get_property_int (lp_media_t * media, const char *name, int *i)
  * Return value: %TRUE if successful.  %FALSE otherwise.
  */
 lp_bool_t
-lp_media_set_property_int (lp_media_t * media, const char *name, int i)
+lp_media_set_property_int (lp_media_t *media, const char *name, int i)
 {
   return __lp_media_set_property_helper (media, name, G_TYPE_INT, &i);
 }
@@ -687,7 +687,7 @@ lp_media_set_property_int (lp_media_t * media, const char *name, int i)
  * defined or its current value is not of type #double.
  */
 lp_bool_t
-lp_media_get_property_double (lp_media_t * media, const char *name,
+lp_media_get_property_double (lp_media_t *media, const char *name,
                               double *d)
 {
   return __lp_media_get_property_helper (media, name, G_TYPE_DOUBLE, d);
@@ -704,7 +704,7 @@ lp_media_get_property_double (lp_media_t * media, const char *name,
  * Return value: %TRUE if successful.  %FALSE otherwise.
  */
 lp_bool_t
-lp_media_set_property_double (lp_media_t * media, const char *name,
+lp_media_set_property_double (lp_media_t *media, const char *name,
                               double d)
 {
   return __lp_media_set_property_helper (media, name, G_TYPE_DOUBLE, &d);
@@ -723,7 +723,7 @@ lp_media_set_property_double (lp_media_t * media, const char *name,
  * defined or its current value is not of type #string.
  */
 lp_bool_t
-lp_media_get_property_string (lp_media_t * media, const char *name,
+lp_media_get_property_string (lp_media_t *media, const char *name,
                               char **s)
 {
   return __lp_media_get_property_helper (media, name, G_TYPE_STRING, s);
@@ -740,7 +740,7 @@ lp_media_get_property_string (lp_media_t * media, const char *name,
  * Return value: %TRUE if successful.  %FALSE otherwise.
  */
 lp_bool_t
-lp_media_set_property_string (lp_media_t * media, const char *name,
+lp_media_set_property_string (lp_media_t *media, const char *name,
                               const char *s)
 {
   return __lp_media_set_property_helper (media, name, G_TYPE_STRING, &s);
@@ -758,7 +758,7 @@ lp_media_set_property_string (lp_media_t * media, const char *name,
  * defined or its current value is not of type #pointer.
  */
 lp_bool_t
-lp_media_get_property_pointer (lp_media_t * media, const char *name,
+lp_media_get_property_pointer (lp_media_t *media, const char *name,
                                void **p)
 {
   return __lp_media_get_property_helper (media, name, G_TYPE_POINTER, p);
@@ -775,7 +775,7 @@ lp_media_get_property_pointer (lp_media_t * media, const char *name,
  * Return value: %TRUE if successful.  %FALSE otherwise.
  */
 lp_bool_t
-lp_media_set_property_pointer (lp_media_t * media, const char *name,
+lp_media_set_property_pointer (lp_media_t *media, const char *name,
                                const void *p)
 {
   return __lp_media_set_property_helper (media, name, G_TYPE_POINTER, &p);

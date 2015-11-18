@@ -43,7 +43,7 @@ main (int argc, char *argv[])
 
   lp_media_set_property_int (m, "width", 100);
   sleep (3);
-  
+
   lp_media_set_property_int (m, "height", 100);
   sleep (10);
 

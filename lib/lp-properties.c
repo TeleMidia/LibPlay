@@ -177,28 +177,28 @@ _lp_properties_get (const lp_properties_t *props, const char *name,
 
   result = (GValue *) g_hash_table_lookup (props->table, name);
   if (result != NULL)
-    {
-      g_value_init (value, G_VALUE_TYPE (result));
-      g_value_copy (result, value);
-      return TRUE;
-    }
+  {
+    g_value_init (value, G_VALUE_TYPE (result));
+    g_value_copy (result, value);
+    return TRUE;
+  }
 
   if (!__lp_properties_get_desc (name, &desc))
     return FALSE;               /* unknown property, nothing to do */
 
   if (desc->has_default)
-    {
-      ptrdiff_t ptr = (ptrdiff_t) desc;
+  {
+    ptrdiff_t ptr = (ptrdiff_t) desc;
 
-      ptr += (ptrdiff_t) offsetof (lp_properties_desc_t, default_value);
-      _lp_util_g_value_init_and_set (&default_value, desc->type,
-                                     pointerof (ptr));
-      g_value_init (value, G_VALUE_TYPE (&default_value));
-      g_value_copy (&default_value, value);
-      g_value_unset (&default_value);
+    ptr += (ptrdiff_t) offsetof (lp_properties_desc_t, default_value);
+    _lp_util_g_value_init_and_set (&default_value, desc->type,
+                                   pointerof (ptr));
+    g_value_init (value, G_VALUE_TYPE (&default_value));
+    g_value_copy (&default_value, value);
+    g_value_unset (&default_value);
 
-      return TRUE;
-    }
+    return TRUE;
+  }
 
   if (desc->inherited && props->metatable != NULL)
     return _lp_properties_get (props->metatable, name, value);
@@ -223,9 +223,9 @@ _lp_properties_set (lp_properties_t *props, const char *name,
   type = G_VALUE_TYPE (deconst (GValue *, value));
   if (unlikely (__lp_properties_get_desc (name, &desc)
                 && type != desc->type))
-    {
-      return FALSE;             /* bad type */
-    }
+  {
+    return FALSE;               /* bad type */
+  }
 
   g_hash_table_insert (props->table, g_strdup (name),
                        _lp_util_g_value_dup (value));

@@ -31,13 +31,12 @@ handler (lp_media_t *media, lp_media_t *target, lp_event_t *event)
   assert (event != NULL);
 
   printf ("media=%p\ttarget=%p\tevent=%p:%s\n",
-      (void *) media,
-      (void *) target,
-      (void *) event,
-      (event->type == LP_EVENT_START) ? "start"
-      : (event->type == LP_EVENT_STOP) ? "stop"
-      : (event->type == LP_EVENT_USER) ? "user"
-      : "unknown");
+          (void *) media,
+          (void *) target,
+          (void *) event,
+          (event->type == LP_EVENT_START) ? "start"
+          : (event->type == LP_EVENT_STOP) ? "stop"
+          : (event->type == LP_EVENT_USER) ? "user" : "unknown");
 
   switch (event->type)
   {
@@ -80,12 +79,11 @@ main (void)
   char uri[BUFFSIZE];
   size_t len;
 
-
   /* This test assumes the executable dir as current working directory  */
   getcwd (&uri[0], BUFFSIZE);
   len = strlen ("file://");
   strcat (&uri[0], "/media/testvideo.ogg");
-  memmove (&uri[0] + len, &uri[0], strlen(&uri[0]) + 2);
+  memmove (&uri[0] + len, &uri[0], strlen (&uri[0]) + 2);
   strncpy (&uri[0], "file://", len);
 
   loop = g_main_loop_new (NULL, FALSE);

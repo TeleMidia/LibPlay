@@ -19,19 +19,20 @@
 COPYRIGHT_YEAR= 2015
 COPYRIGHT_HOLDER= PUC-Rio/Laboratorio TeleMidia
 
-# INDENT_OPTIONS=\
-#   --brace-indent0\
-#   --case-brace-indentation0\
-#   --case-indentation2\
-#   --else-endif-column0\
-#   --gnu-style\
-#   --indent-label-1\
-#   --leave-preprocessor-space\
-#   --no-tabs\
-#   -l76\
-#   $(NULL)
+INDENT_OPTIONS=\
+  --brace-indent0\
+  --case-brace-indentation0\
+  --case-indentation2\
+  --else-endif-column0\
+  --gnu-style\
+  --indent-label-1\
+  --leave-preprocessor-space\
+  --no-tabs\
+  -l76\
+  $(NULL)
 
 INDENT_EXCLUDE=\
+  lib/gstx-macros.h\
   lib/play-internal.h\
   lib/play.h\
   lua/luax-macros.h\
@@ -43,7 +44,13 @@ INDENT_JOIN_EMPTY_LINES_EXCLUDE=\
 
 INDENT_TYPES=\
   GValue\
+  GstBus\
+  GstClock\
+  GstMessage\
+  GstPad\
   lp_event_t\
+  lp_media_backend_t\
+  lp_media_gst_t\
   lp_media_t\
   lp_properties_desc_t\
   lp_properties_t\

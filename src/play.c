@@ -47,11 +47,10 @@ handler (lp_media_t *media, lp_media_t *target, lp_event_t *event)
           (void *) event,
           (event->type == LP_EVENT_START) ? "start"
           : (event->type == LP_EVENT_STOP) ? "stop"
-          : (event->type == LP_EVENT_USER) ? "user"
-          : "unknown");
+          : (event->type == LP_EVENT_USER) ? "user" : "unknown");
 
   switch (event->type)
-    {
+  {
     case LP_EVENT_START:
       break;
     case LP_EVENT_STOP:
@@ -59,14 +58,14 @@ handler (lp_media_t *media, lp_media_t *target, lp_event_t *event)
       break;
     case LP_EVENT_TICK:
       if (++count > 4)
-        {
-          lp_event_init_stop (event);
-          assert (lp_media_post (media, event));
-        }
+      {
+        lp_event_init_stop (event);
+        assert (lp_media_post (media, event));
+      }
       break;
     default:
       ASSERT_NOT_REACHED;
-    }
+  }
 
   return TRUE;                  /* consume event */
 }
@@ -78,10 +77,10 @@ main (int argc, char **argv)
   lp_event_t start;
 
   if (argc != 2)
-    {
-      fprintf (stderr, "usage: %s URI\n", argv[0]);
-      exit (EXIT_FAILURE);
-    }
+  {
+    fprintf (stderr, "usage: %s URI\n", argv[0]);
+    exit (EXIT_FAILURE);
+  }
 
   loop = g_main_loop_new (NULL, FALSE);
   assert (loop != NULL);

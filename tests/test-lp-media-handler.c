@@ -31,10 +31,8 @@ handler2 (lp_media_t *media, lp_event_t *event)
     case LP_EVENT_START:
       assert (flag == 1);
       assert (media == m);
-
       break;
     case LP_EVENT_STOP:
-      
       break;
     default:
       ASSERT_NOT_REACHED;
@@ -49,12 +47,10 @@ handler1 (lp_media_t *media, lp_event_t *event)
   switch (event->type)
   {
     case LP_EVENT_START:
-        assert (flag++ == 0);
-        assert (media == m);
-
+      assert (flag++ == 0);
+      assert (media == m);
       break;
     case LP_EVENT_STOP:
-      
       break;
     default:
       ASSERT_NOT_REACHED;
@@ -62,7 +58,6 @@ handler1 (lp_media_t *media, lp_event_t *event)
   }
   return TRUE;
 }
-
 
 int
 main (int argc, char *argv[])
@@ -86,7 +81,7 @@ main (int argc, char *argv[])
 
   lp_media_post (m, &evt);
   sleep (1000);
-  
+
   lp_media_destroy (m);
   lp_media_destroy (parent);
 

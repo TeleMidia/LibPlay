@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "tests.h"
-#include "gstx-macros.h"
 
 int
 main (void)

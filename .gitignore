@@ -112,8 +112,10 @@
 /tests/test-_lp-media-get-root-ancestor
 /tests/test-_lp-media-dispatch
 /tests/test-lp-media-post
+/tests/test-sys-play-audio
+/tests/test-sys-play-audiovideo
+/tests/test-sys-play-video
 /tests/test-sys-timer-loop-1
-/tests/test-sys-timer-loop-2
 tags
 Makefile
 Makefile.in

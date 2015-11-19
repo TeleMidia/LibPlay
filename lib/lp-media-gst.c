@@ -56,16 +56,23 @@ typedef struct _lp_media_gst_t
 
 } lp_media_gst_t;
 
+static const char *default_audio_caps = "audio/x-raw,rate=48000"; 
+            /* Do we need other caps? */
+
 /* Forward declarations: */
 /* *INDENT-OFF* */
 static lp_media_gst_t *__lp_media_gst_check (lp_media_t *);
 static GstPipeline *__lp_media_gst_get_pipeline (lp_media_t *);
-static gboolean __lp_media_gst_pipeline_bus_async_callback (GstBus *, GstMessage *, gpointer);
-static GstBusSyncReply __lp_media_gst_pipeline_bus_sync_callback (GstBus *, GstMessage *, gpointer);
-static void __lp_media_gst_pad_added_callback (GstElement *, GstPad *, gpointer);
+static gboolean __lp_media_gst_pipeline_bus_async_callback (GstBus *, 
+    GstMessage *, gpointer);
+static GstBusSyncReply __lp_media_gst_pipeline_bus_sync_callback (GstBus *, 
+    GstMessage *, gpointer);
+static void __lp_media_gst_pad_added_callback (GstElement *, GstPad *, 
+    gpointer);
+static lp_bool_t __lp_media_gst_set_audio_bin (lp_media_t *, GstPad *);
 static lp_bool_t __lp_media_gst_set_video_bin (lp_media_t *, GstPad *);
-static lp_bool_t __lp_media_gst_alloc_and_link_mixer (const char *, GstElement **, const char *sink_element, GstElement **);
-/*static void __lp_media_gst_set_audio_bin (lp_media_gst_t *, GstPad *); */
+static lp_bool_t __lp_media_gst_alloc_and_link_mixer (const char *, 
+    GstElement **, const char *sink_element, GstElement **, GstElement*);
 /* *INDENT-ON* */
 
 /* Checks and returns the back-end data associated with @media.  */
@@ -128,21 +135,29 @@ __lp_media_gst_install_pipeline (lp_media_t *media)
 
 static lp_bool_t
 __lp_media_gst_alloc_and_link_mixer (const char *mixer_element, 
-    GstElement **mixer, const char *sink_element, GstElement **sink)
+    GstElement **mixer, const char *sink_element, GstElement **sink, 
+    GstElement *bin)
 {
   /* TODO: Gets parent's mixer and link with mixer when parent != NULL */
-  if (mixer_element == NULL)
+  if (mixer_element == NULL || bin == NULL)
     return FALSE;
 
   *mixer = gst_element_factory_make (mixer_element, NULL);
   _lp_assert (*mixer);
+  
+  gst_element_set_state (*mixer, GST_STATE_PLAYING);
 
   if (sink_element != NULL)       /* Sink needs to be created  */
   {
     *sink = gst_element_factory_make (sink_element, NULL);
     _lp_assert (*sink != NULL);
+
+    gst_bin_add (GST_BIN (bin), *sink);
+    gst_element_set_state (*sink, GST_STATE_PLAYING);
   }
-  return TRUE;
+  
+  gst_bin_add (GST_BIN (bin), *mixer);
+  return gst_element_link (*mixer, *sink);
 }
 
 
@@ -173,15 +188,21 @@ __lp_media_gst_get_mixer (lp_media_t *media, const char *mixer_type)
       mixer = gst->videomixer;
     else
     {
-      _lp_assert (parent == NULL ? gst->videosink == NULL : TRUE);
-      _lp_assert (__lp_media_gst_alloc_and_link_mixer ("videomixer", 
-            &gst->videomixer, parent == NULL ? "xvimagesink" : NULL, 
-            &gst->videosink) == TRUE);
+      if (parent == NULL)
+      {
+        lp_bool_t status;
+        _lp_assert (gst->videosink == NULL);
 
-      gst_bin_add_many (GST_BIN (pipeline), gst->videomixer,
-          gst->videosink, NULL);
-      _lp_assert (gst_element_link (gst->videomixer, gst->videosink)
-          == TRUE);
+        status =  __lp_media_gst_alloc_and_link_mixer ("videomixer", 
+            &gst->videomixer, "xvimagesink", &gst->videosink, 
+            GST_ELEMENT(pipeline));
+
+        _lp_assert (status == TRUE);
+      }
+      else
+      {
+        /* TODO */
+      }
       mixer = gst->videomixer;
      } 
   }
@@ -191,15 +212,21 @@ __lp_media_gst_get_mixer (lp_media_t *media, const char *mixer_type)
       mixer = gst->audiomixer;
     else
     {
-      _lp_assert (parent == NULL ? gst->audiosink == NULL : TRUE);
-      _lp_assert (__lp_media_gst_alloc_and_link_mixer ("adder", 
-            &gst->audiomixer, parent == NULL ? "autoaudiosink" : NULL, 
-            &gst->audiosink) == TRUE);
-      
-      gst_bin_add_many (GST_BIN (pipeline), gst->audiomixer,
-          gst->audiosink, NULL);
-      _lp_assert (gst_element_link (gst->audiomixer, gst->audiosink)
-          == TRUE);
+      if (parent == NULL)
+      {
+        lp_bool_t status;
+        _lp_assert (gst->audiosink == NULL);
+
+        status = __lp_media_gst_alloc_and_link_mixer ("adder", 
+            &gst->audiomixer, "autoaudiosink", &gst->audiosink, 
+            GST_ELEMENT(pipeline));
+
+        _lp_assert (status == TRUE);
+      }
+      else
+      {
+        /* TODO */
+      }
       mixer = gst->audiomixer;
     }
   }
@@ -259,7 +286,6 @@ __lp_media_gst_set_video_bin (lp_media_t *media, GstPad *source_pad)
   else
   {
     /* TODO: check if the uri is an image */
-
     sink_pad = gst_element_get_static_pad (gst->videoscale, "sink");
     _lp_assert (sink_pad != NULL);
 
@@ -302,6 +328,102 @@ __lp_media_gst_set_video_bin (lp_media_t *media, GstPad *source_pad)
   return status;
 }
 
+/* Allocates and links appropriate elements to handle audio streams 
+   Returns %TRUE if successful, or %FALSE otherwise */
+static lp_bool_t
+__lp_media_gst_set_audio_bin (lp_media_t *media, GstPad *source_pad)
+{
+  GstElement *audiomixer = NULL;
+  GstCaps *caps = NULL;
+  GstPad *sink_pad = NULL, *ghost_pad = NULL, *audiomixer_sink_pad = NULL;
+  GstPadLinkReturn ret;
+  lp_media_t *parent;
+  lp_media_gst_t *gst;
+  lp_bool_t status = TRUE;
+
+  gst = __lp_media_gst_check (media);
+  parent = lp_media_get_parent (media);
+
+  audiomixer = __lp_media_gst_get_mixer (parent, "audio");
+  _lp_assert (audiomixer != NULL);
+
+  gst->audiovolume = gst_element_factory_make ("volume", NULL);
+  _lp_assert (gst->audiovolume != NULL);
+  
+  gst->audioconvert = gst_element_factory_make ("audioconvert", NULL);
+  _lp_assert (gst->audioconvert != NULL);
+  
+  gst->audioresample = gst_element_factory_make ("audioresample", NULL);
+  _lp_assert (gst->audioresample != NULL);
+  
+  gst->audiofilter = gst_element_factory_make ("capsfilter", NULL);
+  _lp_assert (gst->audiofilter != NULL);
+  
+  gst_element_set_state (gst->audiovolume, GST_STATE_PAUSED);
+  gst_element_set_state (gst->audioconvert, GST_STATE_PAUSED);
+  gst_element_set_state (gst->audioresample, GST_STATE_PAUSED);
+  gst_element_set_state (gst->audiofilter, GST_STATE_PAUSED);
+
+
+  caps = gst_caps_from_string (default_audio_caps);
+  g_assert (caps);
+
+  g_object_set (gst->audiofilter, "caps", caps, NULL);
+  gst_caps_unref (caps);
+
+  gst_bin_add_many (GST_BIN (gst->bin), gst->audiovolume, gst->audioconvert, 
+      gst->audioresample, gst->audiofilter, NULL);
+
+  if (!gst_element_link_many (gst->audiovolume, gst->audioconvert,
+                              gst->audioresample, gst->audiofilter,
+                              NULL))
+    status = FALSE;
+  else
+  {
+    sink_pad = gst_element_get_static_pad (gst->audiovolume, "sink");
+    _lp_assert (sink_pad != NULL);
+
+    ret = gst_pad_link (source_pad, sink_pad);
+    if (GST_PAD_LINK_FAILED (ret))
+      status = FALSE;
+    else
+    {
+      double volume; 
+      lp_media_get_property_double (media, "volume", &volume);
+    
+      g_object_set (G_OBJECT (gst->audiovolume), "volume", volume, NULL);
+
+      ghost_pad =
+        gst_ghost_pad_new ("a_src",
+                           gst_element_get_static_pad 
+                           (gst->audiofilter, "src"));
+
+      gst_pad_set_active (ghost_pad, TRUE);
+      gst_element_add_pad (gst->bin, ghost_pad);
+
+      audiomixer_sink_pad =
+        gst_element_get_request_pad (audiomixer, "sink_%u");
+      _lp_assert (audiomixer_sink_pad != NULL);
+
+      ret = gst_pad_link (ghost_pad, audiomixer_sink_pad);
+      if (GST_PAD_LINK_FAILED (ret))
+        status = FALSE;
+      else
+      {
+        gst_element_set_state (gst->audiovolume, GST_STATE_PLAYING);
+        gst_element_set_state (gst->audioconvert, GST_STATE_PLAYING);
+        gst_element_set_state (gst->audioresample, GST_STATE_PLAYING);
+        gst_element_set_state (gst->audiofilter, GST_STATE_PLAYING);
+      }
+
+      gst_object_unref (audiomixer_sink_pad);
+      gst_object_unref (sink_pad);
+    }
+  }
+
+  return status;
+}
+
 /* Callback called whenever a new pad is created by the uridecoderbin  */
 static void
 __lp_media_gst_pad_added_callback (arg_unused (GstElement * src),
@@ -310,8 +432,9 @@ __lp_media_gst_pad_added_callback (arg_unused (GstElement * src),
   GstCaps *pad_caps = NULL;
   GstStructure *pad_struct = NULL;
   const gchar *pad_type = NULL;
+  lp_bool_t status;
   lp_media_t *media = (lp_media_t *) data;
-
+  
   _lp_assert (media != NULL);
 
   pad_caps = gst_pad_query_caps (pad, NULL);
@@ -319,10 +442,11 @@ __lp_media_gst_pad_added_callback (arg_unused (GstElement * src),
   pad_type = gst_structure_get_name (pad_struct);
 
   if (g_str_has_prefix (pad_type, "video"))
-    __lp_media_gst_set_video_bin (media, pad);
+    status = __lp_media_gst_set_video_bin (media, pad);
   else if (g_str_has_prefix (pad_type, "audio"))
-    __lp_media_gst_set_video_bin (media, pad);
+    status = __lp_media_gst_set_audio_bin (media, pad);
 
+  _lp_assert (status);
 }
 
 /* Requests an asynchronous stop of @media.

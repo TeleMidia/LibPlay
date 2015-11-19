@@ -42,7 +42,7 @@ GSTX_INCLUDE_EPILOGUE
 /* *INDENT-ON* */
 
 static inline void
-gstx_dump_message (const char *prefix, GstMessage *message)
+gstx_dump_message (const char *prefix, GstMessage * message)
 {
   const GstStructure *st;
 
@@ -53,15 +53,15 @@ gstx_dump_message (const char *prefix, GstMessage *message)
 
   st = gst_message_get_structure (message);
   if (st == NULL)
-    {
-      g_print ("(empty)\n\n");
-    }
+  {
+    g_print ("(empty)\n\n");
+  }
   else
-    {
-      gchar *s = gst_structure_to_string (st);
-      g_print ("%s\n\n", s);
-      g_free (s);
-    }
+  {
+    gchar *s = gst_structure_to_string (st);
+    g_print ("%s\n\n", s);
+    g_free (s);
+  }
 }
 
 #endif /* GSTX_MACROS_H */

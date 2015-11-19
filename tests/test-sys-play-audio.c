@@ -79,10 +79,10 @@ main (void)
   char uri[BUFFSIZE];
   size_t len;
 
-  /* This test assumes the executable dir as current working directory */
+  /* This test assumes the executable dir as current working directory  */
   getcwd (&uri[0], BUFFSIZE);
   len = strlen ("file://");
-  strcat (&uri[0], "/media/videotest.ogg");
+  strcat (&uri[0], "/media/audiotest.ogg");
   memmove (&uri[0] + len, &uri[0], strlen (&uri[0]) + 2);
   strncpy (&uri[0], "file://", len);
 
@@ -94,8 +94,6 @@ main (void)
 
   media = lp_media_create_for_parent (parent, uri);
   assert (media != NULL);
-  assert (lp_media_set_property_int (media, "width", 320));
-  assert (lp_media_set_property_int (media, "height", 240));
   assert (lp_media_register (media, handler));
 
   lp_event_init_start (&start);

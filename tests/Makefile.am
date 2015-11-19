@@ -109,8 +109,10 @@ programs+= test-_lp-media-get-root-ancestor
 programs+= test-_lp-media-dispatch
 programs+= test-lp-media-post
 # system checks
+programs+= test-sys-play-audio
+programs+= test-sys-play-audiovideo
+programs+= test-sys-play-video
 programs+= test-sys-timer-loop-1
-programs+= test-sys-timer-loop-2
 check_PROGRAMS= $(programs)
 
 TESTS=\

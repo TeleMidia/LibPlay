@@ -82,7 +82,7 @@ main (void)
   /* This test assumes the executable dir as current working directory */
   getcwd (&uri[0], BUFFSIZE);
   len = strlen ("file://");
-  strcat (&uri[0], "/media/videotest.ogg");
+  strcat (&uri[0], "/media/audiovideotest.ogg");
   memmove (&uri[0] + len, &uri[0], strlen (&uri[0]) + 2);
   strncpy (&uri[0], "file://", len);
 

@@ -61,9 +61,10 @@ typedef struct _lp_media_gst_t
 static lp_media_gst_t *__lp_media_gst_check (lp_media_t *);
 static GstPipeline *__lp_media_gst_get_pipeline (lp_media_t *);
 static gboolean __lp_media_gst_pipeline_bus_async_callback (GstBus *, GstMessage *, gpointer);
-static GstBusSyncReply __lp_media_gst_pipeline_bus_sync_callback (arg_unused (GstBus *), GstMessage *, arg_unused (gpointer));
+static GstBusSyncReply __lp_media_gst_pipeline_bus_sync_callback (GstBus *, GstMessage *, gpointer);
 static void __lp_media_gst_pad_added_callback (GstElement *, GstPad *, gpointer);
 static lp_bool_t __lp_media_gst_set_video_bin (lp_media_t *, GstPad *);
+static lp_bool_t __lp_media_gst_alloc_and_link_mixer (const char *, GstElement **, const char *sink_element, GstElement **);
 /*static void __lp_media_gst_set_audio_bin (lp_media_gst_t *, GstPad *); */
 /* *INDENT-ON* */
 
@@ -125,6 +126,26 @@ __lp_media_gst_install_pipeline (lp_media_t *media)
   return TRUE;
 }
 
+static lp_bool_t
+__lp_media_gst_alloc_and_link_mixer (const char *mixer_element, 
+    GstElement **mixer, const char *sink_element, GstElement **sink)
+{
+  /* TODO: Gets parent's mixer and link with mixer when parent != NULL */
+  if (mixer_element == NULL)
+    return FALSE;
+
+  *mixer = gst_element_factory_make (mixer_element, NULL);
+  _lp_assert (*mixer);
+
+  if (sink_element != NULL)       /* Sink needs to be created  */
+  {
+    *sink = gst_element_factory_make (sink_element, NULL);
+    _lp_assert (*sink != NULL);
+  }
+  return TRUE;
+}
+
+
 /* Returns the audio or video mixer (depending of the @mixer_type) of the 
    @media. If the @media doesn't have the mixer, the function creates it. 
    Returns a pointer (GstElement *) to the mixer*/
@@ -133,10 +154,10 @@ static GstElement *
 __lp_media_gst_get_mixer (lp_media_t *media, const char *mixer_type)
 {
   GstElement *mixer = NULL;
+  GstPipeline *pipeline = NULL;
+  lp_media_t *parent;
   lp_media_t *root;
   lp_media_gst_t *gst;
-
-  GstPipeline *pipeline = NULL;
 
   root = _lp_media_get_root_ancestor (media);
   gst = __lp_media_gst_check (root);
@@ -144,6 +165,7 @@ __lp_media_gst_get_mixer (lp_media_t *media, const char *mixer_type)
   if (pipeline == NULL)
     return NULL;
 
+  parent = lp_media_get_parent (media);
   gst = __lp_media_gst_check (media);
   if (strcmp (mixer_type, "video") == 0)
   {
@@ -151,27 +173,17 @@ __lp_media_gst_get_mixer (lp_media_t *media, const char *mixer_type)
       mixer = gst->videomixer;
     else
     {
-      lp_media_t *parent;
+      _lp_assert (parent == NULL ? gst->videosink == NULL : TRUE);
+      _lp_assert (__lp_media_gst_alloc_and_link_mixer ("videomixer", 
+            &gst->videomixer, parent == NULL ? "xvimagesink" : NULL, 
+            &gst->videosink) == TRUE);
 
-      mixer = gst_element_factory_make ("videomixer", NULL);
-      _lp_assert (mixer);
-      gst->videomixer = mixer;
-
-      parent = lp_media_get_parent (media);
-      if (parent == NULL)       /* Video sink needs to be created  */
-      {
-        gst = __lp_media_gst_check (media);
-        _lp_assert (gst->videosink == NULL);
-
-        gst->videosink = gst_element_factory_make ("xvimagesink", NULL);
-        _lp_assert (gst->videosink != NULL);
-
-        gst_bin_add_many (GST_BIN (pipeline), gst->videomixer,
-                          gst->videosink, NULL);
-        _lp_assert (gst_element_link (gst->videomixer, gst->videosink)
-                    == TRUE);
-      }
-    }
+      gst_bin_add_many (GST_BIN (pipeline), gst->videomixer,
+          gst->videosink, NULL);
+      _lp_assert (gst_element_link (gst->videomixer, gst->videosink)
+          == TRUE);
+      mixer = gst->videomixer;
+     } 
   }
   else if (strcmp (mixer_type, "audio") == 0)
   {
@@ -179,26 +191,16 @@ __lp_media_gst_get_mixer (lp_media_t *media, const char *mixer_type)
       mixer = gst->audiomixer;
     else
     {
-      lp_media_t *parent;
-
-      mixer = gst_element_factory_make ("adder", NULL);
-      _lp_assert (mixer);
-      gst->audiomixer = mixer;
-
-      parent = lp_media_get_parent (media);
-      if (parent == NULL)       /* Audio sink needs to be created  */
-      {
-        gst = __lp_media_gst_check (media);
-        _lp_assert (gst->audiosink == NULL);
-
-        gst->audiosink = gst_element_factory_make ("autoaudiosink", NULL);
-        _lp_assert (gst->audiosink != NULL);
-
-        gst_bin_add_many (GST_BIN (pipeline), gst->audiomixer,
-                          gst->audiosink, NULL);
-        _lp_assert (gst_element_link (gst->audiomixer, gst->audiosink)
-                    == TRUE);
-      }
+      _lp_assert (parent == NULL ? gst->audiosink == NULL : TRUE);
+      _lp_assert (__lp_media_gst_alloc_and_link_mixer ("adder", 
+            &gst->audiomixer, parent == NULL ? "autoaudiosink" : NULL, 
+            &gst->audiosink) == TRUE);
+      
+      gst_bin_add_many (GST_BIN (pipeline), gst->audiomixer,
+          gst->audiosink, NULL);
+      _lp_assert (gst_element_link (gst->audiomixer, gst->audiosink)
+          == TRUE);
+      mixer = gst->audiomixer;
     }
   }
 

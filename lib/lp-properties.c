@@ -52,8 +52,8 @@ static const lp_properties_desc_t known_properties[] = {
   /* KEEP THIS SORTED ALPHABETICALLY */
   {"alpha", G_TYPE_DOUBLE, FALSE, TRUE, {.d=_LP_PROPERTY_DEFAULT_ALPHA}},
   {"height", G_TYPE_INT, TRUE, FALSE, {.i=0}},
-  {"width", G_TYPE_INT, TRUE, FALSE, {.i=0}},
   {"volume", G_TYPE_DOUBLE, FALSE, TRUE, {.d=_LP_PROPERTY_DEFAULT_VOLUME}},
+  {"width", G_TYPE_INT, TRUE, FALSE, {.i=0}},
   {"x", G_TYPE_INT, FALSE, TRUE, {.i=_LP_PROPERTY_DEFAULT_X}},
   {"y", G_TYPE_INT, FALSE, TRUE, {.i=_LP_PROPERTY_DEFAULT_Y}},
   {"z", G_TYPE_INT, FALSE, TRUE, {.i=_LP_PROPERTY_DEFAULT_Z}},

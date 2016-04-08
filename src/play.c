@@ -73,21 +73,34 @@ handler (lp_media_t *media, lp_media_t *target, lp_event_t *event)
 int
 main (int argc, char **argv)
 {
-  lp_media_t *media;
+  lp_media_t *media, *parent;
   lp_event_t start;
+  int value;
 
-  if (argc != 2)
+  if (argc < 4)
   {
-    fprintf (stderr, "usage: %s URI\n", argv[0]);
+    fprintf (stderr, "usage: %s URI WIDTH HEIGHT\n", argv[0]);
     exit (EXIT_FAILURE);
   }
 
   loop = g_main_loop_new (NULL, FALSE);
   assert (loop != NULL);
 
+  parent = lp_media_create (NULL);
+  assert (parent != NULL);
+
   media = lp_media_create (argv[1]);
   assert (media != NULL);
+
+  assert (lp_media_add_child (parent, media));
   assert (lp_media_register (media, handler));
+
+  value = (int) strtol (argv[2], NULL, 10);
+  lp_media_set_property_int (parent, "width", value);
+  
+  value = (int) strtol (argv[3], NULL, 10);
+  lp_media_set_property_int (parent, "height", value);
+
   lp_event_init_start (&start);
   assert (lp_media_post (media, &start));
 

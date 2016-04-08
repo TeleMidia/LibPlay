@@ -20,6 +20,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #define PLAY_H
 
 #include <playconf.h>
+#include <inttypes.h>
 
 #ifdef  __cplusplus
 # define LP_BEGIN_DECLS extern "C" { /* } */
@@ -111,6 +112,9 @@ lp_event_init_user (lp_event_t *);
 LP_API lp_bool_t
 lp_event_equals (const lp_event_t *, const lp_event_t *);
 
+/* synchronous clock  */
+typedef struct _lp_sync_clock_t lp_sync_clock_t;
+
 /* media */
 
 typedef struct _lp_media_t lp_media_t;
@@ -179,6 +183,29 @@ lp_media_get_property_pointer (lp_media_t *, const char *, void **);
 
 LP_API lp_bool_t
 lp_media_set_property_pointer (lp_media_t *, const char *, const void *);
+
+LP_API lp_bool_t
+lp_media_set_sync_clock (lp_media_t *, lp_sync_clock_t *);
+
+/* synchronous clock  */
+
+LP_API lp_sync_clock_t *
+lp_sync_clock_create ();
+
+LP_API void
+lp_sync_clock_destroy (lp_sync_clock_t *);
+
+LP_API uint64_t
+lp_sync_clock_get_time (lp_sync_clock_t *);
+
+LP_API lp_bool_t
+lp_sync_clock_set_tick (lp_sync_clock_t *, uint64_t);
+
+LP_API void
+lp_media_sync_clock_advance_time (lp_sync_clock_t *, uint64_t);
+
+LP_API void
+lp_media_sync_clock_tick_for (lp_sync_clock_t *, uint64_t);
 
 LP_END_DECLS
 

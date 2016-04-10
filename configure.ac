@@ -75,6 +75,15 @@ AU_ARG_ENABLE_DEBUG
 AU_ARG_ENABLE_VALGRIND
 AU_ARG_ENABLE_WARNINGS
 
+AC_ARG_WITH([syncclock],
+            [AS_HELP_STRING([--with-syncclock], 
+                            [add support for synchronous clock])],
+            [with_syncclock=yes
+             AC_DEFINE(HAVE_SYNCCLOCK, [1], 
+                       [Define to 1 to enable synchronous clock])],
+            [with_syncclock=no])
+
+#
 # Library functions.
 AC_CHECK_LIBM
 AU_CHECK_MACROS_H
@@ -123,6 +132,20 @@ AS_IF([test "$with_lua" = yes],
 AM_CONDITIONAL([WITH_LUA],
  [test "$with_lua" = yes])
 
+# Check for GstSynchronousClock
+AS_IF([test "$with_syncclock" = yes],
+      [PKG_CHECK_MODULES(GSTSYNCHRONOUSCLOCK, 
+       [gstsynchronousclock], 
+       [AC_SUBST(GSTSYNCHRONOUSCLOCK_CFLAGS)
+        AC_SUBST(GSTSYNCHRONOUSCLOCK_LIBS)], 
+        [AC_MSG_ERROR([
+           You need to install the GstSynchronousClock package on 
+           your system.])
+         ])
+       ])
+AM_CONDITIONAL([HAVE_SYNCCLOCK],
+ [test "$with_syncclock" = yes])
+
 AC_CONFIG_FILES([
 Makefile
 lib/Makefile
@@ -149,5 +172,6 @@ AC_MSG_NOTICE([summary of main build options:
   Library types:      Shared=${enable_shared}, Static=${enable_static}
   Valgrind:           ${VALGRIND}
 
+  Synchronous clock:  ${with_syncclock}
   Build Lua bindings: ${with_lua}
 ])

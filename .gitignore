@@ -122,3 +122,11 @@ Makefile.in
 autom4te.cache
 libtool
 vgcore.*
+tests/test-lp-media-get-time 
+tests/test-lp-media-set-sync-clock
+tests/test-lp-sync-clock-advance-time
+tests/test-lp-sync-clock-create
+tests/test-lp-sync-clock-destroy
+tests/test-lp-sync-clock-get-time
+tests/test-lp-sync-clock-set-tick
+tests/test-lp-sync-clock-tick-for

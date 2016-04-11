@@ -77,6 +77,7 @@ typedef struct _lp_media_backend_t
   lp_bool_t (*post) (lp_media_t *, lp_event_t *);
   lp_bool_t (*get_property) (lp_media_t *, const char *, GValue *);
   lp_bool_t (*set_property) (lp_media_t *, const char *, const GValue *);
+  uint64_t (*get_time) (const lp_media_t *);
 } lp_media_backend_t;
 
 void
@@ -98,6 +99,15 @@ _lp_media_dispatch (lp_media_t *, lp_event_t *);
 
 void
 _lp_media_gst_init (lp_media_backend_t *);
+
+#if HAVE_SYNCCLOCK
+void
+_lp_media_gst_set_sync_clock (lp_media_backend_t *, lp_sync_clock_t *);
+
+/* lp-sync-clock */
+void *
+_lp_sync_clock_get_internal_clock (lp_sync_clock_t *);
+#endif
 
 /* lp-util */
 

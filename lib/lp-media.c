@@ -780,3 +780,14 @@ lp_media_set_property_pointer (lp_media_t *media, const char *name,
 {
   return __lp_media_set_property_helper (media, name, G_TYPE_POINTER, &p);
 }
+
+uint64_t
+lp_media_get_time (const lp_media_t *media)
+{
+  if (unlikely (!__lp_media_is_valid (media)))
+    return FALSE;
+
+  _lp_assert (media->backend->get_time != NULL);
+  return media->backend->get_time (media);
+}
+

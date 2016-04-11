@@ -65,6 +65,9 @@ lp_sync_clock_create ()
 void
 lp_sync_clock_destroy (lp_sync_clock_t *clock)
 {
+  if (clock == NULL)
+    return;
+
   if (unlikely (g_atomic_int_get (&clock->ref_count) < 0))
     return;
 
@@ -87,6 +90,9 @@ uint64_t
 lp_sync_clock_get_time (lp_sync_clock_t *clock)
 {
   uint64_t time;
+  if (clock == NULL)
+    return 0;
+
   time = gst_clock_get_time (clock->internal_clock); 
 
   return time;
@@ -106,10 +112,33 @@ lp_sync_clock_get_time (lp_sync_clock_t *clock)
 lp_bool_t
 lp_sync_clock_set_tick (lp_sync_clock_t *clock, uint64_t tick)
 {
-  g_return_val_if_fail (GST_IS_SYNCHRONOUSCLOCK(clock->internal_clock), FALSE);
+  if (clock == NULL || tick < 1)
+    return FALSE;
   g_object_set (G_OBJECT (clock->internal_clock), "tick", tick, NULL);
 
   return TRUE;
+}
+
+/*-
+ * lp_sync_clock_get_tick:
+ * @clock: a #lp_sync_clock_t
+ *
+ * Gets the internal tick of @clock. .
+ *
+ * Return value: The current tick of @clock.
+ */
+
+uint64_t
+lp_sync_clock_get_tick (lp_sync_clock_t *clock)
+{
+  uint64_t tick;
+
+  g_return_val_if_fail (clock != NULL, 0);
+  g_return_val_if_fail (GST_IS_SYNCHRONOUSCLOCK(clock->internal_clock), 0);
+
+  g_object_get (G_OBJECT (clock->internal_clock), "tick", &tick, NULL);
+
+  return tick;
 }
 
 /*-
@@ -118,12 +147,17 @@ lp_sync_clock_set_tick (lp_sync_clock_t *clock, uint64_t tick)
  * @time: amount of time
  *
  * Deterministically advances the current time of @clock.
+ *
+ * Return value: #TRUE if the operation was successfully performed 
+ * or #FALSE otherwise.
  */
-void
+lp_bool_t
 lp_sync_clock_advance_time (lp_sync_clock_t *clock, uint64_t time)
 {
-  _lp_assert (clock != NULL);
-  gst_synchronous_clock_advance_time (clock->internal_clock, time);
+  if (clock == NULL)
+    return FALSE;
+
+  return gst_synchronous_clock_advance_time (clock->internal_clock, time);
 }
 
 /*-
@@ -137,10 +171,79 @@ lp_sync_clock_advance_time (lp_sync_clock_t *clock, uint64_t time)
  *
  */
 void
-lp_media_sync_clock_tick_for (lp_sync_clock_t *clock, uint64_t time)
+lp_sync_clock_tick_for (lp_sync_clock_t *clock, uint64_t time)
 {
   _lp_assert (clock != NULL);
   gst_synchronous_clock_tick_for (clock->internal_clock, time, NULL);
+}
+
+/*-
+ * lp_sync_clock_refence:
+ * @clock: a #lp_sync_clock_t
+ *
+ * Increases the reference count of @clock by 1. This prevents the
+ * #lp_sync_clock_t from being destroyed until a matching call to
+ * lp_sync_clock_destroy () is made.
+ *
+ * Return value: the referenced #lp_sync_clockPt
+ *
+ */
+lp_sync_clock_t *
+lp_sync_clock_reference (lp_sync_clock_t *clock)
+{
+  _lp_assert (clock != NULL);
+  g_atomic_int_inc (&clock->ref_count);
+  return clock;
+}
+
+/*-
+ * lp_sync_clock_get_refence_count:
+ * @clock: a #lp_sync_clock_t
+ *
+ * Returns the current reference count of @clock
+ *
+ * Return value: the current reference count of @clock
+ *
+ */
+unsigned int
+lp_sync_clock_get_reference_count (const lp_sync_clock_t *clock)
+{
+  unsigned int ref_count;
+  _lp_assert (clock != NULL);
+  
+  ref_count = g_atomic_int_get (&clock->ref_count);
+  _lp_assert (ref_count > 0);
+
+  return ref_count;
+}
+
+/*-
+ * lp_media_set_sync_clock:
+ * @media: a #lp_media_t
+ * @clock: a #lp_sync_clock_t
+ *
+ * Sets the clock of @media to @clock
+ *
+ * Return value: #TRUE if the @clock was properly set or #FALSE otherwise.
+ *
+ */
+lp_bool_t
+lp_media_set_sync_clock (lp_media_t *media, lp_sync_clock_t *clock)
+{
+  if (media == NULL || clock == NULL)
+    return FALSE;
+
+  _lp_media_gst_set_sync_clock (_lp_media_get_backend(media), clock);
+  return TRUE;
+}
+
+void *
+_lp_sync_clock_get_internal_clock (lp_sync_clock_t *clock)
+{
+  if (clock == NULL)
+    return NULL;
+  
+  return clock->internal_clock;
 }
 
 static void

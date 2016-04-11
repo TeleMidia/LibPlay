@@ -79,6 +79,8 @@ static lp_bool_t __lp_media_gst_alloc_and_link_mixer (const char *,
     GstElement **, const char *sink_element, GstElement **, GstElement*);
 static GstPadProbeReturn __lp_media_gst_eos_event_callback (GstPad *, 
     GstPadProbeInfo *, gpointer);
+static void __lp_media_gst_lock (lp_media_gst_t *);
+static void __lp_media_gst_unlock (lp_media_gst_t *);
 /* *INDENT-ON* */
 
 /* Checks and returns the back-end data associated with @media.  */
@@ -143,11 +145,13 @@ __lp_media_gst_install_pipeline (lp_media_t *media)
     g_object_set_data (G_OBJECT (pipeline), "lp_media", root);
     gst->pipeline = pipeline;
 
-    gst->clock = gst_system_clock_obtain ();
-    _lp_assert (gst->clock != NULL);
+    if (gst->clock == NULL)
+    {
+      gst->clock = gst_system_clock_obtain ();
+      _lp_assert (gst->clock != NULL);
+    }
 
-
-    gst_pipeline_use_clock (GST_PIPELINE(gst->pipeline), gst->clock);
+    gst_pipeline_use_clock (gst->pipeline, gst->clock);
 
     _lp_assert (__lp_media_gst_alloc_and_link_mixer ("adder",
                                                     &gst->audiomixer,
@@ -183,9 +187,9 @@ __lp_media_gst_install_pipeline (lp_media_t *media)
 
     _lp_assert (gst_pad_link (src, sink) == GST_PAD_LINK_OK);
 
+    gst->start_offset = gst_clock_get_time (gst->clock);
     gst_element_set_state (GST_ELEMENT (pipeline), GST_STATE_PLAYING);
-    gst_element_set_base_time (GST_ELEMENT (pipeline), 
-        gst_clock_get_time (gst->clock));
+    gst_element_set_base_time (GST_ELEMENT (pipeline), gst->start_offset);
 
     gst_object_unref (src);
     gst_object_unref (sink);
@@ -644,7 +648,7 @@ __lp_media_gst_start_async (lp_media_t *media)
     _lp_assert (root_gst);
 
     gst->start_offset = gst_clock_get_time (root_gst->clock) - 
-     gst_element_get_base_time (GST_ELEMENT (pipeline));
+      gst_element_get_base_time (GST_ELEMENT (pipeline));
 
     if (unlikely (gst->start_offset == GST_CLOCK_TIME_NONE))
       gst->start_offset = 0;
@@ -893,6 +897,20 @@ __lp_media_gst_free_func (void *data)
   g_free (gst);
 }
 
+/* Gets the current time of @media*/
+static uint64_t
+__lp_media_gst_get_time_func (const lp_media_t *media)
+{
+  lp_media_gst_t *gst;
+  _lp_assert (media != NULL);
+
+  gst = __lp_media_gst_check (deconst(lp_media_t *, media));
+  if (gst->pipeline == NULL || gst->clock == NULL)
+    return 0;
+
+  return gst_clock_get_time (gst->clock) - gst->start_offset;
+}
+
 /* Posts @event to @media.  */
 
 static lp_bool_t
@@ -940,6 +958,7 @@ _lp_media_gst_init (lp_media_backend_t *backend)
   _lp_assert (backend->post == NULL);
   _lp_assert (backend->get_property == NULL);
   _lp_assert (backend->set_property == NULL);
+  _lp_assert (backend->get_time == NULL);
 
   gst = (lp_media_gst_t *) g_malloc (sizeof (*gst));
   _lp_assert (gst != NULL);
@@ -950,4 +969,45 @@ _lp_media_gst_init (lp_media_backend_t *backend)
   backend->data = gst;
   backend->free = __lp_media_gst_free_func;
   backend->post = __lp_media_gst_post_func;
+  backend->get_time = __lp_media_gst_get_time_func;
 }
+
+static void 
+__lp_media_gst_lock (lp_media_gst_t *gst)
+{
+  _lp_assert (gst != NULL);
+  g_mutex_lock (&gst->mutex);
+}
+
+static void 
+__lp_media_gst_unlock (lp_media_gst_t *gst)
+{
+  _lp_assert (gst != NULL);
+  g_mutex_unlock (&gst->mutex);
+}
+
+#if HAVE_SYNCCLOCK
+void
+_lp_media_gst_set_sync_clock (lp_media_backend_t *backend, 
+    lp_sync_clock_t *clock)
+{
+  GstClock *syncclock;
+  GstPipeline *pipeline;
+  lp_media_t *root;
+  lp_media_gst_t *gst;
+
+  syncclock = (GstClock *) _lp_sync_clock_get_internal_clock (clock);
+  
+  root = _lp_media_get_root_ancestor (backend->media);
+  _lp_media_lock (root);
+
+  pipeline = __lp_media_gst_get_pipeline (root);
+  if (pipeline != NULL)
+    gst_pipeline_use_clock (GST_PIPELINE(gst->pipeline), syncclock);
+
+  gst = __lp_media_gst_check (root);
+  gst->clock = syncclock;
+
+  _lp_media_unlock (root);
+}
+#endif

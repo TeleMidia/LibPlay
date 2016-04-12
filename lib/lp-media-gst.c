@@ -79,6 +79,8 @@ static lp_bool_t __lp_media_gst_alloc_and_link_mixer (const char *,
     GstElement **, const char *sink_element, GstElement **, GstElement*);
 static GstPadProbeReturn __lp_media_gst_eos_event_callback (GstPad *, 
     GstPadProbeInfo *, gpointer);
+static GstPadProbeReturn __lp_media_gst_stop_pad_callback (GstPad *,
+    GstPadProbeInfo *, gpointer);
 static void __lp_media_gst_lock (lp_media_gst_t *);
 static void __lp_media_gst_unlock (lp_media_gst_t *);
 /* *INDENT-ON* */
@@ -552,12 +554,68 @@ __lp_media_gst_set_audio_bin (lp_media_t *media, GstPad *source_pad)
 }
 
 static GstPadProbeReturn
+__lp_media_gst_stop_pad_callback (GstPad *pad, GstPadProbeInfo * info,
+                                   gpointer data)
+{
+  lp_media_t *media = NULL;
+  GstPad *peer;
+
+  gst_pad_remove_probe (pad, GST_PAD_PROBE_INFO_ID (info));
+
+  media = (lp_media_t *) data;
+  _lp_assert (media);
+
+  peer = gst_pad_get_peer (pad);
+  g_assert (peer);
+
+  gst_pad_send_event (peer, gst_event_new_eos ());
+  gst_object_unref (peer);
+
+  return GST_PAD_PROBE_OK;
+}
+
+static GstPadProbeReturn
 __lp_media_gst_eos_event_callback (GstPad *pad, GstPadProbeInfo * info,
                                    gpointer data)
 {
-  (void) pad;
-  (void) info;
-  (void) data;
+  if (GST_EVENT_TYPE (GST_PAD_PROBE_INFO_DATA (info)) == GST_EVENT_EOS)
+  {
+    GstElement *bin = NULL;
+    GstMessage *message = NULL;
+    GstStructure *msg_struct = NULL;
+    GstPipeline *pipeline = NULL;
+    GstBus *bus = NULL;
+    lp_media_t *media = NULL;
+    lp_media_gst_t *gst = NULL;
+
+    media = (lp_media_t *) data;
+    _lp_assert (media != NULL);
+
+    pipeline = __lp_media_gst_get_pipeline (media);
+    _lp_assert (pipeline != NULL);
+
+    gst = __lp_media_gst_check (media);
+    _lp_assert (gst != NULL);
+
+    if (g_atomic_int_dec_and_test (&gst->pads) == 0)
+    {
+      msg_struct =
+        gst_structure_new ("media-stop", 
+            "lp_media", G_TYPE_POINTER, media,
+            /*
+             * FILL ME IF NECESSARY 
+             */
+            NULL);
+
+      message = gst_message_new_application (GST_OBJECT (gst->bin), 
+          msg_struct);
+
+      bus = gst_pipeline_get_bus(pipeline);
+      gst_bus_post (bus, message);
+
+      gst_object_unref (bus);
+    }
+  }
   return GST_PAD_PROBE_OK;
 }
 
@@ -570,6 +628,7 @@ __lp_media_gst_stop_async (lp_media_t *media)
 {
   GstStateChangeReturn status;
   GstPipeline *pipeline;
+  lp_media_t *parent = NULL;
 
   pipeline = __lp_media_gst_get_pipeline (media);
   if (pipeline == NULL)
@@ -579,9 +638,49 @@ __lp_media_gst_stop_async (lp_media_t *media)
       && GST_STATE (pipeline) != GST_STATE_PAUSED)
     return FALSE;
 
-  status = gst_element_set_state (GST_ELEMENT (pipeline), GST_STATE_READY);
-  if (unlikely (status == GST_STATE_CHANGE_FAILURE))
-    return FALSE;
+  
+  parent = lp_media_get_parent (media);
+  if (parent == NULL)
+  {
+    status = gst_element_set_state (GST_ELEMENT (pipeline), GST_STATE_READY);
+    if (unlikely (status == GST_STATE_CHANGE_FAILURE))
+      return FALSE;
+  }
+  else
+  {
+    GstIterator *it = NULL;
+    GValue data = G_VALUE_INIT;
+    GstPad *pad = NULL;
+    gboolean done = FALSE;
+    lp_media_gst_t *gst = NULL;
+
+    gst = __lp_media_gst_check (media);
+
+    it = gst_element_iterate_src_pads(gst->decoder);
+    while (!done)
+    {
+      switch (gst_iterator_next (it, &data))
+      {
+        case GST_ITERATOR_OK:
+          pad = GST_PAD(g_value_get_object (&data));
+          gst_pad_add_probe (pad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
+              __lp_media_gst_stop_pad_callback, media, NULL);
+
+          break;
+        case GST_ITERATOR_RESYNC:
+          gst_iterator_resync (it);
+          break;
+        case GST_ITERATOR_ERROR:
+        case GST_ITERATOR_DONE:
+          done = TRUE;
+          break;
+      }
+    }
+
+    gst_iterator_free(it);
+
+	return TRUE;
+  }
 
   return TRUE;
 }
@@ -684,13 +783,11 @@ __lp_media_gst_pad_added_callback (arg_unused(GstElement *src),
 
   root = _lp_media_get_root_ancestor (media); 
 
-
   pad_caps = gst_pad_query_caps (pad, NULL);
   pad_struct = gst_caps_get_structure (pad_caps, 0);
   pad_type = gst_structure_get_name (pad_struct);
 
   _lp_media_lock (root);
-  
   
   if (g_str_has_prefix (pad_type, "video"))
     status = __lp_media_gst_set_video_bin (media, pad);
@@ -703,6 +800,8 @@ __lp_media_gst_pad_added_callback (arg_unused(GstElement *src),
 
   if (gst->start_offset > 0)
     gst_pad_set_offset (pad, (gint64) gst->start_offset);
+
+  g_atomic_int_inc (&gst->pads);
 
   peer = gst_pad_get_peer (pad);
 
@@ -746,8 +845,6 @@ __lp_media_gst_pipeline_bus_async_callback (arg_unused (GstBus *bus),
   GstObject *obj;
   lp_media_t *media;
   lp_media_gst_t *gst;
-
-  (void) gst;
 
   /* gstx_dump_message ("async", message); */
 
@@ -824,6 +921,53 @@ __lp_media_gst_pipeline_bus_async_callback (arg_unused (GstBus *bus),
         gst_clock_id_unref (gst->clock_id);
       }
       gst->clock_id = id;
+      break;
+    }
+    case GST_MESSAGE_APPLICATION:
+    {
+      GstIterator *bin_it = NULL;
+      GValue data = G_VALUE_INIT;
+      gboolean done = FALSE;
+
+      gst_element_set_state (gst->bin, GST_STATE_NULL);
+      gst_bin_remove (GST_BIN (__lp_media_gst_get_pipeline(media)), 
+          gst->bin);
+
+      bin_it = gst_bin_iterate_elements (GST_BIN (gst->bin));
+      while (!done)
+      {
+        GstElement *element;
+        switch (gst_iterator_next (bin_it, &data))
+        {
+          case GST_ITERATOR_OK:
+          {
+            element = GST_ELEMENT (g_value_get_object (&data));
+            _lp_assert (element != NULL);
+
+            /* g_debug ("Removing %s from pipeline.\n", media->name); */
+
+            /* gst_object_ref (element); */
+            gst_bin_remove (GST_BIN (gst->bin), element);
+            gst_element_set_state (element, GST_STATE_NULL);
+            break;
+          }
+          case GST_ITERATOR_RESYNC:
+          {
+            gst_iterator_resync (bin_it);
+            break;
+          }
+          case GST_ITERATOR_ERROR:
+          case GST_ITERATOR_DONE:
+          {
+            done = TRUE;
+            break;
+          }
+          default:
+            break;
+        }
+      }
+      gst_iterator_free (bin_it);
+
       break;
     }
     default:

@@ -155,7 +155,7 @@ __lp_media_gst_install_pipeline (lp_media_t *media)
 
     gst_pipeline_use_clock (gst->pipeline, gst->clock);
 
-    _lp_assert (__lp_media_gst_alloc_and_link_mixer ("adder",
+    _lp_assert (__lp_media_gst_alloc_and_link_mixer ("audiomixer",
                                                     &gst->audiomixer,
                                                     "autoaudiosink",
                                                     &gst->audiosink,
@@ -336,30 +336,7 @@ __lp_media_gst_get_mixer (lp_media_t *media, const char *mixer_type)
   }
   else if (strcmp (mixer_type, "audio") == 0)
   {
-    if (gst->audiomixer != NULL)
-      mixer = gst->audiomixer;
-    else
-    {
-      if (parent == NULL)
-      {
-        lp_bool_t status;
-        _lp_assert (gst->audiosink == NULL);
-
-        status = __lp_media_gst_alloc_and_link_mixer ("adder",
-                                                      &gst->audiomixer,
-                                                      "autoaudiosink",
-                                                      &gst->audiosink,
-                                                      GST_ELEMENT
-                                                      (pipeline));
-
-        _lp_assert (status == TRUE);
-      }
-      else
-      {
-        /* TODO */
-      }
-      mixer = gst->audiomixer;
-    }
+    mixer = gst->audiomixer;
   }
 
   return mixer;

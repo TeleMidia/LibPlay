@@ -606,6 +606,7 @@ __lp_media_gst_stop_async (lp_media_t *media)
   GstStateChangeReturn status;
   GstPipeline *pipeline;
   lp_media_t *parent = NULL;
+  lp_bool_t ret = TRUE;
 
   pipeline = __lp_media_gst_get_pipeline (media);
   if (pipeline == NULL)
@@ -613,53 +614,56 @@ __lp_media_gst_stop_async (lp_media_t *media)
 
   if (GST_STATE (pipeline) != GST_STATE_PLAYING
       && GST_STATE (pipeline) != GST_STATE_PAUSED)
-    return FALSE;
-
-  
-  parent = lp_media_get_parent (media);
-  if (parent == NULL)
-  {
-    status = gst_element_set_state (GST_ELEMENT (pipeline), GST_STATE_READY);
-    if (unlikely (status == GST_STATE_CHANGE_FAILURE))
-      return FALSE;
-  }
+    ret = FALSE;
   else
   {
-    GstIterator *it = NULL;
-    GValue data = G_VALUE_INIT;
-    GstPad *pad = NULL;
-    gboolean done = FALSE;
-    lp_media_gst_t *gst = NULL;
-
-    gst = __lp_media_gst_check (media);
-
-    it = gst_element_iterate_src_pads(gst->decoder);
-    while (!done)
+    _lp_media_lock (media);
+    parent = lp_media_get_parent (media);
+    if (parent == NULL)
     {
-      switch (gst_iterator_next (it, &data))
-      {
-        case GST_ITERATOR_OK:
-          pad = GST_PAD(g_value_get_object (&data));
-          gst_pad_add_probe (pad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
-              __lp_media_gst_stop_pad_callback, media, NULL);
-
-          break;
-        case GST_ITERATOR_RESYNC:
-          gst_iterator_resync (it);
-          break;
-        case GST_ITERATOR_ERROR:
-        case GST_ITERATOR_DONE:
-          done = TRUE;
-          break;
-      }
+      status = gst_element_set_state (GST_ELEMENT (pipeline), GST_STATE_READY);
+      if (unlikely (status == GST_STATE_CHANGE_FAILURE))
+        ret = FALSE;
     }
+    else
+    {
+      GstIterator *it = NULL;
+      GValue data = G_VALUE_INIT;
+      GstPad *pad = NULL;
+      gboolean done = FALSE;
+      lp_media_gst_t *gst = NULL;
 
-    gst_iterator_free(it);
+      lp_media_reference (media);
 
-	return TRUE;
+      gst = __lp_media_gst_check (media);
+      _lp_assert (gst != NULL);
+
+      it = gst_element_iterate_src_pads(gst->decoder);
+      while (!done)
+      {
+        switch (gst_iterator_next (it, &data))
+        {
+          case GST_ITERATOR_OK:
+            pad = GST_PAD(g_value_get_object (&data));
+            gst_pad_add_probe (pad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
+                __lp_media_gst_stop_pad_callback, media, NULL);
+
+            break;
+          case GST_ITERATOR_RESYNC:
+            gst_iterator_resync (it);
+            break;
+          case GST_ITERATOR_ERROR:
+          case GST_ITERATOR_DONE:
+            done = TRUE;
+            break;
+        }
+      }
+
+      gst_iterator_free(it);
+    }
+    _lp_media_unlock (media);
   }
-
-  return TRUE;
+  return ret;
 }
 
 /* Requests an asynchronous start of @media.
@@ -801,8 +805,8 @@ __lp_media_gst_pipeline_clock_callback (arg_unused (GstClock *clock),
 
   _lp_assert (data != NULL);
   time = time - gst_element_get_base_time (GST_ELEMENT (data));
-  g_print ("tick (thread %p): %" GST_TIME_FORMAT "\n",
-           (void *) g_thread_self (), GST_TIME_ARGS (time));
+  /* g_print ("tick (thread %p): %" GST_TIME_FORMAT "\n", */
+  /*          (void *) g_thread_self (), GST_TIME_ARGS (time)); */
 
   media = (lp_media_t *) g_object_get_data (G_OBJECT (data), "lp_media");
   _lp_assert (media != NULL);
@@ -866,6 +870,11 @@ __lp_media_gst_pipeline_bus_async_callback (arg_unused (GstBus *bus),
       }
 
       _lp_media_dispatch (media, &event);
+
+      if (event.type == LP_EVENT_STOP)
+      {
+        lp_media_destroy (media);
+      }
       break;
     }
     case GST_MESSAGE_NEW_CLOCK:
@@ -902,49 +911,53 @@ __lp_media_gst_pipeline_bus_async_callback (arg_unused (GstBus *bus),
     }
     case GST_MESSAGE_APPLICATION:
     {
-      GstIterator *bin_it = NULL;
-      GValue data = G_VALUE_INIT;
-      gboolean done = FALSE;
-
-      gst_element_set_state (gst->bin, GST_STATE_NULL);
-      gst_bin_remove (GST_BIN (__lp_media_gst_get_pipeline(media)), 
-          gst->bin);
-
-      bin_it = gst_bin_iterate_elements (GST_BIN (gst->bin));
-      while (!done)
+      if (strcmp (gst_structure_get_name (gst_message_get_structure (message)),
+            "media-stop") == 0)
       {
-        GstElement *element;
-        switch (gst_iterator_next (bin_it, &data))
+        GstIterator *bin_it = NULL;
+        GValue data = G_VALUE_INIT;
+        gboolean done = FALSE;
+        g_print ("application\n");
+
+        lp_media_reference (media);
+        gst_element_set_state (gst->bin, GST_STATE_NULL);
+        gst_bin_remove (GST_BIN (__lp_media_gst_get_pipeline(media)), 
+            gst->bin);
+
+        bin_it = gst_bin_iterate_elements (GST_BIN (gst->bin));
+        while (!done)
         {
-          case GST_ITERATOR_OK:
+          GstElement *element;
+          switch (gst_iterator_next (bin_it, &data))
           {
-            element = GST_ELEMENT (g_value_get_object (&data));
-            _lp_assert (element != NULL);
+            case GST_ITERATOR_OK:
+              {
+                element = GST_ELEMENT (g_value_get_object (&data));
+                _lp_assert (element != NULL);
 
-            /* g_debug ("Removing %s from pipeline.\n", media->name); */
-
-            /* gst_object_ref (element); */
-            gst_bin_remove (GST_BIN (gst->bin), element);
-            gst_element_set_state (element, GST_STATE_NULL);
-            break;
+                /* gst_object_ref (element); */
+                gst_bin_remove (GST_BIN (gst->bin), element);
+                gst_element_set_state (element, GST_STATE_NULL);
+                break;
+              }
+            case GST_ITERATOR_RESYNC:
+              {
+                gst_iterator_resync (bin_it);
+                break;
+              }
+            case GST_ITERATOR_ERROR:
+            case GST_ITERATOR_DONE:
+              {
+                done = TRUE;
+                break;
+              }
+            default:
+              break;
           }
-          case GST_ITERATOR_RESYNC:
-          {
-            gst_iterator_resync (bin_it);
-            break;
-          }
-          case GST_ITERATOR_ERROR:
-          case GST_ITERATOR_DONE:
-          {
-            done = TRUE;
-            break;
-          }
-          default:
-            break;
         }
+        gst_iterator_free (bin_it);
+        lp_media_destroy (media);
       }
-      gst_iterator_free (bin_it);
-
       break;
     }
     default:

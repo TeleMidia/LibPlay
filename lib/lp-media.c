@@ -407,6 +407,9 @@ lp_media_destroy (lp_media_t *media)
   if (!g_atomic_int_dec_and_test (&media->ref_count))
     return;
 
+  media->status = LP_STATUS_NULL_POINTER;
+  lp_media_remove_child (lp_media_get_parent (media), media);
+
   _lp_assert (g_atomic_int_get (&(media)->ref_count) == 0);
   __lp_media_free (media);
 }
@@ -558,6 +561,9 @@ lp_media_remove_child (lp_media_t *parent, lp_media_t *child)
 
   __lp_media_set_parent (child, NULL);
   parent->children = g_list_remove_link (parent->children, link);
+  if (parent->children == link)
+    parent->children = NULL;
+
   g_list_free (link);
   return TRUE;
 }

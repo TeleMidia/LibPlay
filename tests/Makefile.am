@@ -49,7 +49,7 @@ SH_LOG_COMPILER= $(SHELL)
 AM_TESTS_ENVIRONMENT=\
   export G_DEBUG="all";\
   export G_SLICE="always-malloc";\
-  export LD_LIBRARY_PATH="$(top_builddir)/lib/.libs";\
+  export LD_LIBRARY_PATH="$(top_builddir)/lib/.libs;$(LD_LIBRARY_PATH)";\
   export LD_PRELOAD="libplay$(SOEXT)";\
   export MALLOC_CHECK_=1;\
   $(NULL)

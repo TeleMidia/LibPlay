@@ -109,6 +109,8 @@ programs+= test-_lp-media-get-root-ancestor
 programs+= test-_lp-media-dispatch
 programs+= test-lp-media-post
 programs+= test-lp-media-get-time
+# lp-scene
+programs+= test-lp-scene-new
 if HAVE_SYNCCLOCK
 programs+= test-lp-sync-clock-create
 programs+= test-lp-sync-clock-destroy

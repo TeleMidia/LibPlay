@@ -47,6 +47,7 @@ libplay_la_SOURCES=\
   lp-media-gst.c\
   lp-media.c\
   lp-scene.c\
+  lp-scene-gst.c\
   lp-properties.c\
   lp-status.c\
   lp-util.c\

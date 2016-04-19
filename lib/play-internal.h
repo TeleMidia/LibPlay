@@ -95,6 +95,30 @@ _lp_media_get_root_ancestor (lp_media_t *);
 unsigned int
 _lp_media_dispatch (lp_media_t *, lp_event_t *);
 
+/* lp-scene */
+
+typedef struct _lp_scene_backend_t
+{
+  lp_scene_t *scene;
+  void *data;
+  void (*free) (void *);
+  void (*start_async) (lp_scene_t *);
+  lp_bool_t (*get_property) (lp_scene_t *, const char *, GValue *);
+  lp_bool_t (*set_property) (lp_scene_t *, const char *, const GValue *);
+  uint64_t (*get_time) (const lp_scene_t *);
+} lp_scene_backend_t;
+
+/* lp-scene-gst */
+
+void
+_lp_scene_gst_init (lp_scene_backend_t *);
+
+unsigned int
+_lp_scene_dispatch (lp_scene_t *, lp_event_t *);
+
+lp_scene_backend_t *
+_lp_scene_get_backend (lp_scene_t *);
+
 /* lp-media-gst */
 
 void
@@ -126,5 +150,6 @@ _lp_util_g_value_dup (const GValue *);
 
 GValue *
 _lp_util_g_value_init_and_set (GValue *, GType, const void *);
+
 
 #endif /* PLAY_INTERNAL */

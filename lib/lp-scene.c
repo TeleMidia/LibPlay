@@ -51,8 +51,10 @@ struct _lp_scene_t
   GList *children;                    /* children list */
   lp_scene_event_func_t handler;      /* event-handler */
   
-  guint width;                        /* scene width */
-  guint height;                       /* scene height */
+  int width;                          /* scene width */
+  int height;                         /* scene height */
+
+  lp_scene_backend_t *backend;        /* scene backend */
 };
 
 
@@ -69,13 +71,13 @@ __lp_scene_class_init (lp_scene_tClass *klass)
   object_class->constructed = __lp_scene_constructed;
 
   g_object_class_install_property (object_class, PROP_WIDTH,
-      g_param_spec_uint ("width", "window width", "Defines the width of the "
-        "scene window", 0, G_MAXUINT, DEFAULT_WIDTH, G_PARAM_CONSTRUCT_ONLY | 
+      g_param_spec_int ("width", "window width", "Defines the width of the "
+        "scene window", 0, G_MAXINT, DEFAULT_WIDTH, G_PARAM_CONSTRUCT_ONLY | 
         G_PARAM_READWRITE));
   
   g_object_class_install_property (object_class, PROP_HEIGHT,
-      g_param_spec_uint ("height", "window height", "Defines the height of the "
-        "scene window", 0, G_MAXUINT, DEFAULT_HEIGHT, G_PARAM_CONSTRUCT_ONLY | 
+      g_param_spec_int ("height", "window height", "Defines the height of the "
+        "scene window", 0, G_MAXINT, DEFAULT_HEIGHT, G_PARAM_CONSTRUCT_ONLY | 
         G_PARAM_READWRITE));
 }
 
@@ -91,6 +93,15 @@ __lp_scene_constructed (GObject *object)
 {
   lp_scene_t *scene = LP_SCENE (object);
 
+  scene->backend = g_new0 (lp_scene_backend_t, 1);
+  _lp_assert (scene->backend);
+
+  scene->backend->scene = scene;
+  _lp_scene_gst_init (scene->backend);
+
+  if (scene->backend->start_async != NULL)
+    scene->backend->start_async(scene);
+
   G_OBJECT_CLASS (__lp_scene_parent_class)->constructed (object);
 }
 
@@ -100,13 +111,18 @@ __lp_scene_set_property (GObject *object, guint prop_id,
 {
   lp_scene_t *scene = LP_SCENE (object);
 
-  switch (prop_id) {
+  switch (prop_id) 
+  {
     case PROP_WIDTH:
-      scene->width = g_value_get_uint (value);
+    {
+      scene->width = g_value_get_int (value);
       break;
+    }
     case PROP_HEIGHT:
-      scene->height = g_value_get_uint (value);
+    {
+      scene->height = g_value_get_int (value);
       break;
+    }
     case N_PROPERTIES:
     default:
       _LP_ASSERT_NOT_REACHED;
@@ -121,10 +137,10 @@ __lp_scene_get_property (GObject *object, guint prop_id,
 
   switch (prop_id) {
     case PROP_WIDTH:
-      g_value_set_uint (value, scene->width);
+      g_value_set_int (value, scene->width);
       break;
     case PROP_HEIGHT:
-      g_value_set_uint (value, scene->height);
+      g_value_set_int (value, scene->height);
       break;
     case N_PROPERTIES:
     default:
@@ -136,4 +152,19 @@ GType lp_scene_get_type ()
 {
   return __lp_scene_get_type ();
 }
+
+lp_scene_backend_t *
+_lp_scene_get_backend (lp_scene_t *scene)
+{
+  _lp_assert (scene != NULL);
+  return scene->backend;
+}
  
+unsigned int
+_lp_scene_dispatch (lp_scene_t *scene, lp_event_t *evt)
+{
+  (void) scene;
+  (void) evt;
+  /* TODO: all */
+  return 0;
+}

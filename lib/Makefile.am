@@ -40,12 +40,13 @@ libplay_la_CPPFLAGS= $(LP_BUILDING)
 libplay_la_CFLAGS= $(AM_CFLAGS) $(CFLAG_VISIBILITY)\
   $(GLIB_CFLAGS) $(GSTREAMER_CFLAGS)
 libplay_la_LDFLAGS= -version-info $(LIBPLAY_LIBTOOL_STRING) -no-undefined\
-  $(GLIB_CFLAGS) $(GSTREAMER_LIBS)
+  $(GLIB_LIBS) $(GSTREAMER_LIBS) -fPIC
 libplay_la_SOURCES=\
   gstx-macros.h\
   lp-event.c\
   lp-media-gst.c\
   lp-media.c\
+  lp-scene.c\
   lp-properties.c\
   lp-status.c\
   lp-util.c\

@@ -42,6 +42,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 LP_BEGIN_DECLS
 
+
 #define LP_VERSION_ENCODE(major, minor, micro)\
   (((major) * 10000) + ((minor) * 100) + ((micro) * 1))
 
@@ -183,6 +184,12 @@ lp_media_set_property_pointer (lp_media_t *, const char *, const void *);
 
 LP_API uint64_t
 lp_media_get_time (const lp_media_t *);
+
+
+/* scene  */
+typedef struct _lp_scene_t lp_scene_t;
+typedef lp_bool_t (*lp_scene_event_func_t) 
+  (lp_scene_t *, lp_media_t *, lp_event_t *);
 
 /* synchronous clock  */
 

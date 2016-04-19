@@ -21,6 +21,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <playconf.h>
 #include <inttypes.h>
+#include <glib-object.h>
 
 #ifdef  __cplusplus
 # define LP_BEGIN_DECLS extern "C" { /* } */
@@ -187,7 +188,8 @@ lp_media_get_time (const lp_media_t *);
 
 
 /* scene  */
-typedef struct _lp_scene_t lp_scene_t;
+#define LP_SCENE_T lp_scene_get_type ()
+G_DECLARE_FINAL_TYPE (lp_scene_t, lp_scene, LP, SCENE, GObject)
 typedef lp_bool_t (*lp_scene_event_func_t) 
   (lp_scene_t *, lp_media_t *, lp_event_t *);
 

@@ -20,6 +20,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #define PLAY_INTERNAL
 
 #include "macros.h"
+#include "gstx-macros.h"
 
 /* lp_Scene */
 GstElement *

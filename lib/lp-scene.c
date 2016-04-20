@@ -19,7 +19,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <config.h>
 
 #include "play.h"
-#include "gstx-macros.h"
+#include "play-internal.h"
 
 /* Scene object. */
 struct _lp_Scene

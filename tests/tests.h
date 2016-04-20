@@ -22,9 +22,10 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <config.h>
 #include <stdio.h>
 
+#include <glib.h>
+
 #include "play.h"
 #include "macros.h"
-PRAGMA_DIAG_IGNORE (-Wfloat-equal)
 
 #undef assert
 #define assert(cond)                                            \
@@ -38,5 +39,7 @@ PRAGMA_DIAG_IGNORE (-Wfloat-equal)
       }                                                         \
   }                                                             \
   STMT_END
+
+#define SLEEP(s) g_usleep ((s) * 1000000)
 
 #endif /* TESTS_H */

@@ -65,16 +65,15 @@ lp_version (void);
 LP_API const char *
 lp_version_string (void);
 
-/* Scene type.  */
+/* Scene object.  */
 G_DECLARE_FINAL_TYPE (lp_Scene, lp_scene, LP, SCENE, GObject)
-
-/* Gets the GType of an lp_Scene.  */
 #define LP_TYPE_SCENE (lp_scene_get_type ())
 
-/* Media type.  */
-G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
+LP_API lp_Scene *
+lp_scene_new (int, int);
 
-/* Gets the GType of an lp_Media.  */
+/* Media object.  */
+G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
 #define LP_TYPE_MEDIA (lp_media_get_type ())
 
 LP_API gboolean

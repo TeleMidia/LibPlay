@@ -20,7 +20,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "play.h"
 #include "play-internal.h"
-  
+
 /* Forward declarations:  */
 /* *INDENT-OFF* */
 static void __lp_media_constructed (GObject *);

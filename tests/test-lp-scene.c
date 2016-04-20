@@ -56,10 +56,20 @@ main (void)
       assert (width == 0 && height == 600);
       g_object_unref (scene);
 
-      scene = g_object_new (LP_TYPE_SCENE, "width", 800,
-                            "height", 600, NULL);
+      scene = lp_scene_new (0, 0);
       assert (scene != NULL);
-      g_usleep (1000000);
+      g_object_get (scene, "width", &width, "height", &height, NULL);
+      assert (width == 0 && height == 0);
+      g_object_unref (scene);
+
+      scene = lp_scene_new (100, 100);
+      assert (scene != NULL);
+      g_object_get (scene, "width", &width, "height", &height, NULL);
+      assert (width == 100 && height == 100);
+
+      SLEEP (.5);
+      g_object_get (scene, "width", &width, "height", &height, NULL);
+      assert (width == 100 && height == 100);
       g_object_unref (scene);
     }
   STMT_END;
@@ -67,13 +77,47 @@ main (void)
   /* get/set pattern */
   STMT_BEGIN
     {
-      /* TODO */
+      lp_Scene *scene;
+      int pattern = -1;
+
+      scene = g_object_new (LP_TYPE_SCENE, "width", 800,
+                            "height", 600, NULL);
+      assert (scene != NULL);
+      g_object_get (scene, "pattern", &pattern, NULL);
+      assert (pattern == 2);
+
+      SLEEP (.5);
+      g_object_set (scene, "pattern", 8, NULL);
+      g_object_get (scene, "pattern", &pattern, NULL);
+
+      SLEEP (.5);
+      assert (pattern == 8);
+      g_object_get (scene, "pattern", &pattern, NULL);
+      assert (pattern == 8);
+      g_object_unref (scene);
     }
   STMT_END;
 
   /* get/set wave */
   STMT_BEGIN
     {
+      lp_Scene *scene;
+      int wave = -1;
+
+      scene = g_object_new (LP_TYPE_SCENE, NULL);
+      assert (scene != NULL);
+      g_object_get (scene, "wave", &wave, NULL);
+      assert (wave == 4);
+
+      SLEEP (.5);
+      g_object_set (scene, "wave", 0, NULL);
+      g_object_get (scene, "wave", &wave, NULL);
+
+      SLEEP (.5);
+      assert (wave == 0);
+      g_object_get (scene, "wave", &wave, NULL);
+      assert (wave == 0);
+      g_object_unref (scene);
     }
   STMT_END;
 

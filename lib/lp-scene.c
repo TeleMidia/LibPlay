@@ -27,8 +27,6 @@ struct _lp_Scene
   GObject parent;               /* parent object */
   GstElement *pipeline;         /* scene pipeline */
   GstClockID clock_id;          /* last clock id */
-  gboolean has_video;           /* true if scene has video output */
-  gint has_quitted;             /* true if scene has quitted */
   GRecMutex mutex;              /* recursive mutex */
   struct
   {
@@ -81,19 +79,22 @@ enum
 };
 
 /* Default values for scene properties.  */
-#define DEFAULT_WIDTH    0      /* pixels */
-#define DEFAULT_HEIGHT   0      /* pixels */
+#define DEFAULT_WIDTH    0      /* no video output */
+#define DEFAULT_HEIGHT   0      /* no video output */
 #define DEFAULT_PATTERN  2      /* black */
 #define DEFAULT_WAVE     4      /* silence */
 
+/* Define the lp_Scene type.  */
 G_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
+
+/* Returns true if scene has video output.  */
+#define lp_scene_has_video(scene)\
+  (scene->prop.width > 0 && scene->prop.height > 0)
 
 static void
 lp_scene_init (lp_Scene *scene)
 {
   scene->clock_id = NULL;
-  scene->has_video = FALSE;
-  scene->has_quitted = FALSE;
   scene->prop.width = DEFAULT_WIDTH;
   scene->prop.height = DEFAULT_HEIGHT;
   scene->prop.pattern = DEFAULT_PATTERN;
@@ -142,9 +143,14 @@ lp_scene_set_property (GObject *object, guint prop_id,
       break;
     case PROP_PATTERN:
       scene->prop.pattern = g_value_get_int (value);
+      if (lp_scene_has_video (scene))
+        g_object_set (scene->video.blank, "pattern",
+                      scene->prop.pattern, NULL);
       break;
     case PROP_WAVE:
       scene->prop.wave = g_value_get_int (value);
+      g_object_set (scene->audio.blank, "wave",
+                    scene->prop.wave, NULL);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -163,9 +169,10 @@ lp_scene_constructed (GObject *object)
   assert (gst_element_link (scene->audio.blank, scene->audio.mixer));
   assert (gst_element_link (scene->audio.mixer, scene->audio.sink));
 
-  if (scene->prop.width > 0 && scene->prop.height > 0)
+  if (lp_scene_has_video (scene))
     {
-      scene->has_video = TRUE;
+      GstCaps *caps;
+
       assert (gstx_eltmap_alloc (scene, lp_scene_eltmap_video, NULL));
       assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.blank));
       assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.filter));
@@ -174,11 +181,31 @@ lp_scene_constructed (GObject *object)
       assert (gst_element_link (scene->video.blank, scene->video.filter));
       assert (gst_element_link (scene->video.filter, scene->video.mixer));
       assert (gst_element_link (scene->video.mixer, scene->video.sink));
-      /* g_object_set (scene->video.sink, "window-width", scene->prop.width); */
-      /* g_object_set (scene->video.sink, "window-height", scene->prop.height); */
+
+      caps = gst_caps_new_empty_simple ("video/x-raw");
+      assert (caps != NULL);
+      gst_caps_set_simple (caps, "width", G_TYPE_INT, scene->prop.width,
+                           "height", G_TYPE_INT, scene->prop.height, NULL);
+      g_object_set (scene->video.filter, "caps", caps, NULL);
+      gst_caps_unref (caps);
     }
 
+  g_object_set (scene, "pattern", scene->prop.pattern,
+                "wave", scene->prop.wave, NULL);
   gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
+}
+
+static void
+lp_scene_finalize (GObject *object)
+{
+  lp_Scene *scene = LP_SCENE (object);
+
+  gstx_element_set_state_sync (scene->pipeline, GST_STATE_NULL);
+  gst_object_unref (scene->pipeline);
+  if (scene->clock_id != NULL)
+    gst_clock_id_unref (scene->clock_id);
+
+  G_OBJECT_CLASS (lp_scene_parent_class)->finalize (object);
 }
 
 static void
@@ -189,6 +216,7 @@ lp_scene_class_init (lp_SceneClass *klass)
   gobject_class->get_property = lp_scene_get_property;
   gobject_class->set_property = lp_scene_set_property;
   gobject_class->constructed = lp_scene_constructed;
+  gobject_class->finalize = lp_scene_finalize;
 
   g_object_class_install_property
     (gobject_class, PROP_WIDTH, g_param_spec_int
@@ -204,13 +232,13 @@ lp_scene_class_init (lp_SceneClass *klass)
 
   g_object_class_install_property
     (gobject_class, PROP_PATTERN, g_param_spec_int
-     ("pattern", "pattern", "scene background pattern",
+     ("pattern", "pattern", "scene background video",
       0, 24, DEFAULT_PATTERN,
       G_PARAM_READWRITE));
 
   g_object_class_install_property
     (gobject_class, PROP_WAVE, g_param_spec_int
-     ("wave", "wave", "scene wave pattern",
+     ("wave", "wave", "scene background audio",
       0, 12, DEFAULT_WAVE,
       G_PARAM_READWRITE));
 
@@ -218,7 +246,9 @@ lp_scene_class_init (lp_SceneClass *klass)
     assert (gst_init_check (NULL, NULL, NULL));
 }
 
-/***************** INTERNAL FUNCTIONS *****************/
+
+/* internal */
+
 GstElement *
 _lp_scene_get_pipeline (lp_Scene *scene)
 {
@@ -236,4 +266,21 @@ void
 _lp_scene_unlock (lp_Scene *scene)
 {
   g_rec_mutex_unlock (&scene->mutex);
+}
+
+
+/* public */
+
+/**
+ * lp_scene_new:
+ * @width: scene width
+ * @height: scene height
+ *
+ * Allocates and returns a new #lp_Scene with the given dimensions.
+ */
+lp_Scene *
+lp_scene_new (int width, int height)
+{
+  return g_object_new (LP_TYPE_SCENE, "width", width,
+                       "height", height, NULL);
 }

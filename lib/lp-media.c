@@ -19,21 +19,26 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <config.h>
 
 #include "play.h"
-#include "gstx-macros.h"
+#include "play-internal.h"
   
 /* Forward declarations:  */
 /* *INDENT-OFF* */
 static void __lp_media_constructed (GObject *);
+static void __lp_media_finalize (GObject *);
+static void __lp_media_dispose (GObject *);
 static void __lp_media_get_property (GObject *, guint, GValue *, GParamSpec *);
 static void __lp_media_set_property (GObject *, guint, const GValue *, 
     GParamSpec *);
+static void __lp_media_pad_added_callback (GstElement *, GstPad *, gpointer);
 /* *INDENT-ON* */
 
 /* Media object. */
 struct _lp_Media
 {
   GObject parent;               /* parent object */
+  GstElement *bin;              /* media bin */
   GstElement *decoder;          /* media decoder */
+  GstClockTime offset;          /* start offset */
   struct
   {
     GstElement *volume;         /* audio volume  */
@@ -158,6 +163,7 @@ GType lp_media_get_type ()
 static void
 __lp_media_init (lp_Media *media)
 {
+  media->bin = gst_bin_new (NULL);
   media->prop.scene = NULL;
   media->prop.uri = NULL;
   media->prop.width = DEFAULT_WIDTH;
@@ -175,7 +181,10 @@ __lp_media_class_init (lp_MediaClass *klass)
   gobject_class->get_property = __lp_media_get_property;
   gobject_class->set_property = __lp_media_set_property;
   gobject_class->constructed = __lp_media_constructed;
-  
+  gobject_class->dispose = __lp_media_dispose;
+  gobject_class->finalize = __lp_media_finalize;
+
+
   g_object_class_install_property
     (gobject_class, PROP_SCENE, g_param_spec_pointer 
      ("scene", "scene", "media scene parent", 
@@ -222,6 +231,8 @@ __lp_media_constructed (GObject *object)
     assert ((media->decoder = gst_element_factory_make ("uridecodebin", NULL),
           media->decoder) != NULL);
     g_object_set (G_OBJECT (media->decoder), "uri", media->prop.uri, NULL);
+    g_signal_connect (G_OBJECT (media->decoder), "pad-added", 
+       G_CALLBACK(__lp_media_pad_added_callback), media);
   }
   else /* if there is no URI the media becomes a silent audio */
   {
@@ -229,4 +240,49 @@ __lp_media_constructed (GObject *object)
           media->decoder) != NULL);
     g_object_set (G_OBJECT (media->decoder), "wave", 4 /* silence */, NULL);
   }
+
+  gst_bin_add (GST_BIN (media->bin), media->decoder);
+}
+
+static void
+__lp_media_finalize (GObject *object)
+{
+  /* TODO: */
+}
+
+static void
+__lp_media_dispose (GObject *object)
+{
+  /* TODO: */
+}
+
+
+/***************** EXTERNAL API *****************/
+gboolean
+lp_media_start (lp_Media *media)
+{
+  GstElement *pipeline = NULL;
+
+  assert (media != NULL);
+  assert (media->prop.scene != NULL);
+
+  pipeline = _lp_scene_get_pipeline (media->prop.scene);
+  
+  _lp_scene_lock (media->prop.scene);
+  gst_bin_add (GST_BIN(pipeline), media->bin);
+  _lp_scene_unlock (media->prop.scene);
+
+  media->offset = gstx_element_get_clock_time (pipeline);
+  if (unlikely (media->offset == GST_CLOCK_TIME_NONE))
+    media->offset = 0;
+
+  gst_element_set_state (media->bin, GST_STATE_PLAYING);
+
+}
+
+/***************** INTERNAL FUNCTIONS *****************/
+static void
+__lp_media_pad_added_callback (GstElement *src, GstPad *pad, gpointer data)
+{
+  /* TODO */
 }

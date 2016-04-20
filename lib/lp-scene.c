@@ -19,152 +19,150 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <config.h>
 
 #include "play.h"
-#include "play-internal.h"
+#include "gstx-macros.h"
 
+/* Scene class.  */
+struct _lp_SceneClass
+{
+  GObjectClass parent;
+};
 
-#define DEFAULT_WIDTH 0
-#define DEFAULT_HEIGHT 0
+/* Scene object. */
+struct _lp_Scene
+{
+  GObject parent;               /* parent object */
+  GstElement *pipeline;         /* scene pipeline */
+  GstClockID clock_id;          /* last clock id */
+  gint quitted;                 /* true if scene has quitted */
+  struct
+  {
+    GstElement *blank;          /* blank audio source */
+    GstElement *mixer;          /* audio mixer */
+    GstElement *sink;           /* audio sink */
+  } audio;
+  struct
+  {
+    GstElement *blank;          /* blank video source */
+    GstElement *filter;         /* video filter */
+    GstElement *mixer;          /* video mixer */
+    GstElement *sink;           /* video sink */
+  } video;
+  struct
+  {
+    int width;                  /* cached width */
+    int height;                 /* cached height */
+    int pattern;                /* cached pattern */
+    int wave;                   /* cached wave */
+  } prop;
+};
 
-/* scene properties  */
+/* Scene properties.  */
 enum
 {
-  PROP_WIDTH = 1,
+  PROP_0,
+  PROP_WIDTH,
   PROP_HEIGHT,
-  N_PROPERTIES
+  PROP_PATTERN,
+  PROP_WAVE,
+  PROP_LAST
 };
 
-/* Forward declarations:  */
-/* *INDENT-OFF* */
-static void __lp_scene_class_init (lp_scene_tClass *);
-static void __lp_scene_constructed (GObject *);
-static void __lp_scene_init (lp_scene_t *);
-static void __lp_scene_set_property (GObject *, guint, 
-    const GValue *, GParamSpec *);
-static void __lp_scene_get_property (GObject *, guint, 
-    GValue *, GParamSpec *);
-/* *INDENT-ON* */
+/* Default values for scene properties.  */
+#define DEFAULT_WIDTH    0  /* pixels */
+#define DEFAULT_HEIGHT   0  /* pixels */
+#define DEFAULT_PATTERN  2  /* black */
+#define DEFAULT_WAVE     4  /* silence */
 
-/* Scene object data. */
-struct _lp_scene_t
-{
-  GObject parent_instance;            /* parent struct */
-  GList *children;                    /* children list */
-  lp_scene_event_func_t handler;      /* event-handler */
-  
-  int width;                          /* scene width */
-  int height;                         /* scene height */
-
-  lp_scene_backend_t *backend;        /* scene backend */
-};
-
-
-G_DEFINE_TYPE (lp_scene_t, __lp_scene, G_TYPE_OBJECT)
-
+G_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
 
 static void
-__lp_scene_class_init (lp_scene_tClass *klass)
+lp_scene_init (lp_Scene *scene)
 {
-  GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-  object_class->set_property = __lp_scene_set_property;
-  object_class->get_property = __lp_scene_get_property;
-  object_class->constructed = __lp_scene_constructed;
-
-  g_object_class_install_property (object_class, PROP_WIDTH,
-      g_param_spec_int ("width", "window width", "Defines the width of the "
-        "scene window", 0, G_MAXINT, DEFAULT_WIDTH, G_PARAM_CONSTRUCT_ONLY | 
-        G_PARAM_READWRITE));
-  
-  g_object_class_install_property (object_class, PROP_HEIGHT,
-      g_param_spec_int ("height", "window height", "Defines the height of the "
-        "scene window", 0, G_MAXINT, DEFAULT_HEIGHT, G_PARAM_CONSTRUCT_ONLY | 
-        G_PARAM_READWRITE));
+  scene->prop.width = DEFAULT_WIDTH;
+  scene->prop.height = DEFAULT_HEIGHT;
+  scene->prop.pattern = DEFAULT_PATTERN;
+  scene->prop.wave = DEFAULT_WAVE;
 }
 
 static void
-__lp_scene_init (lp_scene_t *self)
+lp_scene_get_property (GObject *object, guint prop_id,
+                       GValue *value, GParamSpec *pspec)
 {
-  self->width = DEFAULT_WIDTH;
-  self->height = DEFAULT_HEIGHT;
-}
+  lp_Scene *scene = LP_SCENE (object);
 
-static void
-__lp_scene_constructed (GObject *object)
-{
-  lp_scene_t *scene = LP_SCENE (object);
-
-  scene->backend = g_new0 (lp_scene_backend_t, 1);
-  _lp_assert (scene->backend);
-
-  scene->backend->scene = scene;
-  _lp_scene_gst_init (scene->backend);
-
-  if (scene->backend->start_async != NULL)
-    scene->backend->start_async(scene);
-
-  G_OBJECT_CLASS (__lp_scene_parent_class)->constructed (object);
-}
-
-static void 
-__lp_scene_set_property (GObject *object, guint prop_id,
-    const GValue *value, GParamSpec *spec)
-{
-  lp_scene_t *scene = LP_SCENE (object);
-
-  switch (prop_id) 
-  {
-    case PROP_WIDTH:
+  switch (prop_id)
     {
-      scene->width = g_value_get_int (value);
-      break;
-    }
-    case PROP_HEIGHT:
-    {
-      scene->height = g_value_get_int (value);
-      break;
-    }
-    case N_PROPERTIES:
-    default:
-      _LP_ASSERT_NOT_REACHED;
-  }
-}
-
-static void 
-__lp_scene_get_property (GObject *object, guint prop_id,
-    GValue *value, GParamSpec *spec)
-{
-  lp_scene_t *scene = LP_SCENE (object);
-
-  switch (prop_id) {
     case PROP_WIDTH:
-      g_value_set_int (value, scene->width);
+      g_value_set_int (value, scene->prop.width);
       break;
     case PROP_HEIGHT:
-      g_value_set_int (value, scene->height);
+      g_value_set_int (value, scene->prop.height);
       break;
-    case N_PROPERTIES:
+    case PROP_PATTERN:
+      g_value_set_int (value, scene->prop.pattern);
+      break;
+    case PROP_WAVE:
+      g_value_set_int (value, scene->prop.wave);
+      break;
     default:
-      _LP_ASSERT_NOT_REACHED;
-  }
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
 }
 
-GType lp_scene_get_type ()
+static void
+lp_scene_set_property (GObject *object, guint prop_id,
+                       const GValue *value, GParamSpec *pspec)
 {
-  return __lp_scene_get_type ();
+  lp_Scene *scene = LP_SCENE (object);
+
+  switch (prop_id)
+    {
+    case PROP_WIDTH:
+      scene->prop.width = g_value_get_int (value);
+      break;
+    case PROP_HEIGHT:
+      scene->prop.height = g_value_get_int (value);
+      break;
+    case PROP_PATTERN:
+      scene->prop.pattern = g_value_get_int (value);
+      break;
+    case PROP_WAVE:
+      scene->prop.wave = g_value_get_int (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
 }
 
-lp_scene_backend_t *
-_lp_scene_get_backend (lp_scene_t *scene)
+static void
+lp_scene_class_init (lp_SceneClass *klass)
 {
-  _lp_assert (scene != NULL);
-  return scene->backend;
-}
- 
-unsigned int
-_lp_scene_dispatch (lp_scene_t *scene, lp_event_t *evt)
-{
-  (void) scene;
-  (void) evt;
-  /* TODO: all */
-  return 0;
+  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+
+  gobject_class->get_property = lp_scene_get_property;
+  gobject_class->set_property = lp_scene_set_property;
+
+  g_object_class_install_property
+    (gobject_class, PROP_WIDTH, g_param_spec_int
+     ("width", "width", "scene width in pixels",
+      0, G_MAXINT, DEFAULT_WIDTH,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_HEIGHT, g_param_spec_int
+     ("height", "height", "scene height in pixels",
+      0, G_MAXINT, DEFAULT_HEIGHT,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_PATTERN, g_param_spec_int
+     ("pattern", "pattern", "scene background pattern",
+      0, 24, DEFAULT_PATTERN,
+      G_PARAM_READWRITE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_WAVE, g_param_spec_int
+     ("wave", "wave", "scene wave pattern",
+      0, 12, DEFAULT_WAVE,
+      G_PARAM_READWRITE));
 }

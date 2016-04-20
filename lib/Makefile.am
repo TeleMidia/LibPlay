@@ -43,22 +43,7 @@ libplay_la_LDFLAGS= -version-info $(LIBPLAY_LIBTOOL_STRING) -no-undefined\
   $(GLIB_LIBS) $(GSTREAMER_LIBS) -fPIC
 libplay_la_SOURCES=\
   gstx-macros.h\
-  lp-event.c\
-  lp-media-gst.c\
-  lp-media.c\
   lp-scene.c\
-  lp-scene-gst.c\
-  lp-properties.c\
-  lp-status.c\
-  lp-util.c\
-  lp-version.c\
-  play-internal.h\
   play.h\
   playconf.h\
   $(NULL)
-
-if HAVE_SYNCCLOCK
-libplay_la_SOURCES+=lp-sync-clock.c
-libplay_la_CFLAGS+= $(GSTSYNCHRONOUSCLOCK_CFLAGS)
-libplay_la_LDFLAGS+= $(GSTSYNCHRONOUSCLOCK_LIBS)
-endif

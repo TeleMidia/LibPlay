@@ -55,6 +55,12 @@ main (void)
       g_object_get (scene, "width", &width, "height", &height, NULL);
       assert (width == 0 && height == 600);
       g_object_unref (scene);
+
+      scene = g_object_new (LP_TYPE_SCENE, "width", 800,
+                            "height", 600, NULL);
+      assert (scene != NULL);
+      g_usleep (1000000);
+      g_object_unref (scene);
     }
   STMT_END;
 

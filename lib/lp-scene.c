@@ -27,7 +27,8 @@ struct _lp_Scene
   GObject parent;               /* parent object */
   GstElement *pipeline;         /* scene pipeline */
   GstClockID clock_id;          /* last clock id */
-  gint quitted;                 /* true if scene has quitted */
+  gboolean has_video;           /* true if scene has video output */
+  gint has_quitted;             /* true if scene has quitted */
   struct
   {
     GstElement *blank;          /* blank audio source */
@@ -56,6 +57,10 @@ static const gstx_eltmap_t lp_scene_eltmap[] = {
   {"audiotestsrc",  offsetof (lp_Scene, audio.blank)},
   {"audiomixer",    offsetof (lp_Scene, audio.mixer)},
   {"autoaudiosink", offsetof (lp_Scene, audio.sink)},
+  {NULL, 0},
+};
+
+static const gstx_eltmap_t lp_scene_eltmap_video[] = {
   {"videotestsrc",  offsetof (lp_Scene, video.blank)},
   {"capsfilter",    offsetof (lp_Scene, video.filter)},
   {"compositor",    offsetof (lp_Scene, video.mixer)},
@@ -86,26 +91,12 @@ static void
 lp_scene_init (lp_Scene *scene)
 {
   scene->clock_id = NULL;
-  scene->quitted = 0;
+  scene->has_video = FALSE;
+  scene->has_quitted = FALSE;
   scene->prop.width = DEFAULT_WIDTH;
   scene->prop.height = DEFAULT_HEIGHT;
   scene->prop.pattern = DEFAULT_PATTERN;
   scene->prop.wave = DEFAULT_WAVE;
-
-  assert (gstx_eltmap_alloc (scene, lp_scene_eltmap, NULL));
-  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.blank));
-  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.mixer));
-  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.sink));
-  assert (gst_element_link (scene->audio.blank, scene->audio.mixer));
-  assert (gst_element_link (scene->audio.mixer, scene->audio.sink));
-  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.blank));
-  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.filter));
-  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.mixer));
-  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.sink));
-  assert (gst_element_link (scene->video.blank, scene->video.filter));
-  assert (gst_element_link (scene->video.filter, scene->video.mixer));
-  assert (gst_element_link (scene->video.mixer, scene->video.sink));
-  gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
 }
 
 static void
@@ -159,12 +150,43 @@ lp_scene_set_property (GObject *object, guint prop_id,
 }
 
 static void
+lp_scene_constructed (GObject *object)
+{
+  lp_Scene *scene = LP_SCENE (object);
+
+  assert (gstx_eltmap_alloc (scene, lp_scene_eltmap, NULL));
+  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.blank));
+  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.mixer));
+  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.sink));
+  assert (gst_element_link (scene->audio.blank, scene->audio.mixer));
+  assert (gst_element_link (scene->audio.mixer, scene->audio.sink));
+
+  if (scene->prop.width > 0 && scene->prop.height > 0)
+    {
+      scene->has_video = TRUE;
+      assert (gstx_eltmap_alloc (scene, lp_scene_eltmap_video, NULL));
+      assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.blank));
+      assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.filter));
+      assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.mixer));
+      assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.sink));
+      assert (gst_element_link (scene->video.blank, scene->video.filter));
+      assert (gst_element_link (scene->video.filter, scene->video.mixer));
+      assert (gst_element_link (scene->video.mixer, scene->video.sink));
+      /* g_object_set (scene->video.sink, "window-width", scene->prop.width); */
+      /* g_object_set (scene->video.sink, "window-height", scene->prop.height); */
+    }
+
+  gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
+}
+
+static void
 lp_scene_class_init (lp_SceneClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
   gobject_class->get_property = lp_scene_get_property;
   gobject_class->set_property = lp_scene_set_property;
+  gobject_class->constructed = lp_scene_constructed;
 
   g_object_class_install_property
     (gobject_class, PROP_WIDTH, g_param_spec_int

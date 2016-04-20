@@ -63,6 +63,7 @@ programs=
 programs+= test-lp-version
 programs+= test-lp-version-string
 programs+= test-lp-scene
+programs+= test-lp-media
 check_PROGRAMS= $(programs)
 
 TESTS=\

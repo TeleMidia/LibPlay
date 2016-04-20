@@ -21,12 +21,6 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "play.h"
 #include "gstx-macros.h"
 
-/* Scene class.  */
-struct _lp_SceneClass
-{
-  GObjectClass parent;
-};
-
 /* Scene object. */
 struct _lp_Scene
 {
@@ -56,6 +50,19 @@ struct _lp_Scene
   } prop;
 };
 
+/* Maps GStreamer elements to for lp_Scene.  */
+static const gstx_eltmap_t lp_scene_eltmap[] = {
+  {"pipeline",      offsetof (lp_Scene, pipeline)},
+  {"audiotestsrc",  offsetof (lp_Scene, audio.blank)},
+  {"audiomixer",    offsetof (lp_Scene, audio.mixer)},
+  {"autoaudiosink", offsetof (lp_Scene, audio.sink)},
+  {"videotestsrc",  offsetof (lp_Scene, video.blank)},
+  {"capsfilter",    offsetof (lp_Scene, video.filter)},
+  {"compositor",    offsetof (lp_Scene, video.mixer)},
+  {"glimagesink",   offsetof (lp_Scene, video.sink)},
+  {NULL, 0},
+};
+
 /* Scene properties.  */
 enum
 {
@@ -68,20 +75,37 @@ enum
 };
 
 /* Default values for scene properties.  */
-#define DEFAULT_WIDTH    0  /* pixels */
-#define DEFAULT_HEIGHT   0  /* pixels */
-#define DEFAULT_PATTERN  2  /* black */
-#define DEFAULT_WAVE     4  /* silence */
+#define DEFAULT_WIDTH    0      /* pixels */
+#define DEFAULT_HEIGHT   0      /* pixels */
+#define DEFAULT_PATTERN  2      /* black */
+#define DEFAULT_WAVE     4      /* silence */
 
 G_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
 
 static void
 lp_scene_init (lp_Scene *scene)
 {
+  scene->clock_id = NULL;
+  scene->quitted = 0;
   scene->prop.width = DEFAULT_WIDTH;
   scene->prop.height = DEFAULT_HEIGHT;
   scene->prop.pattern = DEFAULT_PATTERN;
   scene->prop.wave = DEFAULT_WAVE;
+
+  assert (gstx_eltmap_alloc (scene, lp_scene_eltmap, NULL));
+  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.blank));
+  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.mixer));
+  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.sink));
+  assert (gst_element_link (scene->audio.blank, scene->audio.mixer));
+  assert (gst_element_link (scene->audio.mixer, scene->audio.sink));
+  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.blank));
+  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.filter));
+  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.mixer));
+  assert (gst_bin_add (GST_BIN (scene->pipeline), scene->video.sink));
+  assert (gst_element_link (scene->video.blank, scene->video.filter));
+  assert (gst_element_link (scene->video.filter, scene->video.mixer));
+  assert (gst_element_link (scene->video.mixer, scene->video.sink));
+  gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
 }
 
 static void
@@ -165,4 +189,7 @@ lp_scene_class_init (lp_SceneClass *klass)
      ("wave", "wave", "scene wave pattern",
       0, 12, DEFAULT_WAVE,
       G_PARAM_READWRITE));
+
+  if (!gst_is_initialized ())
+    assert (gst_init_check (NULL, NULL, NULL));
 }

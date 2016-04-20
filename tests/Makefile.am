@@ -60,71 +60,9 @@ check_SCRIPTS= $(scripts)
 
 # Test programs.
 programs=
-# _lp-util
-programs+= test-_lp-util-g-value-alloc
-programs+= test-_lp-util-g-value-free
-programs+= test-_lp-util-g-value-dup
-programs+= test-_lp-util-g-value-init-and-set
-# _lp-properties
-programs+= test-_lp-properties-alloc
-programs+= test-_lp-properties-free
-programs+= test-_lp-properties-get+set-metatable
-programs+= test-_lp-properties-size
-programs+= test-_lp-properties-get
-programs+= test-_lp-properties-set
-programs+= test-_lp-properties-reset
-programs+= test-_lp-properties-reset-all
-# lp-version
 programs+= test-lp-version
 programs+= test-lp-version-string
-# lp-status
-programs+= test-lp-status-to-string
-# lp-event
-programs+= test-lp-event-init-start
-programs+= test-lp-event-init-stop
-programs+= test-lp-event-init-tick
-programs+= test-lp-event-init-user
-programs+= test-lp-event-equals
-# lp-media
-programs+= test-lp-media-create
-programs+= test-lp-media-create-for-parent
-programs+= test-lp-media-destroy
-programs+= test-lp-media-status
-programs+= test-lp-media-reference
-programs+= test-lp-media-get-reference-count
-programs+= test-lp-media-get-parent
-programs+= test-lp-media-add-child
-programs+= test-lp-media-remove-child
-programs+= test-lp-media-register
-programs+= test-lp-media-unregister
-programs+= test-lp-media-get-property-int
-programs+= test-lp-media-set-property-int
-programs+= test-lp-media-get-property-double
-programs+= test-lp-media-set-property-double
-programs+= test-lp-media-get-property-string
-programs+= test-lp-media-set-property-string
-programs+= test-lp-media-get-property-pointer
-programs+= test-lp-media-set-property-pointer
-programs+= test-_lp-media-get-root-ancestor
-programs+= test-_lp-media-dispatch
-programs+= test-lp-media-post
-programs+= test-lp-media-get-time
-# lp-scene
-programs+= test-lp-scene-new
-if HAVE_SYNCCLOCK
-programs+= test-lp-sync-clock-create
-programs+= test-lp-sync-clock-destroy
-programs+= test-lp-sync-clock-get-time
-programs+= test-lp-sync-clock-set-tick
-programs+= test-lp-sync-clock-advance-time
-programs+= test-lp-sync-clock-tick-for
-programs+= test-lp-media-set-sync-clock
-endif
-# system checks
-#programs+= test-sys-play-audio
-#programs+= test-sys-play-audiovideo
-#programs+= test-sys-play-video
-#programs+= test-sys-timer-loop-1
+programs+= test-lp-scene
 check_PROGRAMS= $(programs)
 
 TESTS=\

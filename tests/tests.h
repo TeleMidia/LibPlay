@@ -23,11 +23,8 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <stdio.h>
 
 #include "play.h"
-#include "play-internal.h"
-
-/* *INDENT-OFF* */
+#include "macros.h"
 PRAGMA_DIAG_IGNORE (-Wfloat-equal)
-/* *INDENT-ON* */
 
 #undef assert
 #define assert(cond)                                            \

@@ -21,10 +21,9 @@ include $(top_srcdir)/build-aux/Makefile.am.common
 AM_CPPFLAGS= -I$(top_srcdir)/lib -I$(top_builddir)/lib
 AM_CFLAGS= $(WERROR_CFLAGS) $(WARN_CFLAGS)
 
-bin_PROGRAMS= play
-play_CFLAGS= $(AM_CFLAGS) $(GLIB_CFLAGS)
-play_LDADD= $(top_builddir)/lib/libplay.la
-play_LDFLAGS= $(AM_LDFLAGS) $(GLIB_LIBS)
-play_SOURCES=\
-  play.c\
-  $(NULL)
+# bin_PROGRAMS= play
+# play_CFLAGS= $(AM_CFLAGS) $(GLIB_CFLAGS)
+# play_LDADD= $(top_builddir)/lib/libplay.la
+# play_LDFLAGS= $(AM_LDFLAGS) $(GLIB_LIBS)
+# play_SOURCES=\
+#   $(NULL)

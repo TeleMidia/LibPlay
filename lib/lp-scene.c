@@ -29,6 +29,7 @@ struct _lp_Scene
   GstClockID clock_id;          /* last clock id */
   gboolean has_video;           /* true if scene has video output */
   gint has_quitted;             /* true if scene has quitted */
+  GRecMutex mutex;              /* recursive mutex */
   struct
   {
     GstElement *blank;          /* blank audio source */
@@ -97,6 +98,7 @@ lp_scene_init (lp_Scene *scene)
   scene->prop.height = DEFAULT_HEIGHT;
   scene->prop.pattern = DEFAULT_PATTERN;
   scene->prop.wave = DEFAULT_WAVE;
+  g_rec_mutex_init (&scene->mutex);
 }
 
 static void
@@ -214,4 +216,24 @@ lp_scene_class_init (lp_SceneClass *klass)
 
   if (!gst_is_initialized ())
     assert (gst_init_check (NULL, NULL, NULL));
+}
+
+/***************** INTERNAL FUNCTIONS *****************/
+GstElement *
+_lp_scene_get_pipeline (lp_Scene *scene)
+{
+  assert (scene != NULL);
+  return scene->pipeline;
+}
+
+void
+_lp_scene_lock (lp_Scene *scene)
+{
+  g_rec_mutex_lock (&scene->mutex);
+}
+
+void
+_lp_scene_unlock (lp_Scene *scene)
+{
+  g_rec_mutex_unlock (&scene->mutex);
 }

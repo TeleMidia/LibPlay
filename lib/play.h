@@ -77,6 +77,9 @@ G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
 /* Gets the GType of an lp_Media.  */
 #define LP_TYPE_MEDIA (lp_media_get_type ())
 
+LP_API gboolean
+lp_media_start (lp_Media *);
+
 LP_END_DECLS
 
 #endif /* PLAY_H */

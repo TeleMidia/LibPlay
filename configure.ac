@@ -69,21 +69,11 @@ AU_SYSTEM
 AU_SYSTEM_MINGW
 
 # Configure options.
-AU_ARG_ENABLE_ANSI
 AU_ARG_ENABLE_COVERAGE
 AU_ARG_ENABLE_DEBUG
 AU_ARG_ENABLE_VALGRIND
 AU_ARG_ENABLE_WARNINGS
 
-AC_ARG_WITH([syncclock],
-            [AS_HELP_STRING([--with-syncclock], 
-                            [add support for synchronous clock])],
-            [with_syncclock=yes
-             AC_DEFINE(HAVE_SYNCCLOCK, [1], 
-                       [Define to 1 to enable synchronous clock])],
-            [with_syncclock=no])
-
-#
 # Library functions.
 AC_CHECK_LIBM
 AU_CHECK_MACROS_H

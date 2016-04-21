@@ -65,12 +65,23 @@ lp_version (void);
 LP_API const char *
 lp_version_string (void);
 
+/* events */
+typedef enum
+{
+  LP_START,
+  LP_STOP,
+  LP_TICK
+} lp_Event;
+
 /* scene */
 G_DECLARE_FINAL_TYPE (lp_Scene, lp_scene, LP, SCENE, GObject)
 #define LP_TYPE_SCENE (lp_scene_get_type ())
 
 LP_API lp_Scene *
 lp_scene_new (int, int);
+
+LP_API gboolean
+lp_scene_wait (lp_Scene *, gboolean, GObject **, lp_Event *);
 
 /* media */
 G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)

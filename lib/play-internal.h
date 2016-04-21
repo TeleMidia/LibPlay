@@ -19,14 +19,44 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #ifndef PLAY_INTERNAL_H
 #define PLAY_INTERNAL_H
 
+#include "play.h"
+#include "macros.h"
 #include "gstx-macros.h"
+
+/* debug */
+#if defined DEBUG && DEBUG
+# define _lp_debug(fmt, ...)                                    \
+  STMT_BEGIN                                                    \
+  {                                                             \
+    g_print ("%s:%d:%s (thread %p): " fmt "\n",                 \
+             __FILE__, __LINE__, __FUNCTION__,                  \
+             (void *) g_thread_self (), ## __VA_ARGS__);        \
+  }                                                             \
+  STMT_END
+
+# define _lp_debug_dump_message(msg)                            \
+  STMT_BEGIN                                                    \
+  {                                                             \
+    const GstStructure *st = gst_message_get_structure ((msg)); \
+    if (st != NULL)                                             \
+      {                                                         \
+        gchar *s = gst_structure_to_string (st);                \
+        _lp_debug ("%s", s);                                    \
+        g_free (s);                                             \
+      }                                                         \
+  }                                                             \
+  STMT_END
+#else
+# define lp_debug(tag, fmt, ...)         /* nothing */
+# define lp_debug_dump_message(tag, msg) /* nothing */
+#endif
 
 /* checks */
 #define _lp_scene_check(scene)                                          \
   STMT_BEGIN                                                            \
   {                                                                     \
     if (unlikely (scene == NULL))                                       \
-      g_error (G_STRLOC ": bad scene: %s", (scene));                    \
+      g_critical (G_STRLOC ": bad scene: %s", (scene));                 \
   }                                                                     \
   STMT_END
 
@@ -35,16 +65,22 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
   {                                                                     \
     const char *missing;                                                \
     if (unlikely (!gstx_eltmap_alloc ((obj), (map), &missing)))         \
-      g_error (G_STRLOC": missing GStreamer plugin: %s", missing);      \
+      g_critical (G_STRLOC": missing GStreamer plugin: %s", missing);   \
   }                                                                     \
   STMT_END
 
 /* scene */
-gboolean
+void
 _lp_scene_add (lp_Scene *, lp_Media *);
 
 GstElement *
-_lp_scene_pipeline (lp_Scene *);
+_lp_scene_get_pipeline (lp_Scene *);
+
+GstElement *
+_lp_scene_get_audio_mixer (lp_Scene *);
+
+GstElement *
+_lp_scene_get_video_mixer (lp_Scene *);
 
 gboolean
 _lp_scene_has_video(lp_Scene *);

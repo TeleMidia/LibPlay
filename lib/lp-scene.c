@@ -27,7 +27,9 @@ struct _lp_Scene
   GObject parent;               /* parent object */
   GstElement *pipeline;         /* scene pipeline */
   GstClockID clock_id;          /* last clock id */
-  GList *children;              /* list of child medias */
+  GMainLoop *loop;              /* scene loop */
+  GList *messages;              /* pending messages */
+  GList *children;              /* child medias */
   struct
   {
     GstElement *blank;          /* blank audio source */
@@ -63,7 +65,7 @@ static const gstx_eltmap_t lp_scene_eltmap_video[] = {
   {"videotestsrc",  offsetof (lp_Scene, video.blank)},
   {"capsfilter",    offsetof (lp_Scene, video.filter)},
   {"compositor",    offsetof (lp_Scene, video.mixer)},
-  {"ximagesink",    offsetof (lp_Scene, video.sink)},
+  {"glimagesink",   offsetof (lp_Scene, video.sink)},
   {NULL, 0},
 };
 
@@ -87,10 +89,168 @@ enum
 /* Define the lp_Scene type.  */
 G_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
 
+
+/* callbacks */
+
+/* Called asynchronously whenever the scene pipeline clock ticks.
+   Sends a "scene-tick" application message to pipeline bus.  */
+
+static int
+lp_scene_tick_callback (GstClock *clock,
+                        GstClockTime time,
+                        GstClockID id,
+                        lp_Scene *scene)
+{
+  GstStructure *st;
+  GstMessage *msg;
+
+  st = gst_structure_new ("scene-tick",
+                          "scene", G_TYPE_POINTER, scene,
+                          "time", GST_TYPE_CLOCK_TIME, time, NULL);
+  assert (st != NULL);
+
+  msg = gst_message_new_application (NULL, st);
+  assert (msg != NULL);
+  assert (gst_element_post_message (scene->pipeline, msg));
+
+  return TRUE;
+}
+
+/* Called asynchronously whenever scene pipeline bus receives a message.  */
+
+static int
+lp_scene_bus_callback (arg_unused (GstBus *bus),
+                       GstMessage *msg,
+                       lp_Scene *scene)
+{
+  GstObject *obj;
+  GstMessageType type;
+
+  obj = GST_MESSAGE_SRC (msg);
+  type = GST_MESSAGE_TYPE (msg);
+  switch (type)
+    {
+    case GST_MESSAGE_APPLICATION:
+      {
+        assert (gst_message_ref (msg) == msg);
+        scene->messages = g_list_append (scene->messages, msg);
+        break;
+      }
+    case GST_MESSAGE_ASYNC_DONE:
+      break;
+    case GST_MESSAGE_ASYNC_START:
+      break;
+    case GST_MESSAGE_BUFFERING:
+      break;
+    case GST_MESSAGE_CLOCK_LOST:
+      break;
+    case GST_MESSAGE_CLOCK_PROVIDE:
+      break;
+    case GST_MESSAGE_DEVICE_ADDED:
+      break;
+    case GST_MESSAGE_DEVICE_REMOVED:
+      break;
+    case GST_MESSAGE_DURATION_CHANGED:
+      break;
+    case GST_MESSAGE_ELEMENT:
+      break;
+    case GST_MESSAGE_EOS:
+      break;
+    case GST_MESSAGE_ERROR:
+      {
+        GError *err;
+        gst_message_parse_error (msg, &err, NULL);
+        g_critical (G_STRLOC ": GStreamer error: %s", err->message);
+        g_error_free (err);
+        break;
+      }
+    case GST_MESSAGE_EXTENDED:
+      break;
+    case GST_MESSAGE_HAVE_CONTEXT:
+      break;
+    case GST_MESSAGE_INFO:
+      break;
+    case GST_MESSAGE_LATENCY:
+      break;
+    case GST_MESSAGE_NEED_CONTEXT:
+      break;
+    case GST_MESSAGE_NEW_CLOCK:
+      {
+        GstClock *clock;
+        GstClockID id;
+        GstClockTime time;
+        GstClockCallback func;
+        GstClockReturn ret;
+
+        clock = gst_pipeline_get_clock (GST_PIPELINE (scene->pipeline));
+        assert (clock != NULL);
+
+        time = gst_clock_get_time (clock);
+        assert (time != GST_CLOCK_TIME_NONE);
+
+        id = gst_clock_new_periodic_id (clock, time, 1 * GST_SECOND);
+        assert (id != NULL);
+
+        func = (GstClockCallback) lp_scene_tick_callback;
+        ret = gst_clock_id_wait_async (id, func, scene, NULL);
+        assert (ret == GST_CLOCK_OK);
+        if (scene->clock_id != NULL)
+          {
+            gst_clock_id_unschedule (scene->clock_id);
+            gst_clock_id_unref (scene->clock_id);
+          }
+        scene->clock_id = id;
+      }
+    case GST_MESSAGE_PROGRESS:
+      break;
+    case GST_MESSAGE_QOS:
+      break;
+    case GST_MESSAGE_REQUEST_STATE:
+      break;
+    case GST_MESSAGE_RESET_TIME:
+      break;
+    case GST_MESSAGE_SEGMENT_DONE:
+      break;
+    case GST_MESSAGE_SEGMENT_START:
+      break;
+    case GST_MESSAGE_STATE_CHANGED:
+      break;
+    case GST_MESSAGE_STATE_DIRTY:
+      break;
+    case GST_MESSAGE_STEP_DONE:
+      break;
+    case GST_MESSAGE_STEP_START:
+      break;
+    case GST_MESSAGE_STREAM_START:
+      break;
+    case GST_MESSAGE_STREAM_STATUS:
+      break;
+    case GST_MESSAGE_STRUCTURE_CHANGE:
+      break;
+    case GST_MESSAGE_TAG:
+      break;
+    case GST_MESSAGE_TOC:
+      break;
+    case GST_MESSAGE_WARNING:
+      break;
+    case GST_MESSAGE_UNKNOWN:
+    default:
+      break;
+    }
+  return TRUE;
+}
+
+
+/* private */
+
 static void
 lp_scene_init (lp_Scene *scene)
 {
+
   scene->clock_id = NULL;
+  scene->loop = g_main_loop_new (NULL, FALSE);
+  assert (scene->loop != NULL);
+  scene->messages = NULL;
   scene->children = NULL;
   scene->prop.width = DEFAULT_WIDTH;
   scene->prop.height = DEFAULT_HEIGHT;
@@ -156,9 +316,18 @@ lp_scene_set_property (GObject *object, guint prop_id,
 static void
 lp_scene_constructed (GObject *object)
 {
-  lp_Scene *scene = LP_SCENE (object);
+  lp_Scene *scene;
+  GstBus *bus;
+
+  scene = LP_SCENE (object);
 
   _lp_eltmap_alloc_check (scene, lp_scene_eltmap);
+  bus = gst_pipeline_get_bus (GST_PIPELINE (scene->pipeline));
+  assert (bus != NULL);
+  assert (gst_bus_add_watch
+          (bus, (GstBusFunc) lp_scene_bus_callback, scene) > 0);
+  gst_object_unref (bus);
+
   assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.blank));
   assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.mixer));
   assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.sink));
@@ -189,6 +358,7 @@ lp_scene_constructed (GObject *object)
   g_object_set (scene, "pattern", scene->prop.pattern,
                 "wave", scene->prop.wave, NULL);
   gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
+  assert (lp_scene_wait (scene, TRUE, NULL, NULL)); /* wait for a tick */
 }
 
 static void
@@ -200,22 +370,18 @@ lp_scene_finalize (GObject *object)
 
   scene = LP_SCENE (object);
 
+  _lp_debug ("finalizing scene %p", scene);
+
   if (scene->clock_id != NULL)
     gst_clock_id_unschedule (scene->clock_id);
-
-  for (p = scene->children; p != NULL; p = g_list_next (p))
-    {
-      media = p->data;
-      g_object_unref (media);
-    }
-
-  g_print ("finalizing scene %p\n", scene);
 
   gstx_element_set_state_sync (scene->pipeline, GST_STATE_NULL);
   gst_object_unref (scene->pipeline);
   if (scene->clock_id != NULL)
     gst_clock_id_unref (scene->clock_id);
-  g_list_free (scene->children);
+  g_main_loop_unref (scene->loop);
+  g_list_free_full (scene->messages, (GDestroyNotify) gst_message_unref);
+  g_list_free_full (scene->children, g_object_unref);
 
   G_OBJECT_CLASS (lp_scene_parent_class)->finalize (object);
 }
@@ -263,19 +429,35 @@ lp_scene_class_init (lp_SceneClass *cls)
 
 /* Adds media to scene child list.  */
 
-gboolean
+void
 _lp_scene_add (lp_Scene *scene, lp_Media *media)
 {
   scene->children = g_list_append (scene->children, media);
-  g_object_ref (media);
+  assert (g_object_ref (media) == media);
 }
 
 /* Returns the scene pipeline.  */
 
 GstElement *
-_lp_scene_pipeline (lp_Scene *scene)
+_lp_scene_get_pipeline (lp_Scene *scene)
 {
   return scene->pipeline;
+}
+
+/* Returns the scene audio mixer.  */
+
+GstElement *
+_lp_scene_get_audio_mixer (lp_Scene *scene)
+{
+  return scene->audio.mixer;
+}
+
+/* Returns the scene video mixer.  */
+
+GstElement *
+_lp_scene_get_video_mixer (lp_Scene *scene)
+{
+  return scene->video.mixer;
 }
 
 /* Returns true if scene has video output.  */
@@ -294,7 +476,7 @@ _lp_scene_has_video(lp_Scene *scene)
  * @width: scene width
  * @height: scene height
  *
- * Allocates and returns a new #lp_Scene with the given dimensions.
+ * Returns: (transfer full): A new #lp_Scene with the given dimensions.
  */
 lp_Scene *
 lp_scene_new (int width, int height)
@@ -302,4 +484,55 @@ lp_scene_new (int width, int height)
   return g_object_new (LP_TYPE_SCENE,
                        "width", width,
                        "height", height, NULL);
+}
+
+/**
+ * lp_scene_wait:
+ * @scene: an #lp_Scene.
+ * @block: whether the call may block.
+ * @target: (out) (allow-none) (transfer full): location for the target
+ *     object, or %NULL.
+ * @evt: (out) (allow-none): location for the target event, or %NULL.
+ */
+gboolean
+lp_scene_wait (lp_Scene *scene, gboolean block,
+               GObject **target, lp_Event *evt)
+{
+  GMainContext *ctx;
+  GstMessage *msg;
+  const GstStructure *st;
+  GList *p;
+
+  ctx = g_main_loop_get_context (scene->loop);
+  assert (ctx != NULL);
+
+  if (block)
+    {
+      while (scene->messages == NULL)
+        g_main_context_iteration (ctx, TRUE);
+    }
+  else
+    {
+      g_main_context_iteration (ctx, FALSE);
+    }
+
+  if (scene->messages == NULL)
+    return FALSE;               /* nothing to do */
+
+  msg = scene->messages->data;
+  scene->messages = g_list_remove_link (scene->messages, scene->messages);
+
+  st = gst_message_get_structure (msg);
+  if (gst_structure_has_name (st, "scene-tick"))
+    {
+      set_if_nonnull (target, G_OBJECT (scene));
+      set_if_nonnull (evt, LP_TICK);
+    }
+  else
+    {
+      g_critical (G_STRLOC ": unknown application event");
+    }
+  gst_message_unref (msg);
+
+  return TRUE;
 }

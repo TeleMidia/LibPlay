@@ -108,6 +108,154 @@ enum
 /* Define the lp_Media type.  */
 G_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 
+
+/* callbacks */
+
+/* Called asynchronously whenever a media decoder creates a pad.
+   Builds and starts the media processing graph.  */
+
+static void
+lp_media_pad_added_callback (GstElement *decoder,
+                          GstPad *pad,
+                          lp_Media *media)
+{
+  lp_Scene *scene;
+  GstCaps *caps;
+  const char *name;
+
+  GstElement *mixer;
+  GstPad *sinkpad;
+  GstPad *ghostpad;
+
+  assert (g_atomic_int_get (&media->playing));
+  assert (!g_atomic_int_get (&media->stopping));
+
+  scene = media->prop.scene;
+  _lp_scene_check (scene);
+
+  caps = gst_pad_query_caps (pad, NULL);
+  assert (caps != NULL);
+
+  name = gst_structure_get_name (gst_caps_get_structure (caps, 0));
+  assert (name != NULL);
+  gst_caps_unref (caps);
+
+  if (g_atomic_int_get (&media->active_pads) == 0)
+    {
+      /* TODO: Is this the right way to get the offset? */
+      GstElement *pipeline = _lp_scene_get_pipeline (scene);
+      media->offset = gstx_element_get_clock_time (pipeline);
+    }
+  gst_pad_set_offset (pad, media->offset);
+
+  if (streq (name, "video/x-raw") && _lp_scene_has_video (scene))
+    {
+      mixer = _lp_scene_get_video_mixer (scene);
+
+      /* FIXME: Handle errors and multiple video streams.  */
+      assert (media->video.mixerpad == NULL);
+      _lp_eltmap_alloc_check (media, media_eltmap_video);
+
+      caps = gst_caps_new_simple
+        ("video/x-raw",
+         "pixel-aspect-ratio", GST_TYPE_FRACTION, 1, 1, NULL);
+      assert (caps != NULL);
+
+      if (media->prop.width > 0)
+        gst_caps_set_simple (caps, "width", G_TYPE_INT,
+                             media->prop.width, NULL);
+
+      if (media->prop.height > 0)
+        gst_caps_set_simple (caps, "height", G_TYPE_INT,
+                             media->prop.height, NULL);
+
+      g_object_set (media->video.scale, "add-borders", 0, NULL);
+      g_object_set (media->video.filter, "caps", caps, NULL);
+      gst_caps_unref (caps);
+
+      assert (gst_bin_add (GST_BIN (media->bin), media->video.scale));
+      assert (gst_bin_add (GST_BIN (media->bin), media->video.filter));
+      assert (gst_element_link (media->video.scale, media->video.filter));
+
+      sinkpad = gst_element_get_static_pad (media->video.scale, "sink");
+      assert (sinkpad != NULL);
+      assert (gst_pad_link (pad, sinkpad) == GST_PAD_LINK_OK);;
+      gst_object_unref (sinkpad);
+
+      pad = gst_element_get_static_pad (media->video.filter, "src");
+      assert (pad != NULL);
+      ghostpad = gst_ghost_pad_new (NULL, pad);
+      assert (ghostpad != NULL);
+      gst_object_unref (pad);
+      assert (gst_pad_set_active (ghostpad, TRUE));
+      assert (gst_element_add_pad (media->bin, ghostpad));
+
+      sinkpad = gst_element_get_request_pad (mixer, "sink_%u");
+      assert (sinkpad != NULL);
+      media->video.mixerpad = gst_pad_get_name (sinkpad);
+
+      assert (gst_pad_link (ghostpad, sinkpad) == GST_PAD_LINK_OK);
+      g_object_set
+        (sinkpad,
+         "xpos", media->prop.x,
+         "ypos", media->prop.y,
+         "zorder", media->prop.z,
+         "alpha", media->prop.alpha,
+         NULL);
+      gstx_element_set_state_sync (media->video.filter, GST_STATE_PLAYING);
+      gstx_element_set_state_sync (media->video.scale, GST_STATE_PLAYING);
+      gst_object_unref (sinkpad);
+      g_atomic_int_inc (&media->active_pads);
+    }
+  else if (streq (name, "audio/x-raw"))
+    {
+      mixer = _lp_scene_get_audio_mixer (scene);
+
+      /* FIXME: Handle errors and multiple audio streams.  */
+      _lp_eltmap_alloc_check (media, media_eltmap_audio);
+
+      assert (gst_bin_add (GST_BIN (media->bin), media->audio.volume));
+      assert (gst_bin_add (GST_BIN (media->bin), media->audio.convert));
+      assert (gst_bin_add (GST_BIN (media->bin), media->audio.resample));
+      assert (gst_element_link_many
+              (media->audio.volume,
+               media->audio.convert,
+               media->audio.resample, NULL));
+
+      sinkpad = gst_element_get_static_pad (media->audio.volume, "sink");
+      assert (sinkpad != NULL);
+      assert (gst_pad_link (pad, sinkpad) == GST_PAD_LINK_OK);
+      gst_object_unref (sinkpad);
+
+      pad = gst_element_get_static_pad (media->audio.resample, "src");
+      assert (pad != NULL);
+      ghostpad = gst_ghost_pad_new (NULL, pad);
+      assert (ghostpad != NULL);
+      gst_object_unref (pad);
+      assert (gst_pad_set_active (ghostpad, TRUE));
+      assert (gst_element_add_pad (media->bin, ghostpad));
+
+      sinkpad = gst_element_get_request_pad (mixer, "sink_%u");
+      assert (sinkpad != NULL);
+      media->audio.mixerpad = gst_pad_get_name (sinkpad);
+
+      assert (gst_pad_link (ghostpad, sinkpad) == GST_PAD_LINK_OK);
+      gstx_element_set_state_sync (media->audio.volume, GST_STATE_PLAYING);
+      gstx_element_set_state_sync (media->audio.convert, GST_STATE_PLAYING);
+      gstx_element_set_state_sync (media->audio.resample,
+                                   GST_STATE_PLAYING);
+      gst_object_unref (sinkpad);
+      g_atomic_int_inc (&media->active_pads);
+    }
+  else
+    {
+      return;                   /* nothing to do */
+    }
+}
+
+
+/* private */
+
 static void
 lp_media_init (lp_Media *media)
 {
@@ -218,8 +366,11 @@ lp_media_constructed (GObject *object)
   lp_Media *media = LP_MEDIA (object);
 
   _lp_scene_check (media->prop.scene);
-  _lp_eltmap_alloc_check (media, lp_media_eltmap);
   _lp_scene_add (media->prop.scene, media);
+
+  /* FIXME: Users must not unref medias directly
+     (i.e., without ref them first).  */
+
   g_object_unref (media);
 }
 
@@ -228,7 +379,7 @@ lp_media_finalize (GObject *object)
 {
   lp_Media *media = LP_MEDIA (object);
 
-  g_print ("finalizing media %p\n", media);
+  _lp_debug ("finalizing media %p", media);
 
   G_OBJECT_CLASS (lp_media_parent_class)->finalize (object);
 }
@@ -327,7 +478,7 @@ lp_media_new (lp_Scene *scene, const char *uri)
 gboolean
 lp_media_start (lp_Media *media)
 {
-  const char *missing;
+  _lp_scene_check (media->prop.scene);
 
   if (unlikely (g_atomic_int_get (&media->playing)
                 || g_atomic_int_get (&media->stopping)))
@@ -335,9 +486,11 @@ lp_media_start (lp_Media *media)
       return FALSE;             /* nothing to do */
     }
 
-  _lp_scene_check (media->prop.scene);
-
-  if (!gst_uri_is_valid (media->prop.uri))
+  if (gst_uri_is_valid (media->prop.uri))
+    {
+      media->abs_uri = g_strdup (media->prop.uri);
+    }
+  else
     {
       GError *err = NULL;
       char *abs_uri = gst_filename_to_uri (media->prop.uri, &err);
@@ -351,17 +504,22 @@ lp_media_start (lp_Media *media)
       media->abs_uri = abs_uri;
     }
 
-  media->offset = 0;
-  media->playing = 0;
-  media->stopping = 0;
-  media->active_pads = 0;
-  g_free (media->audio.mixerpad);
-  media->audio.mixerpad = NULL;
-  g_free (media->video.mixerpad);
-  media->video.mixerpad = NULL;
+  _lp_eltmap_alloc_check (media, lp_media_eltmap);
+
+  g_object_set (media->decoder, "uri", media->abs_uri, NULL);
+  gst_bin_add (GST_BIN (media->bin), media->decoder);
+  assert (g_signal_connect
+          (media->decoder, "pad-added",
+           G_CALLBACK (lp_media_pad_added_callback), media) > 0);
+
+  assert (gst_object_ref (media->bin) == media->bin);
+  assert (gst_bin_add (GST_BIN (_lp_scene_get_pipeline (media->prop.scene)),
+                       media->bin));
+
+  g_atomic_int_inc (&media->playing);
+  gstx_element_set_state_sync (media->decoder, GST_STATE_PLAYING);
 
   return TRUE;
-
 }
 
 /**

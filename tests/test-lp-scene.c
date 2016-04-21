@@ -121,5 +121,26 @@ main (void)
     }
   STMT_END;
 
+  /* wait */
+  STMT_BEGIN
+    {
+      lp_Scene *scene;
+      lp_Event evt;
+
+      scene = g_object_new (LP_TYPE_SCENE, "wave", 8, NULL);
+      assert (scene != NULL);
+
+      assert (lp_scene_wait (scene, TRUE, NULL, &evt));
+      assert (evt == LP_TICK);
+      g_print ("TICK\n");
+
+      assert (lp_scene_wait (scene, TRUE, NULL, &evt));
+      assert (evt == LP_TICK);
+      g_print ("TICK\n");
+
+      g_object_unref (scene);
+    }
+  STMT_END;
+
   exit (EXIT_SUCCESS);
 }

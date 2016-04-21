@@ -21,87 +21,144 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "play.h"
 #include "play-internal.h"
 
-/* Forward declarations:  */
-/* *INDENT-OFF* */
-static void __lp_media_constructed (GObject *);
-static void __lp_media_finalize (GObject *);
-static void __lp_media_dispose (GObject *);
-static void __lp_media_get_property (GObject *, guint, GValue *, GParamSpec *);
-static void __lp_media_set_property (GObject *, guint, const GValue *, 
-    GParamSpec *);
-static void __lp_media_pad_added_callback (GstElement *, GstPad *, gpointer);
-/* *INDENT-ON* */
-
 /* Media object. */
 struct _lp_Media
 {
   GObject parent;               /* parent object */
-  GstElement *bin;              /* media bin */
-  GstElement *decoder;          /* media decoder */
-  GstClockTime offset;          /* start offset */
+  GstElement *bin;              /* container */
+  GstElement *decoder;          /* content decoder */
+  GstClockTime offset;          /* start time offset */
+  gint playing;                 /* true if media is playing */
+  gint stopping;                /* true if media is stopping */
+  gint active_pads;             /* number of active ghost pads in bin */
+  char *abs_uri;                /* absolute URI */
   struct
   {
-    GstElement *volume;         /* audio volume  */
-    GstElement *convert;        /* audio converter */
-    GstElement *resample;       /* audio resampler */
+    GstElement *volume;         /* audio volume */
+    GstElement *convert;        /* audio convert */
+    GstElement *resample;       /* audio resample */
     GstElement *filter;         /* audio filter */
+    char *mixerpad;             /* name of sink pad in mixer */
   } audio;
   struct
   {
-    GstElement *scale;          /* video scaler */
+    GstElement *scale;          /* video scale */
     GstElement *filter;         /* video filter */
+    char *mixerpad;             /* name of sink pad in mixer */
   } video;
   struct
   {
     lp_Scene *scene;            /* parent scene */
     char *uri;                  /* content URI */
+    int x;                      /* cached x */
+    int y;                      /* cached y */
+    int z;                      /* cached z */
     int width;                  /* cached width */
     int height;                 /* cached height */
-    int zorder;                 /* cached zorder */
     double alpha;               /* cached alpha */
     double volume;              /* cached volume */
-    /* what else? */
   } prop;
 };
 
+/* Maps GStreamer elements to lp_Media.  */
+static const gstx_eltmap_t lp_media_eltmap[] = {
+  {"bin",           offsetof (lp_Media, bin)},
+  {"uridecodebin",  offsetof (lp_Media, decoder)},
+  {NULL, 0},
+};
+
+static const gstx_eltmap_t media_eltmap_audio[] = {
+  {"volume",        offsetof (lp_Media, audio.volume)},
+  {"audioconvert",  offsetof (lp_Media, audio.convert)},
+  {"audioresample", offsetof (lp_Media, audio.resample)},
+  {NULL, 0}
+};
+
+static const gstx_eltmap_t media_eltmap_video[] = {
+  {"videoscale",    offsetof (lp_Media, video.scale)},
+  {"capsfilter",    offsetof (lp_Media, video.filter)},
+  {NULL, 0},
+};
 
 /* Media properties. */
 enum
 {
-  PROP_SCENE = 1,
+  PROP_0,
+  PROP_SCENE,
   PROP_URI,
+  PROP_X,
+  PROP_Y,
+  PROP_Z,
   PROP_WIDTH,
   PROP_HEIGHT,
-  PROP_ZORDER,
   PROP_ALPHA,
   PROP_VOLUME,
-  N_PROPERTIES
+  PROP_LAST
 };
 
-G_DEFINE_TYPE (lp_Media, __lp_media, G_TYPE_OBJECT)
+/* Default values for media properties.  */
+#define DEFAULT_X         0     /* leftmost horizontal position */
+#define DEFAULT_Y         0     /* topmost vertical position */
+#define DEFAULT_Z         1     /* lowest order */
+#define DEFAULT_WIDTH     0     /* natural width */
+#define DEFAULT_HEIGHT    0     /* natural height */
+#define DEFAULT_ALPHA   1.0     /* natural alpha */
+#define DEFAULT_VOLUME  1.0     /* natural volume */
+
+/* Define the lp_Media type.  */
+G_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 
 static void
-__lp_media_get_property (GObject *object, guint prop_id,
+lp_media_init (lp_Media *media)
+{
+  media->offset = GST_CLOCK_TIME_NONE;
+  media->playing = 0;
+  media->stopping = 0;
+  media->active_pads = 0;
+  media->abs_uri = NULL;
+
+  media->audio.mixerpad = NULL;
+  media->video.mixerpad = NULL;
+
+  media->prop.scene = NULL;
+  media->prop.uri = NULL;
+  media->prop.x = DEFAULT_X;
+  media->prop.y = DEFAULT_Y;
+  media->prop.z = DEFAULT_Z;
+  media->prop.width = DEFAULT_WIDTH;
+  media->prop.height = DEFAULT_HEIGHT;
+  media->prop.alpha = DEFAULT_ALPHA;
+  media->prop.volume = DEFAULT_VOLUME;
+}
+
+static void
+lp_media_get_property (GObject *object, guint prop_id,
                        GValue *value, GParamSpec *pspec)
 {
   lp_Media *media = LP_MEDIA (object);
 
   switch (prop_id)
-  {
+    {
     case PROP_SCENE:
       g_value_set_pointer (value, media->prop.scene);
       break;
     case PROP_URI:
       g_value_set_string (value, media->prop.uri);
       break;
+    case PROP_X:
+      g_value_set_int (value, media->prop.x);
+      break;
+    case PROP_Y:
+      g_value_set_int (value, media->prop.y);
+      break;
+    case PROP_Z:
+      g_value_set_int (value, media->prop.z);
+      break;
     case PROP_WIDTH:
       g_value_set_int (value, media->prop.width);
       break;
     case PROP_HEIGHT:
       g_value_set_int (value, media->prop.height);
-      break;
-    case PROP_ZORDER:
-      g_value_set_int (value, media->prop.zorder);
       break;
     case PROP_ALPHA:
       g_value_set_double (value, media->prop.alpha);
@@ -111,31 +168,38 @@ __lp_media_get_property (GObject *object, guint prop_id,
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-  }
+    }
 }
 
 static void
-__lp_media_set_property (GObject *object, guint prop_id,
+lp_media_set_property (GObject *object, guint prop_id,
                        const GValue *value, GParamSpec *pspec)
 {
   lp_Media *media = LP_MEDIA (object);
 
   switch (prop_id)
-  {
+    {
     case PROP_SCENE:
       media->prop.scene = LP_SCENE (g_value_get_pointer (value));
       break;
     case PROP_URI:
-      media->prop.uri = g_strdup (g_value_get_string (value));
+      g_free (media->prop.uri);
+      media->prop.uri = g_value_dup_string (value);
+      break;
+    case PROP_X:
+      media->prop.y = g_value_get_int (value);
+      break;
+    case PROP_Y:
+      media->prop.y = g_value_get_int (value);
+      break;
+    case PROP_Z:
+      media->prop.x = g_value_get_int (value);
       break;
     case PROP_WIDTH:
       media->prop.width = g_value_get_int (value);
       break;
     case PROP_HEIGHT:
       media->prop.height = g_value_get_int (value);
-      break;
-    case PROP_ZORDER:
-      media->prop.zorder = g_value_get_int (value);
       break;
     case PROP_ALPHA:
       media->prop.alpha = g_value_get_double (value);
@@ -145,144 +209,171 @@ __lp_media_set_property (GObject *object, guint prop_id,
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-  }
-}
-
-GType lp_media_get_type ()
-{
-  return __lp_media_get_type ();
-}
-
-/* Default values for scene properties.  */
-#define DEFAULT_WIDTH     0     /* pixels */
-#define DEFAULT_HEIGHT    0     /* pixels */
-#define DEFAULT_ZORDER    0     /* order */
-#define DEFAULT_ALPHA    1.0    /* opaque */
-#define DEFAULT_VOLUME   1.0    /* highest */
-
-static void
-__lp_media_init (lp_Media *media)
-{
-  media->bin = gst_bin_new (NULL);
-  media->prop.scene = NULL;
-  media->prop.uri = NULL;
-  media->prop.width = DEFAULT_WIDTH;
-  media->prop.height = DEFAULT_HEIGHT;
-  media->prop.zorder = DEFAULT_ZORDER;
-  media->prop.alpha = DEFAULT_ALPHA;
-  media->prop.volume = DEFAULT_VOLUME;
+    }
 }
 
 static void
-__lp_media_class_init (lp_MediaClass *klass)
-{
-  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
-
-  gobject_class->get_property = __lp_media_get_property;
-  gobject_class->set_property = __lp_media_set_property;
-  gobject_class->constructed = __lp_media_constructed;
-  gobject_class->dispose = __lp_media_dispose;
-  gobject_class->finalize = __lp_media_finalize;
-
-
-  g_object_class_install_property
-    (gobject_class, PROP_SCENE, g_param_spec_pointer 
-     ("scene", "scene", "media scene parent", 
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
-  
-  g_object_class_install_property
-    (gobject_class, PROP_URI, g_param_spec_string 
-     ("uri", "URI", "media URI", NULL,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
-
-  g_object_class_install_property
-    (gobject_class, PROP_WIDTH, g_param_spec_int
-     ("width", "width", "media width in pixels",
-      0, G_MAXINT, DEFAULT_WIDTH, G_PARAM_READWRITE));
-
-  g_object_class_install_property
-    (gobject_class, PROP_HEIGHT, g_param_spec_int
-     ("height", "height", "media height in pixels",
-      0, G_MAXINT, DEFAULT_HEIGHT, G_PARAM_READWRITE));
-
-  g_object_class_install_property
-    (gobject_class, PROP_ZORDER, g_param_spec_int
-     ("zorder", "zorder", "media zorder priority",
-      0, 10000, DEFAULT_ZORDER, G_PARAM_READWRITE));
-
-  g_object_class_install_property
-    (gobject_class, PROP_ALPHA, g_param_spec_double
-     ("alpha", "alpha", "media alpha channel",
-      0, 1.0, DEFAULT_ALPHA, G_PARAM_READWRITE));
-  
-  g_object_class_install_property
-    (gobject_class, PROP_VOLUME, g_param_spec_double
-     ("volume", "volume", "media volume",
-      0, 1.0, DEFAULT_VOLUME, G_PARAM_READWRITE));
-}
-
-static void
-__lp_media_constructed (GObject *object)
+lp_media_constructed (GObject *object)
 {
   lp_Media *media = LP_MEDIA (object);
 
-  if (media->prop.uri != NULL)
-  {
-    assert ((media->decoder = gst_element_factory_make ("uridecodebin", NULL),
-          media->decoder) != NULL);
-    g_object_set (G_OBJECT (media->decoder), "uri", media->prop.uri, NULL);
-    g_signal_connect (G_OBJECT (media->decoder), "pad-added", 
-       G_CALLBACK(__lp_media_pad_added_callback), media);
-  }
-  else /* if there is no URI the media becomes a silent audio */
-  {
-    assert ((media->decoder = gst_element_factory_make ("audiotestsrc", NULL),
-          media->decoder) != NULL);
-    g_object_set (G_OBJECT (media->decoder), "wave", 4 /* silence */, NULL);
-  }
-
-  gst_bin_add (GST_BIN (media->bin), media->decoder);
+  _lp_scene_check (media->prop.scene);
+  _lp_eltmap_alloc_check (media, lp_media_eltmap);
+  _lp_scene_add (media->prop.scene, media);
+  g_object_unref (media);
 }
 
 static void
-__lp_media_finalize (GObject *object)
+lp_media_finalize (GObject *object)
 {
-  /* TODO: */
+  lp_Media *media = LP_MEDIA (object);
+
+  g_print ("finalizing media %p\n", media);
+
+  G_OBJECT_CLASS (lp_media_parent_class)->finalize (object);
 }
 
 static void
-__lp_media_dispose (GObject *object)
+lp_media_class_init (lp_MediaClass *cls)
 {
-  /* TODO: */
+  GObjectClass *gobject_class = G_OBJECT_CLASS (cls);
+
+  gobject_class->get_property = lp_media_get_property;
+  gobject_class->set_property = lp_media_set_property;
+  gobject_class->constructed = lp_media_constructed;
+  gobject_class->finalize = lp_media_finalize;
+
+  g_object_class_install_property
+    (gobject_class, PROP_SCENE, g_param_spec_pointer
+     ("scene", "scene", "parent scene",
+      G_PARAM_CONSTRUCT_ONLY
+      | G_PARAM_READWRITE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_URI, g_param_spec_string
+     ("uri", "uri", "content URI",
+      NULL,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_X, g_param_spec_int
+     ("x", "x", "horizontal position",
+      0, G_MAXINT, DEFAULT_X,
+      G_PARAM_READWRITE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_Y, g_param_spec_int
+     ("y", "y", "vertical position",
+      0, G_MAXINT, DEFAULT_Y,
+      G_PARAM_READWRITE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_Z, g_param_spec_int
+     ("z", "z", "z-order",
+      0, G_MAXINT, DEFAULT_Z,
+      G_PARAM_READWRITE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_WIDTH, g_param_spec_int
+     ("width", "width", "width in pixels",
+      0, G_MAXINT, DEFAULT_WIDTH,
+      G_PARAM_READWRITE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_HEIGHT, g_param_spec_int
+     ("height", "height", "height in pixels",
+      0, G_MAXINT, DEFAULT_HEIGHT,
+      G_PARAM_READWRITE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_ALPHA, g_param_spec_double
+     ("alpha", "alpha", "transparency factor",
+      0.0, 1.0, DEFAULT_ALPHA,
+      G_PARAM_READWRITE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_VOLUME, g_param_spec_double
+     ("volume", "volume", "volume factor",
+      0, 1.0, DEFAULT_VOLUME,
+      G_PARAM_READWRITE));
 }
 
+
+/* public */
 
-/***************** EXTERNAL API *****************/
+/**
+ * lp_scene_new:
+ * @width: scene width
+ * @height: scene height
+ *
+ * Allocates and returns a new #lp_Scene with the given dimensions.
+ */
+lp_Media *
+lp_media_new (lp_Scene *scene, const char *uri)
+{
+  return g_object_new (LP_TYPE_MEDIA,
+                       "scene", scene,
+                       "uri", uri, NULL);
+}
+
+/**
+ * lp_media_start:
+ * @media: an #lp_Media
+ *
+ * Starts media.
+ *
+ * Returns: true if successful, or false otherwise.
+ */
 gboolean
 lp_media_start (lp_Media *media)
 {
-  GstElement *pipeline = NULL;
+  const char *missing;
 
-  assert (media != NULL);
-  assert (media->prop.scene != NULL);
+  if (unlikely (g_atomic_int_get (&media->playing)
+                || g_atomic_int_get (&media->stopping)))
+    {
+      return FALSE;             /* nothing to do */
+    }
 
-  pipeline = _lp_scene_get_pipeline (media->prop.scene);
-  
-  _lp_scene_lock (media->prop.scene);
-  gst_bin_add (GST_BIN(pipeline), media->bin);
-  _lp_scene_unlock (media->prop.scene);
+  _lp_scene_check (media->prop.scene);
 
-  media->offset = gstx_element_get_clock_time (pipeline);
-  if (unlikely (media->offset == GST_CLOCK_TIME_NONE))
-    media->offset = 0;
+  if (!gst_uri_is_valid (media->prop.uri))
+    {
+      GError *err = NULL;
+      char *abs_uri = gst_filename_to_uri (media->prop.uri, &err);
+      if (unlikely (abs_uri == NULL))
+        {
+          g_warning (G_STRLOC "bad uri: %s", media->prop.uri);
+          g_error_free (err);
+          return FALSE;
+        }
+      g_free (media->abs_uri);
+      media->abs_uri = abs_uri;
+    }
 
-  gst_element_set_state (media->bin, GST_STATE_PLAYING);
+  media->offset = 0;
+  media->playing = 0;
+  media->stopping = 0;
+  media->active_pads = 0;
+  g_free (media->audio.mixerpad);
+  media->audio.mixerpad = NULL;
+  g_free (media->video.mixerpad);
+  media->video.mixerpad = NULL;
+
+  return TRUE;
 
 }
 
-/***************** INTERNAL FUNCTIONS *****************/
-static void
-__lp_media_pad_added_callback (GstElement *src, GstPad *pad, gpointer data)
+/**
+ * lp_media_stop:
+ * @media: an #lp_Media
+ *
+ * Stops media.
+ *
+ * Returns: true if successful, or false otherwise.
+ */
+gboolean
+lp_media_stop (lp_Media *media)
 {
-  /* TODO */
+  return FALSE;
 }

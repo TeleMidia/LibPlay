@@ -58,26 +58,32 @@ LP_BEGIN_DECLS
 #define LP_VERSION_STRING\
   LP_VERSION_TOSTRING (LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_MICRO)
 
-/* Library version.  */
+/* version */
 LP_API int
 lp_version (void);
 
 LP_API const char *
 lp_version_string (void);
 
-/* Scene object.  */
+/* scene */
 G_DECLARE_FINAL_TYPE (lp_Scene, lp_scene, LP, SCENE, GObject)
 #define LP_TYPE_SCENE (lp_scene_get_type ())
 
 LP_API lp_Scene *
 lp_scene_new (int, int);
 
-/* Media object.  */
+/* media */
 G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
 #define LP_TYPE_MEDIA (lp_media_get_type ())
 
+LP_API lp_Media *
+lp_media_new (lp_Scene *, const char *);
+
 LP_API gboolean
 lp_media_start (lp_Media *);
+
+LP_API gboolean
+lp_media_stop (lp_Media *);
 
 LP_END_DECLS
 

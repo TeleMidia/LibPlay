@@ -1,5 +1,5 @@
 # cfg.mk -- Setup maintainer's makefile.
-# Copyright (C) 2015 PUC-Rio/Laboratorio TeleMidia
+# Copyright (C) 2015-2016 PUC-Rio/Laboratorio TeleMidia
 #
 # This file is part of LibPlay.
 #
@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.
 
-COPYRIGHT_YEAR= 2015
+COPYRIGHT_YEAR= 2016
 COPYRIGHT_HOLDER= PUC-Rio/Laboratorio TeleMidia
 
 INDENT_OPTIONS=\
@@ -32,38 +32,15 @@ INDENT_OPTIONS=\
   $(NULL)
 
 INDENT_EXCLUDE=\
-  lib/gstx-macros.h\
-  lib/play-internal.h\
-  lib/play.h\
-  lua/luax-macros.h\
-  tests/tests.h\
   $(NULL)
 
 INDENT_JOIN_EMPTY_LINES_EXCLUDE=\
   $(NULL)
 
 INDENT_TYPES=\
-  GValue\
-  GstBus\
-  GstClock\
-  GstMessage\
-  GstPad\
-  lp_event_t\
-  lp_media_backend_t\
-  lp_media_gst_t\
-  lp_media_t\
-  lp_properties_desc_t\
-  lp_properties_t\
-  lp_value_t\
   $(NULL)
 
 SC_USELESS_IF_BEFORE_FREE_ALIASES=\
-  _lp_properties_free\
-  _lp_util_g_value_free\
-  g_free\
-  g_hash_table_destroy\
-  g_list_free\
-  lp_media_destroy\
   $(NULL)
 
 SYNTAX_CHECK_EXCLUDE=\
@@ -77,7 +54,6 @@ SC_COPYRIGHT_EXCLUDE=\
   build-aux/Makefile.am.link\
   build-aux/Makefile.am.valgrind\
   lib/macros.h\
-  lua/luax-macros.h\
   maint.mk\
   $(NULL)
 
@@ -109,7 +85,6 @@ NCLUA_FILES+= build-aux/Makefile.am.link
 NCLUA_FILES+= build-aux/Makefile.am.valgrind
 NCLUA_FILES+= build-aux/util.m4
 NCLUA_FILES+= lib/macros.h
-NCLUA_FILES+= lib/luax-macros.h
 NCLUA_FILES+= maint.mk
 NCLUA_SCRIPTS+= bootstrap
 NCLUA_SCRIPTS+= build-aux/syntax-check

@@ -1,5 +1,5 @@
 /* lp-media.c -- Media object.
-   Copyright (C) 2015 PUC-Rio/Laboratorio TeleMidia
+   Copyright (C) 2015-2016 PUC-Rio/Laboratorio TeleMidia
 
 This file is part of LibPlay.
 

@@ -115,9 +115,9 @@ G_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
    Builds and starts the media processing graph.  */
 
 static void
-lp_media_pad_added_callback (GstElement *decoder,
-                          GstPad *pad,
-                          lp_Media *media)
+lp_media_pad_added_callback (arg_unused (GstElement *decoder),
+                             GstPad *pad,
+                             lp_Media *media)
 {
   lp_Scene *scene;
   GstCaps *caps;
@@ -146,7 +146,7 @@ lp_media_pad_added_callback (GstElement *decoder,
       GstElement *pipeline = _lp_scene_get_pipeline (scene);
       media->offset = gstx_element_get_clock_time (pipeline);
     }
-  gst_pad_set_offset (pad, media->offset);
+  gst_pad_set_offset (pad, (gint64) media->offset);
 
   if (streq (name, "video/x-raw") && _lp_scene_has_video (scene))
     {
@@ -261,7 +261,7 @@ lp_media_pad_added_callback (GstElement *decoder,
 
 static GstPadProbeReturn
 media_pad_probe_callback (GstPad *pad,
-                          GstPadProbeInfo *info,
+                          arg_unused (GstPadProbeInfo *info),
                           gpointer user_data)
 {
   lp_Media *media;
@@ -441,14 +441,13 @@ lp_media_class_init (lp_MediaClass *cls)
   g_object_class_install_property
     (gobject_class, PROP_SCENE, g_param_spec_pointer
      ("scene", "scene", "parent scene",
-      G_PARAM_CONSTRUCT_ONLY
-      | G_PARAM_READWRITE));
+      (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_URI, g_param_spec_string
      ("uri", "uri", "content URI",
       NULL,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_X, g_param_spec_int
@@ -537,9 +536,10 @@ _lp_media_do_stop (lp_Media *media)
 lp_Media *
 lp_media_new (lp_Scene *scene, const char *uri)
 {
-  return g_object_new (LP_TYPE_MEDIA,
-                       "scene", scene,
-                       "uri", uri, NULL);
+  return LP_MEDIA (g_object_new (LP_TYPE_MEDIA,
+                                 "scene", scene,
+                                 "uri", uri,
+                                 NULL));
 }
 
 /**

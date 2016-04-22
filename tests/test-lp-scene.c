@@ -25,7 +25,7 @@ main (void)
     {
       lp_Scene *scene;
 
-      scene = g_object_new (LP_TYPE_SCENE, NULL);
+      scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, NULL));
       assert (scene != NULL);
       g_object_unref (scene);
     }
@@ -38,19 +38,19 @@ main (void)
       int width = -1;
       int height = -1;
 
-      scene = g_object_new (LP_TYPE_SCENE, NULL);
+      scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, NULL));
       assert (scene != NULL);
       g_object_get (scene, "width", &width, "height", &height, NULL);
       assert (width == 0 && height == 0);
       g_object_unref (scene);
 
-      scene = g_object_new (LP_TYPE_SCENE, "width", 800, NULL);
+      scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "width", 800, NULL));
       assert (scene != NULL);
       g_object_get (scene, "width", &width, "height", &height, NULL);
       assert (width == 800 && height == 0);
       g_object_unref (scene);
 
-      scene = g_object_new (LP_TYPE_SCENE, "height", 600, NULL);
+      scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "height", 600, NULL));
       assert (scene != NULL);
       g_object_get (scene, "width", &width, "height", &height, NULL);
       assert (width == 0 && height == 600);
@@ -80,8 +80,9 @@ main (void)
       lp_Scene *scene;
       int pattern = -1;
 
-      scene = g_object_new (LP_TYPE_SCENE, "width", 800,
-                            "height", 600, NULL);
+      scene = LP_SCENE (g_object_new (LP_TYPE_SCENE,
+                                      "width", 800,
+                                      "height", 600, NULL));
       assert (scene != NULL);
       g_object_get (scene, "pattern", &pattern, NULL);
       assert (pattern == 2);
@@ -104,7 +105,7 @@ main (void)
       lp_Scene *scene;
       int wave = -1;
 
-      scene = g_object_new (LP_TYPE_SCENE, NULL);
+      scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, NULL));
       assert (scene != NULL);
       g_object_get (scene, "wave", &wave, NULL);
       assert (wave == 4);
@@ -127,7 +128,7 @@ main (void)
       lp_Scene *scene;
       lp_Event evt;
 
-      scene = g_object_new (LP_TYPE_SCENE, "wave", 8, NULL);
+      scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "wave", 8, NULL));
       assert (scene != NULL);
 
       assert (lp_scene_pop (scene, TRUE, NULL, &evt));

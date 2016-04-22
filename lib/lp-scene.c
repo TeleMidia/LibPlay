@@ -18,8 +18,8 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
 
-#include "play.h"
 #include "play-internal.h"
+#include "play.h"
 
 /* Scene object.  */
 struct _lp_Scene
@@ -29,7 +29,7 @@ struct _lp_Scene
   GstClockID clock_id;          /* last clock id */
   GMainLoop *loop;              /* scene loop */
   GList *messages;              /* pending messages */
-  GList *children;              /* child medias */
+  GList *children;              /* child media objects */
   struct
   {
     GstElement *blank;          /* blank audio source */
@@ -96,9 +96,9 @@ G_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
    Sends a "scene-tick" application message to pipeline bus.  */
 
 static int
-lp_scene_tick_callback (GstClock *clock,
+lp_scene_tick_callback (arg_unused (GstClock *clock),
                         GstClockTime time,
-                        GstClockID id,
+                        arg_unused (GstClockID id),
                         lp_Scene *scene)
 {
   GstStructure *st;
@@ -123,10 +123,8 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
                        GstMessage *msg,
                        lp_Scene *scene)
 {
-  GstObject *obj;
   GstMessageType type;
 
-  obj = GST_MESSAGE_SRC (msg);
   type = GST_MESSAGE_TYPE (msg);
   switch (type)
     {
@@ -141,7 +139,9 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           }
         else if (gst_structure_has_name (st, "media-stop"))
           {
-            lp_Media *media = gstx_structure_get_pointer (st, "media");
+            lp_Media *media;
+
+            media = (lp_Media *) gstx_structure_get_pointer (st, "media");
             assert (_lp_media_do_stop (media));
           }
         else
@@ -381,8 +381,8 @@ static void
 lp_scene_finalize (GObject *object)
 {
   lp_Scene *scene;
-  lp_Media *media;
   GList *p;
+  gboolean done;
 
   scene = LP_SCENE (object);
 
@@ -391,20 +391,19 @@ lp_scene_finalize (GObject *object)
   if (scene->clock_id != NULL)
     gst_clock_id_unschedule (scene->clock_id);
 
-  for (;;)
+  do
     {
-      int stopping = 0;
+      done = TRUE;
       for (p = scene->children; p != NULL; p = g_list_next (p))
         {
           if (_lp_media_is_stopping ((lp_Media *) p->data))
             {
-              stopping++;
+              lp_scene_pop (scene, TRUE, NULL, NULL);
+              done = FALSE;
             }
         }
-      if (stopping == 0)
-        break;
-      lp_scene_pop (scene, TRUE, NULL, NULL);
     }
+  while (!done);
 
   gstx_element_set_state_sync (scene->pipeline, GST_STATE_NULL);
   gst_object_unref (scene->pipeline);
@@ -431,13 +430,13 @@ lp_scene_class_init (lp_SceneClass *cls)
     (gobject_class, PROP_WIDTH, g_param_spec_int
      ("width", "width", "width in pixels",
       0, G_MAXINT, DEFAULT_WIDTH,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_HEIGHT, g_param_spec_int
      ("height", "height", "height in pixels",
       0, G_MAXINT, DEFAULT_HEIGHT,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_PATTERN, g_param_spec_int
@@ -469,7 +468,7 @@ _lp_scene_add (lp_Scene *scene, lp_Media *media)
 
 /* Returns the scene pipeline.  */
 
-GstElement *
+ATTR_PURE GstElement *
 _lp_scene_get_pipeline (lp_Scene *scene)
 {
   return scene->pipeline;
@@ -478,14 +477,14 @@ _lp_scene_get_pipeline (lp_Scene *scene)
 /* Returns the scene audio mixer.  */
 
 GstElement *
-_lp_scene_get_audio_mixer (lp_Scene *scene)
+ATTR_PURE _lp_scene_get_audio_mixer (lp_Scene *scene)
 {
   return scene->audio.mixer;
 }
 
 /* Returns the scene video mixer.  */
 
-GstElement *
+ATTR_PURE GstElement *
 _lp_scene_get_video_mixer (lp_Scene *scene)
 {
   return scene->video.mixer;
@@ -493,7 +492,7 @@ _lp_scene_get_video_mixer (lp_Scene *scene)
 
 /* Returns true if scene has video output.  */
 
-gboolean
+ATTR_PURE gboolean
 _lp_scene_has_video(lp_Scene *scene)
 {
   return scene->prop.width > 0 && scene->prop.height > 0;
@@ -514,9 +513,9 @@ _lp_scene_has_video(lp_Scene *scene)
 lp_Scene *
 lp_scene_new (int width, int height)
 {
-  return g_object_new (LP_TYPE_SCENE,
-                       "width", width,
-                       "height", height, NULL);
+  return LP_SCENE (g_object_new (LP_TYPE_SCENE,
+                                 "width", width,
+                                 "height", height, NULL));
 }
 
 /**
@@ -555,7 +554,7 @@ lp_scene_pop (lp_Scene *scene, gboolean block,
   if (scene->messages == NULL)
     return FALSE;               /* nothing to do */
 
-  msg = scene->messages->data;
+  msg = (GstMessage *) scene->messages->data;
   scene->messages = g_list_remove_link (scene->messages, scene->messages);
 
   st = gst_message_get_structure (msg);

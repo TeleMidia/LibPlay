@@ -29,12 +29,9 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #define GSTX_INCLUDE_PROLOGUE                   \
   PRAGMA_DIAG_IGNORE (-Wbad-function-cast)      \
   PRAGMA_DIAG_PUSH ()                           \
-  PRAGMA_DIAG_IGNORE (-Wcast-align)             \
   PRAGMA_DIAG_IGNORE (-Wcast-qual)              \
   PRAGMA_DIAG_IGNORE (-Wconversion)             \
-  PRAGMA_DIAG_IGNORE (-Wpedantic)               \
-  PRAGMA_DIAG_IGNORE (-Wsign-conversion)        \
-  PRAGMA_DIAG_IGNORE (-Wvariadic-macros)
+  PRAGMA_DIAG_IGNORE (-Wsign-conversion)
 
 #define GSTX_INCLUDE_EPILOGUE\
   PRAGMA_DIAG_POP ()
@@ -48,7 +45,7 @@ GSTX_INCLUDE_EPILOGUE
 /* Maps a GStreamer element name to an offset within a structure.  */
 typedef struct _gstx_eltmap_t
 {
-  char *name;
+  const char *name;
   ptrdiff_t offset;
 } gstx_eltmap_t;
 
@@ -65,7 +62,7 @@ gstx_eltmap_alloc (const void *obj, const gstx_eltmap_t map[],
   for (i = 0; map[i].name != NULL; i++)
     {
       GstElement **elt;
-      elt = cast (void *, cast (ptrdiff_t, obj) + map[i].offset);
+      elt = (GstElement **)(((ptrdiff_t) obj) + map[i].offset);
       *elt = gst_element_factory_make (map[i].name, NULL);
       if (unlikely (*elt == NULL))
         {
@@ -73,7 +70,7 @@ gstx_eltmap_alloc (const void *obj, const gstx_eltmap_t map[],
           set_if_nonnull (err, map[i].name);
           for (j = 0; j < i; j++)
             {
-              elt = cast (void *, cast (ptrdiff_t, obj) + map[i].offset);
+              elt = (GstElement **)(((ptrdiff_t) obj) + map[i].offset);
               *elt = gst_element_factory_make (map[i].name, NULL);
               if (*elt != NULL)
                 gst_object_unref (*elt);
@@ -149,7 +146,7 @@ gstx_structure_get_pointer (const GstStructure *st, const gchar *field)
 {
   const GValue *value = gst_structure_get_value (st, field);
   assert (value != NULL);
-  assert (G_VALUE_TYPE (value) == G_TYPE_POINTER);
+  assert (G_VALUE_TYPE (deconst (GValue *, value)) == G_TYPE_POINTER);
   return g_value_get_pointer (value);
 }
 

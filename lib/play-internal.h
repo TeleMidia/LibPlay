@@ -19,9 +19,10 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #ifndef PLAY_INTERNAL_H
 #define PLAY_INTERNAL_H
 
-#include "play.h"
 #include "macros.h"
 #include "gstx-macros.h"
+
+#include "play.h"
 
 /* debug */
 #if defined DEBUG && DEBUG
@@ -56,7 +57,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
   STMT_BEGIN                                                            \
   {                                                                     \
     if (unlikely (scene == NULL))                                       \
-      g_critical (G_STRLOC ": bad scene: %s", (scene));                 \
+      g_critical (G_STRLOC ": bad scene: %p", (scene));                 \
   }                                                                     \
   STMT_END
 

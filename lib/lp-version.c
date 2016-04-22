@@ -18,6 +18,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
 #include "play.h"
+#include "macros.h"
 
 /*-
  * lp_version:
@@ -27,7 +28,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
  *
  * Return value: the encoded version.
  */
-int
+ATTR_CONST int
 lp_version (void)
 {
   return LP_VERSION;
@@ -40,7 +41,7 @@ lp_version (void)
  *
  * Return value: a string containing the version.
  */
-const char *
+ATTR_CONST const char *
 lp_version_string (void)
 {
   return LP_VERSION_STRING;

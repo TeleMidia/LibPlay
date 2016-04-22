@@ -30,7 +30,7 @@ main (void)
 
       scene = lp_scene_new (0, 0);
       assert (scene != NULL);
-      media = g_object_new (LP_TYPE_MEDIA, "scene", scene, NULL);
+      media = LP_MEDIA (g_object_new (LP_TYPE_MEDIA, "scene", scene, NULL));
       assert (media != NULL);
       g_object_get (media, "scene", &sc, NULL);
       assert (sc == scene);

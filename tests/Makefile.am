@@ -43,10 +43,10 @@ AM_COLOR_TESTS= always
 DISABLE_HARD_ERRORS= true
 TEST_EXTENSIONS= .sh
 LOG_COMPILER= $(_VALGRIND)
-#VALGRIND_OPTIONS+= --show-reachable=yes --errors-for-leak-kinds=all
 SH_LOG_COMPILER= $(SHELL)
 
 AM_TESTS_ENVIRONMENT=\
+  export GST_DEBUG="*:WARN";\
   export G_DEBUG="all";\
   export G_SLICE="always-malloc";\
   export LD_LIBRARY_PATH="$(top_builddir)/lib/.libs;$(LD_LIBRARY_PATH)";\

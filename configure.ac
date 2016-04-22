@@ -54,10 +54,8 @@ AU_LIBTOOL_VERSION([LIBPLAY], [0], [0], [0])
 # Dependencies version.
 m4_define([glib_required_version], [2.32.4])
 m4_define([gstreamer_required_version], [1.6.0])
-m4_define([lua_required_version], [5.2])
 AC_SUBST([GLIB_REQUIRED_VERSION], glib_required_version)
 AC_SUBST([GSTREAMER_REQUIRED_VERSION], gstreamer_required_version)
-AC_SUBST([LUA_REQUIRED_VERSION], lua_required_version)
 
 # Tool checks.
 AU_PROG_CC_VISIBILITY
@@ -112,42 +110,13 @@ gst_init (0, 0);
 gst_video_info_from_caps (0, 0);
  ]])])
 
-# Check for Lua (optional).
-AU_CHECK_LUA(lua_required_version, [with_lua=yes], [with_lua=no])
-AS_IF([test "$with_lua" = yes],
- [LUA_LIBS="$LUA_LIBS -export-dynamic"
-  AS_IF([test "$au_lua_version" = 5.3],
-   [AC_DEFINE([LUA_COMPAT_APIINTCASTS], [1],
-     [Define to 1 to enable Lua macros for integer manipulation])])])
-AM_CONDITIONAL([WITH_LUA],
- [test "$with_lua" = yes])
-
-# Check for GstSynchronousClock
-AS_IF([test "$with_syncclock" = yes],
-      [PKG_CHECK_MODULES(GSTSYNCHRONOUSCLOCK, 
-       [gstsynchronousclock], 
-       [AC_SUBST(GSTSYNCHRONOUSCLOCK_CFLAGS)
-        AC_SUBST(GSTSYNCHRONOUSCLOCK_LIBS)], 
-        [AC_MSG_ERROR([
-           You need to install the GstSynchronousClock package on 
-           your system.])
-         ])
-       ])
-AM_CONDITIONAL([HAVE_SYNCCLOCK],
- [test "$with_syncclock" = yes])
-
 AC_CONFIG_FILES([
 Makefile
 lib/Makefile
 lib/play.pc
 lib/playconf.h
-src/Makefile
 tests/Makefile
 ])
-
-# Format messages for optional packages.
-AS_IF([test "$with_lua" = no],
- [with_lua="no	(requires lua >= lua_required_version)"])
 
 AC_OUTPUT
 AC_MSG_NOTICE([summary of main build options:
@@ -161,7 +130,4 @@ AC_MSG_NOTICE([summary of main build options:
   Warning flags:      ${WERROR_CFLAGS} ${WARN_CFLAGS}
   Library types:      Shared=${enable_shared}, Static=${enable_static}
   Valgrind:           ${VALGRIND}
-
-  Synchronous clock:  ${with_syncclock}
-  Build Lua bindings: ${with_lua}
 ])

@@ -47,8 +47,8 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
   }                                                             \
   STMT_END
 #else
-# define lp_debug(tag, fmt, ...)         /* nothing */
-# define lp_debug_dump_message(tag, msg) /* nothing */
+# define _lp_debug(tag, fmt, ...)         /* nothing */
+# define _lp_debug_dump_message(tag, msg) /* nothing */
 #endif
 
 /* checks */

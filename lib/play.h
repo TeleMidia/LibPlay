@@ -43,6 +43,7 @@ LP_BEGIN_DECLS
 
 #include <playconf.h>
 
+/* version */
 #define LP_VERSION_ENCODE(major, minor, micro)\
   (((major) * 10000) + ((minor) * 100) + ((micro) * 1))
 
@@ -58,7 +59,6 @@ LP_BEGIN_DECLS
 #define LP_VERSION_STRING\
   LP_VERSION_TOSTRING (LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_MICRO)
 
-/* version */
 LP_API int
 lp_version (void);
 
@@ -70,7 +70,8 @@ typedef enum
 {
   LP_START,
   LP_STOP,
-  LP_TICK
+  LP_TICK,
+  LP_ERROR,
 } lp_Event;
 
 /* scene */

@@ -7,12 +7,31 @@ define([suppress],[dnl
     ...
     fun:$1
 }])dnl
-
+include(gst.supp)
+{
+   libasound:
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   obj:/usr/lib/libasound.so.2.0.0
+   ...
+}
+{
+   libasound:
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:calloc
+   obj:/usr/lib/libasound.so.2.0.0
+   ...
+}
+{
+   libasound:
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:strdup
+   obj:/usr/lib/libasound.so.2.0.0
+   ...
+}
 suppress(_dl_init)
-suppress(g_option_context_parse)
-suppress(g_type_create_instance)
-suppress(g_type_register_static)
-suppress(gst_init)
-suppress(gst_init_check)
-suppress(gst_update_registry)
-suppress(g_type_class_ref)

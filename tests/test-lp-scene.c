@@ -27,6 +27,7 @@ main (void)
 
       scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, NULL));
       assert (scene != NULL);
+
       g_object_unref (scene);
     }
   STMT_END;
@@ -67,9 +68,31 @@ main (void)
       g_object_get (scene, "width", &width, "height", &height, NULL);
       assert (width == 100 && height == 100);
 
-      SLEEP (.5);
+      AWAIT (scene, 1);
       g_object_get (scene, "width", &width, "height", &height, NULL);
       assert (width == 100 && height == 100);
+      g_object_unref (scene);
+    }
+  STMT_END;
+
+  /* get ticks */
+  STMT_BEGIN
+    {
+      lp_Scene *scene;
+      guint64 ticks = G_MAXUINT64;
+
+      scene = lp_scene_new (0, 0);
+      assert (scene != NULL);
+      g_object_get (scene, "ticks", &ticks, NULL);
+      assert (ticks == 0);
+
+      AWAIT (scene, 1);
+      g_object_get (scene, "ticks", &ticks, NULL);
+      assert (ticks == 1);
+
+      AWAIT (scene, 1);
+      g_object_get (scene, "ticks", &ticks, NULL);
+      assert (ticks == 2);
       g_object_unref (scene);
     }
   STMT_END;
@@ -80,19 +103,18 @@ main (void)
       lp_Scene *scene;
       int pattern = -1;
 
-      scene = LP_SCENE (g_object_new (LP_TYPE_SCENE,
-                                      "width", 800,
-                                      "height", 600, NULL));
+      scene = lp_scene_new (800, 600);
       assert (scene != NULL);
+
       g_object_get (scene, "pattern", &pattern, NULL);
       assert (pattern == 2);
 
-      SLEEP (.5);
+      AWAIT (scene, 1);
       g_object_set (scene, "pattern", 8, NULL);
       g_object_get (scene, "pattern", &pattern, NULL);
-
-      SLEEP (.5);
       assert (pattern == 8);
+
+      AWAIT (scene, 1);
       g_object_get (scene, "pattern", &pattern, NULL);
       assert (pattern == 8);
       g_object_unref (scene);
@@ -110,35 +132,14 @@ main (void)
       g_object_get (scene, "wave", &wave, NULL);
       assert (wave == 4);
 
-      SLEEP (.5);
+      AWAIT (scene, 1);
       g_object_set (scene, "wave", 0, NULL);
       g_object_get (scene, "wave", &wave, NULL);
-
-      SLEEP (.5);
       assert (wave == 0);
+
+      AWAIT (scene, 1);
       g_object_get (scene, "wave", &wave, NULL);
       assert (wave == 0);
-      g_object_unref (scene);
-    }
-  STMT_END;
-
-  /* wait */
-  STMT_BEGIN
-    {
-      lp_Scene *scene;
-      lp_Event evt;
-
-      scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "wave", 8, NULL));
-      assert (scene != NULL);
-
-      assert (lp_scene_pop (scene, TRUE, NULL, &evt));
-      assert (evt == LP_TICK);
-      g_print ("TICK\n");
-
-      assert (lp_scene_pop (scene, TRUE, NULL, &evt));
-      assert (evt == LP_TICK);
-      g_print ("TICK\n");
-
       g_object_unref (scene);
     }
   STMT_END;

@@ -131,7 +131,7 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
   assert (!g_atomic_int_get (&media->stopping));
 
   scene = media->prop.scene;
-  _lp_scene_check (scene);
+  /* _lp_scene_check (scene); */
 
   caps = gst_pad_query_caps (pad, NULL);
   assert (caps != NULL);
@@ -409,8 +409,8 @@ lp_media_constructed (GObject *object)
 {
   lp_Media *media = LP_MEDIA (object);
 
-  _lp_scene_check (media->prop.scene);
-  _lp_scene_add (media->prop.scene, media);
+  /* _lp_scene_check (media->prop.scene); */
+  _lp_scene_add_media (media->prop.scene, media);
 
   /* FIXME: Users must not unref medias directly
      (i.e., without ref them first).  */
@@ -555,7 +555,7 @@ lp_media_start (lp_Media *media)
 {
   GstElement *pipeline;
 
-  _lp_scene_check (media->prop.scene);
+  /* _lp_scene_check (media->prop.scene); */
 
   if (unlikely (g_atomic_int_get (&media->playing)
                 || g_atomic_int_get (&media->stopping)))

@@ -35,32 +35,24 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
   }                                                             \
   STMT_END
 
-# define _lp_debug_dump_message(msg)                            \
-  STMT_BEGIN                                                    \
-  {                                                             \
-    const GstStructure *st = gst_message_get_structure ((msg)); \
-    if (st != NULL)                                             \
-      {                                                         \
-        gchar *s = gst_structure_to_string (st);                \
-        _lp_debug ("%s", s);                                    \
-        g_free (s);                                             \
-      }                                                         \
-  }                                                             \
-  STMT_END
+static ATTR_UNUSED void
+_lp_debug_dump_message (GstMessage *msg)
+{
+  const GstStructure *st = gst_message_get_structure ((msg));
+  if (st != NULL)
+    {
+      gchar *s = gst_structure_to_string (st);
+      _lp_debug ("%s", s);
+      g_free (s);
+    }
+}
+
 #else
 # define _lp_debug(tag, fmt, ...)         /* nothing */
 # define _lp_debug_dump_message(tag, msg) /* nothing */
 #endif
 
 /* checks */
-#define _lp_scene_check(scene)                                          \
-  STMT_BEGIN                                                            \
-  {                                                                     \
-    if (unlikely (scene == NULL))                                       \
-      g_critical (G_STRLOC ": bad scene: %p", (scene));                 \
-  }                                                                     \
-  STMT_END
-
 #define _lp_eltmap_alloc_check(obj, map)                                \
   STMT_BEGIN                                                            \
   {                                                                     \
@@ -72,22 +64,21 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* scene */
 void
-_lp_scene_add (lp_Scene *, lp_Media *);
+_lp_scene_add_media (lp_Scene *, lp_Media *);
 
 GstElement *
-_lp_scene_get_pipeline (lp_Scene *);
+_lp_scene_get_pipeline (const lp_Scene *);
 
 GstElement *
-_lp_scene_get_audio_mixer (lp_Scene *);
+_lp_scene_get_audio_mixer (const lp_Scene *);
 
 GstElement *
-_lp_scene_get_video_mixer (lp_Scene *);
+_lp_scene_get_video_mixer (const lp_Scene *);
 
 gboolean
-_lp_scene_has_video(lp_Scene *);
+_lp_scene_has_video (const lp_Scene *);
 
 /* media */
-
 gboolean
 _lp_media_is_stopping (lp_Media *);
 

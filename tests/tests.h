@@ -20,26 +20,26 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #define TESTS_H
 
 #include <config.h>
-#include <stdio.h>
+#include <assert.h>
 
-#include <glib.h>
+#include "macros.h"
+#include "gstx-macros.h"
 
 #include "play.h"
-#include "macros.h"
 
-#undef assert
-#define assert(cond)                                            \
-  STMT_BEGIN                                                    \
-  {                                                             \
-    if (unlikely (!(cond)))                                     \
-      {                                                         \
-        fprintf (stderr, "%s:%d: ASSERTION FAILED!\n--> %s\n",  \
-                 __FILE__, __LINE__, STRINGIFY (cond));         \
-        abort ();                                               \
-      }                                                         \
-  }                                                             \
+/* Waits for @n ticks in @scene.  */
+#define AWAIT(scene, n)                                 \
+  STMT_BEGIN                                            \
+  {                                                     \
+    int total = (n);                                    \
+    while (total > 0)                                   \
+      {                                                 \
+        lp_Event evt;                                   \
+        lp_scene_pop ((scene), TRUE, NULL, &evt);       \
+        if (evt == LP_TICK)                             \
+          total--;                                      \
+      }                                                 \
+  }                                                     \
   STMT_END
-
-#define SLEEP(s) g_usleep ((s) * 1000000)
 
 #endif /* TESTS_H */

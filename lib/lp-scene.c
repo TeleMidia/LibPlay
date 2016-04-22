@@ -49,6 +49,7 @@ struct _lp_Scene
     int height;                 /* cached height */
     int pattern;                /* cached pattern */
     int wave;                   /* cached wave */
+    guint64 ticks;              /* cached ticks */
   } prop;
 };
 
@@ -65,7 +66,7 @@ static const gstx_eltmap_t lp_scene_eltmap_video[] = {
   {"videotestsrc",  offsetof (lp_Scene, video.blank)},
   {"capsfilter",    offsetof (lp_Scene, video.filter)},
   {"compositor",    offsetof (lp_Scene, video.mixer)},
-  {"glimagesink",   offsetof (lp_Scene, video.sink)},
+  {"ximagesink",    offsetof (lp_Scene, video.sink)},
   {NULL, 0},
 };
 
@@ -77,6 +78,7 @@ enum
   PROP_HEIGHT,
   PROP_PATTERN,
   PROP_WAVE,
+  PROP_TICKS,
   PROP_LAST
 };
 
@@ -85,6 +87,7 @@ enum
 #define DEFAULT_HEIGHT   0      /* no video output */
 #define DEFAULT_PATTERN  2      /* black */
 #define DEFAULT_WAVE     4      /* silence */
+#define DEFAULT_TICKS    0      /* no ticks */
 
 /* Define the lp_Scene type.  */
 G_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
@@ -93,7 +96,7 @@ G_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
 /* callbacks */
 
 /* Called asynchronously whenever the scene pipeline clock ticks.
-   Sends a "scene-tick" application message to pipeline bus.  */
+   Sends an "lp_Scene:tick" application message to pipeline.  */
 
 static int
 lp_scene_tick_callback (arg_unused (GstClock *clock),
@@ -101,41 +104,33 @@ lp_scene_tick_callback (arg_unused (GstClock *clock),
                         arg_unused (GstClockID id),
                         lp_Scene *scene)
 {
-  GstStructure *st;
-  GstMessage *msg;
-
-  st = gst_structure_new ("scene-tick",
-                          "scene", G_TYPE_POINTER, scene,
-                          "time", GST_TYPE_CLOCK_TIME, time, NULL);
-  assert (st != NULL);
-
-  msg = gst_message_new_application (NULL, st);
-  assert (msg != NULL);
-  assert (gst_element_post_message (scene->pipeline, msg));
-
+  gstx_element_post_application_message
+    (scene->pipeline, scene->pipeline, "lp_Scene:tick",
+     "scene", G_TYPE_POINTER, scene,
+     "time", GST_TYPE_CLOCK_TIME, time, NULL);
   return TRUE;
 }
 
-/* Called asynchronously whenever scene pipeline bus receives a message.  */
+/* Called asynchronously whenever scene pipeline receives a message.  */
 
-static int
+static gboolean
 lp_scene_bus_callback (arg_unused (GstBus *bus),
                        GstMessage *msg,
-                       lp_Scene *scene)
+                       gpointer user_data)
 {
-  GstMessageType type;
+  lp_Scene *scene;
 
-  type = GST_MESSAGE_TYPE (msg);
-  switch (type)
+  scene = LP_SCENE (user_data);
+  switch (GST_MESSAGE_TYPE (msg))
     {
     case GST_MESSAGE_APPLICATION:
       {
         const GstStructure *st;
 
         st = gst_message_get_structure (msg);
-        if (gst_structure_has_name (st, "scene-tick"))
+        if (gst_structure_has_name (st, "lp_Scene:tick"))
           {
-            /* nothing to do */
+            scene->prop.ticks++;
           }
         else if (gst_structure_has_name (st, "media-stop"))
           {
@@ -146,7 +141,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           }
         else
           {
-            ASSERT_NOT_REACHED;
+            g_critical (G_STRLOC ": unknown application message");
           }
         assert (gst_message_ref (msg) == msg);
         scene->messages = g_list_append (scene->messages, msg);
@@ -262,24 +257,26 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
 static void
 lp_scene_init (lp_Scene *scene)
 {
-
   scene->clock_id = NULL;
   scene->loop = g_main_loop_new (NULL, FALSE);
   assert (scene->loop != NULL);
   scene->messages = NULL;
   scene->children = NULL;
+
   scene->prop.width = DEFAULT_WIDTH;
   scene->prop.height = DEFAULT_HEIGHT;
   scene->prop.pattern = DEFAULT_PATTERN;
   scene->prop.wave = DEFAULT_WAVE;
+  scene->prop.ticks = DEFAULT_TICKS;
 }
 
 static void
 lp_scene_get_property (GObject *object, guint prop_id,
                        GValue *value, GParamSpec *pspec)
 {
-  lp_Scene *scene = LP_SCENE (object);
+  lp_Scene *scene;
 
+  scene = LP_SCENE (object);
   switch (prop_id)
     {
     case PROP_WIDTH:
@@ -293,6 +290,9 @@ lp_scene_get_property (GObject *object, guint prop_id,
       break;
     case PROP_WAVE:
       g_value_set_int (value, scene->prop.wave);
+      break;
+    case PROP_TICKS:
+      g_value_set_uint64 (value, scene->prop.ticks);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -316,13 +316,17 @@ lp_scene_set_property (GObject *object, guint prop_id,
     case PROP_PATTERN:
       scene->prop.pattern = g_value_get_int (value);
       if (_lp_scene_has_video (scene))
-        g_object_set (scene->video.blank, "pattern",
-                      scene->prop.pattern, NULL);
+        {
+          g_object_set (scene->video.blank, "pattern",
+                        scene->prop.pattern, NULL);
+        }
       break;
     case PROP_WAVE:
       scene->prop.wave = g_value_get_int (value);
-      g_object_set (scene->audio.blank, "wave",
-                    scene->prop.wave, NULL);
+      g_object_set (scene->audio.blank, "wave", scene->prop.wave, NULL);
+      break;
+    case PROP_TICKS:
+      scene->prop.ticks = g_value_get_uint64 (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -334,14 +338,14 @@ lp_scene_constructed (GObject *object)
 {
   lp_Scene *scene;
   GstBus *bus;
+  lp_Event evt;
 
   scene = LP_SCENE (object);
 
   _lp_eltmap_alloc_check (scene, lp_scene_eltmap);
   bus = gst_pipeline_get_bus (GST_PIPELINE (scene->pipeline));
   assert (bus != NULL);
-  assert (gst_bus_add_watch
-          (bus, (GstBusFunc) lp_scene_bus_callback, scene) > 0);
+  assert (gst_bus_add_watch (bus, lp_scene_bus_callback, scene) > 0);
   gst_object_unref (bus);
 
   assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.blank));
@@ -365,53 +369,54 @@ lp_scene_constructed (GObject *object)
 
       caps = gst_caps_new_empty_simple ("video/x-raw");
       assert (caps != NULL);
-      gst_caps_set_simple (caps, "width", G_TYPE_INT, scene->prop.width,
+      gst_caps_set_simple (caps,
+                           "width", G_TYPE_INT, scene->prop.width,
                            "height", G_TYPE_INT, scene->prop.height, NULL);
       g_object_set (scene->video.filter, "caps", caps, NULL);
       gst_caps_unref (caps);
     }
 
-  g_object_set (scene, "pattern", scene->prop.pattern,
+  g_object_set (scene,
+                "pattern", scene->prop.pattern,
                 "wave", scene->prop.wave, NULL);
+
+  /* Start pipeline and wait for the first tick.  */
   gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
-  assert (lp_scene_pop (scene, TRUE, NULL, NULL)); /* wait for a tick */
+  assert (lp_scene_pop (scene, TRUE, NULL, &evt));
+  assert (evt == LP_TICK && scene->prop.ticks == 1);
+  scene->prop.ticks = 0;
 }
 
 static void
 lp_scene_finalize (GObject *object)
 {
   lp_Scene *scene;
-  GList *p;
-  gboolean done;
+  GList *l;
 
   scene = LP_SCENE (object);
 
-  _lp_debug ("finalizing scene %p", scene);
+  assert (scene->clock_id != NULL);
+  gst_clock_id_unschedule (scene->clock_id); /* disable ticks */
 
-  if (scene->clock_id != NULL)
-    gst_clock_id_unschedule (scene->clock_id);
-
-  do
+  while ((l = scene->children) != NULL) /* collect children */
     {
-      done = TRUE;
-      for (p = scene->children; p != NULL; p = g_list_next (p))
+      lp_Media *media = (lp_Media *)(l->data);
+      if (_lp_media_is_stopping (media))
         {
-          if (_lp_media_is_stopping ((lp_Media *) p->data))
-            {
-              lp_scene_pop (scene, TRUE, NULL, NULL);
-              done = FALSE;
-            }
+          lp_scene_pop (scene, TRUE, NULL, NULL);
+          continue;
         }
+      g_object_unref (media);
+      scene->children = g_list_delete_link (scene->children, l);
     }
-  while (!done);
+  assert (scene->children == NULL);
 
   gstx_element_set_state_sync (scene->pipeline, GST_STATE_NULL);
   gst_object_unref (scene->pipeline);
-  if (scene->clock_id != NULL)
-    gst_clock_id_unref (scene->clock_id);
+
+  gst_clock_id_unref (scene->clock_id);
   g_main_loop_unref (scene->loop);
   g_list_free_full (scene->messages, (GDestroyNotify) gst_message_unref);
-  g_list_free_full (scene->children, g_object_unref);
 
   G_OBJECT_CLASS (lp_scene_parent_class)->finalize (object);
 }
@@ -450,42 +455,56 @@ lp_scene_class_init (lp_SceneClass *cls)
       0, 12, DEFAULT_WAVE,
       G_PARAM_READWRITE));
 
+  g_object_class_install_property
+    (gobject_class, PROP_TICKS, g_param_spec_uint64
+     ("ticks", "ticks", "total number of ticks so far",
+      0, G_MAXUINT64, DEFAULT_TICKS,
+      G_PARAM_READABLE));
+
   if (!gst_is_initialized ())
-    assert (gst_init_check (NULL, NULL, NULL));
+    {
+      GError *err = NULL;
+      if (unlikely (!gst_init_check (NULL, NULL, &err)))
+        {
+          assert (err != NULL);
+          g_critical ("cannot initialize GStreamer: %s", err->message);
+          g_error_free (err);
+        }
+    }
 }
 
 
 /* internal */
 
-/* Adds media to scene child list.  */
+/* Adds @media to @scene.  */
 
 void
-_lp_scene_add (lp_Scene *scene, lp_Media *media)
+_lp_scene_add_media (lp_Scene *scene, lp_Media *media)
 {
   scene->children = g_list_append (scene->children, media);
   assert (g_object_ref (media) == media);
 }
 
-/* Returns the scene pipeline.  */
+/* Returns @scene pipeline.  */
 
 ATTR_PURE GstElement *
-_lp_scene_get_pipeline (lp_Scene *scene)
+_lp_scene_get_pipeline (const lp_Scene *scene)
 {
   return scene->pipeline;
 }
 
-/* Returns the scene audio mixer.  */
+/* Returns @scene audio mixer.  */
 
 GstElement *
-ATTR_PURE _lp_scene_get_audio_mixer (lp_Scene *scene)
+ATTR_PURE _lp_scene_get_audio_mixer (const lp_Scene *scene)
 {
   return scene->audio.mixer;
 }
 
-/* Returns the scene video mixer.  */
+/* Returns @scene video mixer.  */
 
 ATTR_PURE GstElement *
-_lp_scene_get_video_mixer (lp_Scene *scene)
+_lp_scene_get_video_mixer (const lp_Scene *scene)
 {
   return scene->video.mixer;
 }
@@ -493,7 +512,7 @@ _lp_scene_get_video_mixer (lp_Scene *scene)
 /* Returns true if scene has video output.  */
 
 ATTR_PURE gboolean
-_lp_scene_has_video(lp_Scene *scene)
+_lp_scene_has_video (const lp_Scene *scene)
 {
   return scene->prop.width > 0 && scene->prop.height > 0;
 }
@@ -506,9 +525,9 @@ _lp_scene_has_video(lp_Scene *scene)
  * @width: scene width
  * @height: scene height
  *
- * Creates a new empty scene.
+ * Creates a new scene with the given dimensions.
  *
- * Returns: (transfer full): A new #lp_Scene with the given dimensions.
+ * Returns: (transfer full): a new #lp_Scene
  */
 lp_Scene *
 lp_scene_new (int width, int height)
@@ -520,15 +539,15 @@ lp_scene_new (int width, int height)
 
 /**
  * lp_scene_pop:
- * @scene: an #lp_Scene.
- * @block: whether the call may block.
- * @target: (out) (allow-none) (transfer full): location for the target
- *     object, or %NULL.
- * @evt: (out) (allow-none): location for the target event, or %NULL.
+ * @scene: an #lp_Scene to pop
+ * @block: whether the call may block
+ * @target: (out) (allow-none) (transfer none): return location for
+ *     target, or %NULL.
+ * @evt: (out) (allow-none): return location for event, or %NULL.
  *
- * Pops a pending event from scene.
+ * Pops an event from scene.
  *
- * Returns: %TRUE if an event was popped.
+ * Returns: %TRUE if an event was popped, or %FALSE otherwise
  */
 gboolean
 lp_scene_pop (lp_Scene *scene, gboolean block,
@@ -555,17 +574,17 @@ lp_scene_pop (lp_Scene *scene, gboolean block,
     return FALSE;               /* nothing to do */
 
   msg = (GstMessage *) scene->messages->data;
-  scene->messages = g_list_remove_link (scene->messages, scene->messages);
+  scene->messages = g_list_delete_link (scene->messages, scene->messages);
 
   st = gst_message_get_structure (msg);
-  if (gst_structure_has_name (st, "scene-tick"))
+  if (gst_structure_has_name (st, "lp_Scene:tick"))
     {
       set_if_nonnull (target, G_OBJECT (scene));
       set_if_nonnull (evt, LP_TICK);
     }
   else
     {
-      g_critical (G_STRLOC ": unknown event");
+      g_critical (G_STRLOC ": unknown application message");
     }
   gst_message_unref (msg);
 

@@ -49,12 +49,11 @@ typedef struct _gstx_eltmap_t
   ptrdiff_t offset;
 } gstx_eltmap_t;
 
-/* Allocates all fields of OBJ specified in MAP.
-   Returns true if successful, i.e., if all were allocated, otherwise
-   returns false and sets *ERR to the name of the element that could not be
-   allocated.  */
+/* Allocates all fields of @obj specified in @map.
+   Returns true all fields were allocated, otherwise returns false and sets
+   @err to the name of the element that couldn't be allocated.  */
 
-static ATTR_UNUSED int
+static ATTR_UNUSED gboolean
 gstx_eltmap_alloc (const void *obj, const gstx_eltmap_t map[],
                    const char **err)
 {
@@ -82,8 +81,8 @@ gstx_eltmap_alloc (const void *obj, const gstx_eltmap_t map[],
 }
 
 
-/* Returns the current time of element's clock,
-   or GST_CLOCK_TIME_NONE if element does not have a clock.  */
+/* Returns the current time of @elt's clock,
+   or GST_CLOCK_TIME_NONE if @elt doesn't have a clock.  */
 
 static GstClockTime ATTR_UNUSED
 gstx_element_get_clock_time (GstElement *elt)
@@ -92,7 +91,7 @@ gstx_element_get_clock_time (GstElement *elt)
   GstClockTime time;
 
   clock = gst_element_get_clock (elt);
-  if (clock == NULL)
+  if (unlikely (clock == NULL))
     return GST_CLOCK_TIME_NONE;
 
   time = gst_clock_get_time (clock);
@@ -110,6 +109,14 @@ gstx_element_get_clock_time (GstElement *elt)
   }                                                             \
   STMT_END
 
+/* Synchronous version of gstx_element_get_state().  */
+#define gstx_element_get_state_sync(elt, st, pend)                      \
+  STMT_BEGIN                                                            \
+  {                                                                     \
+    gstx_element_get_state ((elt), (st), (pend), GST_CLOCK_TIME_NONE);  \
+  }                                                                     \
+  STMT_END
+
 /* Asserted version of gst_element_set_state().  */
 #define gstx_element_set_state(elt, st)         \
   STMT_BEGIN                                    \
@@ -117,14 +124,6 @@ gstx_element_get_clock_time (GstElement *elt)
     assert (gst_element_set_state ((elt), (st)) \
             != GST_STATE_CHANGE_FAILURE);       \
   }                                             \
-  STMT_END
-
-/* Synchronous version of gst_element_get_state().  */
-#define gstx_element_get_state_sync(elt, st, pend)                      \
-  STMT_BEGIN                                                            \
-  {                                                                     \
-    gstx_element_get_state ((elt), (st), (pend), GST_CLOCK_TIME_NONE);  \
-  }                                                                     \
   STMT_END
 
 /* Synchronous version of gstx_element_set_state().  */
@@ -136,17 +135,37 @@ gstx_element_get_clock_time (GstElement *elt)
   }                                                     \
   STMT_END
 
+/* Posts an application message originating from element @orig and with the
+   given @name and fields on the bus of element @dest.  */
+#define gstx_element_post_application_message(dest, orig, name, ...)    \
+  STMT_BEGIN                                                            \
+  {                                                                     \
+    GstStructure *st;                                                   \
+    GstMessage *msg;                                                    \
+                                                                        \
+    st = gst_structure_new ((name), ## __VA_ARGS__);                    \
+    assert (st != NULL);                                                \
+                                                                        \
+    msg = gst_message_new_application (GST_OBJECT ((orig)), st);        \
+    assert (msg != NULL);                                               \
+                                                                        \
+    assert (gst_element_post_message (GST_ELEMENT ((dest)), msg));      \
+  }                                                                     \
+  STMT_END
+
 
 /* Returns the value of pointer field FIELD in structure ST.
-   Aborts if there is no such field in the structure or
-   if it does not contain a pointer.  */
+   Aborts if there is no such field of if it does not contain a pointer.  */
 
 static gpointer ATTR_UNUSED
 gstx_structure_get_pointer (const GstStructure *st, const gchar *field)
 {
-  const GValue *value = gst_structure_get_value (st, field);
+  const GValue *value;
+
+  value = gst_structure_get_value (st, field);
   assert (value != NULL);
   assert (G_VALUE_TYPE (deconst (GValue *, value)) == G_TYPE_POINTER);
+
   return g_value_get_pointer (value);
 }
 

@@ -85,4 +85,12 @@ _lp_scene_get_video_mixer (lp_Scene *);
 gboolean
 _lp_scene_has_video(lp_Scene *);
 
+/* media */
+
+gboolean
+_lp_media_is_stopping (lp_Media *);
+
+gboolean
+_lp_media_do_stop (lp_Media *);
+
 #endif /* PLAY_INTERNAL_H */

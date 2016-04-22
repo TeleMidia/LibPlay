@@ -142,7 +142,7 @@ lp_media_pad_added_callback (GstElement *decoder,
 
   if (g_atomic_int_get (&media->active_pads) == 0)
     {
-      /* TODO: Is this the right way to get the offset? */
+      /* TODO: Move this to bus callback.  */
       GstElement *pipeline = _lp_scene_get_pipeline (scene);
       media->offset = gstx_element_get_clock_time (pipeline);
     }
@@ -156,18 +156,20 @@ lp_media_pad_added_callback (GstElement *decoder,
       assert (media->video.mixerpad == NULL);
       _lp_eltmap_alloc_check (media, media_eltmap_video);
 
-      caps = gst_caps_new_simple
-        ("video/x-raw",
-         "pixel-aspect-ratio", GST_TYPE_FRACTION, 1, 1, NULL);
+      caps = gst_caps_new_simple ("video/x-raw", "pixel-aspect-ratio",
+                                  GST_TYPE_FRACTION, 1, 1, NULL);
       assert (caps != NULL);
 
       if (media->prop.width > 0)
-        gst_caps_set_simple (caps, "width", G_TYPE_INT,
-                             media->prop.width, NULL);
-
+        {
+          gst_caps_set_simple (caps, "width", G_TYPE_INT,
+                               media->prop.width, NULL);
+        }
       if (media->prop.height > 0)
-        gst_caps_set_simple (caps, "height", G_TYPE_INT,
-                             media->prop.height, NULL);
+        {
+          gst_caps_set_simple (caps, "height", G_TYPE_INT,
+                               media->prop.height, NULL);
+        }
 
       g_object_set (media->video.scale, "add-borders", 0, NULL);
       g_object_set (media->video.filter, "caps", caps, NULL);
@@ -222,6 +224,8 @@ lp_media_pad_added_callback (GstElement *decoder,
                media->audio.convert,
                media->audio.resample, NULL));
 
+      /* TODO: Set media->prop.volume.  */
+
       sinkpad = gst_element_get_static_pad (media->audio.volume, "sink");
       assert (sinkpad != NULL);
       assert (gst_pad_link (pad, sinkpad) == GST_PAD_LINK_OK);
@@ -251,6 +255,46 @@ lp_media_pad_added_callback (GstElement *decoder,
     {
       return;                   /* nothing to do */
     }
+}
+
+/* Called whenever pad state matches BLOCK_DOWNSTREAM.  */
+
+static GstPadProbeReturn
+media_pad_probe_callback (GstPad *pad,
+                          GstPadProbeInfo *info,
+                          gpointer user_data)
+{
+  lp_Media *media;
+  GstPad *peer;
+
+  media = LP_MEDIA (user_data);
+  assert (g_atomic_int_get (&media->playing));
+  assert (g_atomic_int_get (&media->stopping));
+
+  peer = gst_pad_get_peer (pad);
+  assert (peer != NULL);
+  assert (gst_pad_send_event (peer, gst_event_new_eos ()));
+  gst_object_unref (peer);
+  assert (gst_pad_set_active (pad, FALSE));
+
+  if (g_atomic_int_dec_and_test (&media->active_pads))
+    {
+      GstElement *pipeline;
+      GstMessage *msg;
+      GstStructure *st;
+
+      st = gst_structure_new_empty ("media-stop");
+      assert (st != NULL);
+      gst_structure_set (st, "media", G_TYPE_POINTER, media, NULL);
+
+      msg = gst_message_new_application (GST_OBJECT (media->bin), st);
+      assert (msg != NULL);
+
+      pipeline = _lp_scene_get_pipeline (media->prop.scene);
+      assert (gst_element_post_message (pipeline, msg));
+    }
+
+  return GST_PAD_PROBE_REMOVE;
 }
 
 
@@ -380,7 +424,7 @@ lp_media_finalize (GObject *object)
   lp_Media *media = LP_MEDIA (object);
 
   _lp_debug ("finalizing media %p", media);
-
+  lp_media_stop (media);
   G_OBJECT_CLASS (lp_media_parent_class)->finalize (object);
 }
 
@@ -450,6 +494,37 @@ lp_media_class_init (lp_MediaClass *cls)
 }
 
 
+/* internal */
+
+gboolean
+_lp_media_is_stopping (lp_Media *media)
+{
+  return g_atomic_int_get (&media->stopping) != 0;
+}
+
+gboolean
+_lp_media_do_stop (lp_Media *media)
+{
+  GstElement *pipeline;
+
+  assert (g_atomic_int_get (&media->active_pads) == 0);
+
+  gstx_element_set_state_sync (media->bin, GST_STATE_NULL);
+
+  pipeline = _lp_scene_get_pipeline (media->prop.scene);
+  assert (gst_bin_remove (GST_BIN (pipeline), media->bin));
+  gst_object_unref (media->bin);
+
+  g_free (media->audio.mixerpad);
+  g_free (media->video.mixerpad);
+
+  assert (g_atomic_int_dec_and_test (&media->playing));
+  assert (g_atomic_int_dec_and_test (&media->stopping));
+
+  return TRUE;
+}
+
+
 /* public */
 
 /**
@@ -473,11 +548,13 @@ lp_media_new (lp_Scene *scene, const char *uri)
  *
  * Starts media.
  *
- * Returns: true if successful, or false otherwise.
+ * Returns: %TRUE if successful, or %FALSE otherwise.
  */
 gboolean
 lp_media_start (lp_Media *media)
 {
+  GstElement *pipeline;
+
   _lp_scene_check (media->prop.scene);
 
   if (unlikely (g_atomic_int_get (&media->playing)
@@ -504,17 +581,18 @@ lp_media_start (lp_Media *media)
       media->abs_uri = abs_uri;
     }
 
+  /* From now on things should not go wrong.  */
   _lp_eltmap_alloc_check (media, lp_media_eltmap);
 
   g_object_set (media->decoder, "uri", media->abs_uri, NULL);
   gst_bin_add (GST_BIN (media->bin), media->decoder);
-  assert (g_signal_connect
-          (media->decoder, "pad-added",
-           G_CALLBACK (lp_media_pad_added_callback), media) > 0);
+  assert (g_signal_connect (media->decoder, "pad-added",
+                            G_CALLBACK (lp_media_pad_added_callback),
+                            media) > 0);
 
   assert (gst_object_ref (media->bin) == media->bin);
-  assert (gst_bin_add (GST_BIN (_lp_scene_get_pipeline (media->prop.scene)),
-                       media->bin));
+  pipeline = _lp_scene_get_pipeline (media->prop.scene);
+  assert (gst_bin_add (GST_BIN (pipeline), media->bin));
 
   g_atomic_int_inc (&media->playing);
   gstx_element_set_state_sync (media->decoder, GST_STATE_PLAYING);
@@ -528,10 +606,56 @@ lp_media_start (lp_Media *media)
  *
  * Stops media.
  *
- * Returns: true if successful, or false otherwise.
+ * Returns: %TRUE if successful, or %FALSE otherwise.
  */
 gboolean
 lp_media_stop (lp_Media *media)
 {
-  return FALSE;
+  GstIterator *it;
+  gboolean done;
+  GValue item = G_VALUE_INIT;
+
+  if (unlikely (!g_atomic_int_get (&media->playing)
+                || g_atomic_int_get (&media->stopping)))
+    {
+      return FALSE;             /* nothing to do */
+    }
+  g_atomic_int_inc (&media->stopping);
+
+  it = gst_element_iterate_src_pads (media->bin);
+  assert (it != NULL);
+
+  done = FALSE;
+  do
+    {
+      switch (gst_iterator_next (it, &item))
+        {
+        case GST_ITERATOR_OK:
+        {
+          GstPad *pad = GST_PAD (g_value_get_object (&item));
+          assert (gst_pad_add_probe (pad,
+                                     GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
+                                     media_pad_probe_callback,
+                                     media, NULL) > 0);
+          g_value_reset (&item);
+          break;
+        }
+      case GST_ITERATOR_RESYNC:
+        gst_iterator_resync (it);
+        break;
+      case GST_ITERATOR_DONE:
+        done = TRUE;
+        break;
+      case GST_ITERATOR_ERROR:
+      default:
+        ASSERT_NOT_REACHED;
+        break;
+      }
+    }
+  while (!done);
+
+  g_value_unset (&item);
+  gst_iterator_free (it);
+
+  return TRUE;
 }

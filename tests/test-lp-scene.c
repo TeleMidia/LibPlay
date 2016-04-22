@@ -130,11 +130,11 @@ main (void)
       scene = g_object_new (LP_TYPE_SCENE, "wave", 8, NULL);
       assert (scene != NULL);
 
-      assert (lp_scene_wait (scene, TRUE, NULL, &evt));
+      assert (lp_scene_pop (scene, TRUE, NULL, &evt));
       assert (evt == LP_TICK);
       g_print ("TICK\n");
 
-      assert (lp_scene_wait (scene, TRUE, NULL, &evt));
+      assert (lp_scene_pop (scene, TRUE, NULL, &evt));
       assert (evt == LP_TICK);
       g_print ("TICK\n");
 

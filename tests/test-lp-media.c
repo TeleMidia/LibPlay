@@ -62,20 +62,20 @@ main (void)
       g_object_set (scene, "wave", 8, NULL);
       assert (scene != NULL);
 
-      m1 = lp_media_new (scene, "media/audiovideotest.ogg");
-      assert (m1 != NULL);
+      /* m1 = lp_media_new (scene, "media/audiovideotest.ogg"); */
+      /* assert (m1 != NULL); */
 
       m2 = lp_media_new (scene, "media/misc.avi");
       assert (m2 != NULL);
       g_object_set (m2, "x", 200, "y", 200, "alpha", .9, NULL);
 
-      lp_media_start (m1);
+      /* lp_media_start (m1); */
       lp_media_start (m2);
 
-      for (i = 0; i < 8; i++)  /* wait for 8 ticks */
+      for (i = 0; i < 2; i++)
         {
           g_object_set (scene, "pattern", i, NULL);
-          lp_scene_wait (scene, TRUE, NULL, NULL);
+          lp_scene_pop (scene, TRUE, NULL, NULL);
         }
 
       g_object_unref (scene);

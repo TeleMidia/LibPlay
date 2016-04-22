@@ -132,6 +132,22 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     {
     case GST_MESSAGE_APPLICATION:
       {
+        const GstStructure *st;
+
+        st = gst_message_get_structure (msg);
+        if (gst_structure_has_name (st, "scene-tick"))
+          {
+            /* nothing to do */
+          }
+        else if (gst_structure_has_name (st, "media-stop"))
+          {
+            lp_Media *media = gstx_structure_get_pointer (st, "media");
+            assert (_lp_media_do_stop (media));
+          }
+        else
+          {
+            ASSERT_NOT_REACHED;
+          }
         assert (gst_message_ref (msg) == msg);
         scene->messages = g_list_append (scene->messages, msg);
         break;
@@ -358,7 +374,7 @@ lp_scene_constructed (GObject *object)
   g_object_set (scene, "pattern", scene->prop.pattern,
                 "wave", scene->prop.wave, NULL);
   gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
-  assert (lp_scene_wait (scene, TRUE, NULL, NULL)); /* wait for a tick */
+  assert (lp_scene_pop (scene, TRUE, NULL, NULL)); /* wait for a tick */
 }
 
 static void
@@ -374,6 +390,21 @@ lp_scene_finalize (GObject *object)
 
   if (scene->clock_id != NULL)
     gst_clock_id_unschedule (scene->clock_id);
+
+  for (;;)
+    {
+      int stopping = 0;
+      for (p = scene->children; p != NULL; p = g_list_next (p))
+        {
+          if (_lp_media_is_stopping ((lp_Media *) p->data))
+            {
+              stopping++;
+            }
+        }
+      if (stopping == 0)
+        break;
+      lp_scene_pop (scene, TRUE, NULL, NULL);
+    }
 
   gstx_element_set_state_sync (scene->pipeline, GST_STATE_NULL);
   gst_object_unref (scene->pipeline);
@@ -476,6 +507,8 @@ _lp_scene_has_video(lp_Scene *scene)
  * @width: scene width
  * @height: scene height
  *
+ * Creates a new empty scene.
+ *
  * Returns: (transfer full): A new #lp_Scene with the given dimensions.
  */
 lp_Scene *
@@ -487,21 +520,24 @@ lp_scene_new (int width, int height)
 }
 
 /**
- * lp_scene_wait:
+ * lp_scene_pop:
  * @scene: an #lp_Scene.
  * @block: whether the call may block.
  * @target: (out) (allow-none) (transfer full): location for the target
  *     object, or %NULL.
  * @evt: (out) (allow-none): location for the target event, or %NULL.
+ *
+ * Pops a pending event from scene.
+ *
+ * Returns: %TRUE if an event was popped.
  */
 gboolean
-lp_scene_wait (lp_Scene *scene, gboolean block,
+lp_scene_pop (lp_Scene *scene, gboolean block,
                GObject **target, lp_Event *evt)
 {
   GMainContext *ctx;
   GstMessage *msg;
   const GstStructure *st;
-  GList *p;
 
   ctx = g_main_loop_get_context (scene->loop);
   assert (ctx != NULL);
@@ -530,7 +566,7 @@ lp_scene_wait (lp_Scene *scene, gboolean block,
     }
   else
     {
-      g_critical (G_STRLOC ": unknown application event");
+      g_critical (G_STRLOC ": unknown event");
     }
   gst_message_unref (msg);
 

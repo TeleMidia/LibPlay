@@ -81,7 +81,7 @@ LP_API lp_Scene *
 lp_scene_new (int, int);
 
 LP_API gboolean
-lp_scene_wait (lp_Scene *, gboolean, GObject **, lp_Event *);
+lp_scene_pop (lp_Scene *, gboolean, GObject **, lp_Event *);
 
 /* media */
 G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)

@@ -22,8 +22,9 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
-
 #include <assert.h>
+#include <stdarg.h>
+
 #include "macros.h"
 
 #define GSTX_INCLUDE_PROLOGUE                   \
@@ -137,24 +138,28 @@ gstx_element_get_clock_time (GstElement *elt)
 
 /* Posts an application message originating from element @orig and with the
    given @name and fields on the bus of element @dest.  */
-#define gstx_element_post_application_message(dest, orig, name, ...)    \
-  STMT_BEGIN                                                            \
-  {                                                                     \
-    GstStructure *st;                                                   \
-    GstMessage *msg;                                                    \
-                                                                        \
-    st = gst_structure_new ((name), ## __VA_ARGS__);                    \
-    assert (st != NULL);                                                \
-                                                                        \
-    msg = gst_message_new_application (GST_OBJECT ((orig)), st);        \
-    assert (msg != NULL);                                               \
-                                                                        \
-    assert (gst_element_post_message (GST_ELEMENT ((dest)), msg));      \
-  }                                                                     \
-  STMT_END
+
+static void ATTR_UNUSED
+gstx_element_post_application_message (GstElement *dest, GstObject *orig,
+                                       const char *name,
+                                       const char *first_field, ...)
+{
+  GstStructure *st;
+  GstMessage *msg;
+  va_list args;
+
+  va_start (args, first_field);
+  st = gst_structure_new_valist (name, first_field, args);
+  assert (st != NULL);
+  va_end (args);
+
+  msg = gst_message_new_application (orig, st);
+  assert (msg != NULL);
+  assert (gst_element_post_message (dest, msg));
+}
 
 
-/* Returns the value of pointer field FIELD in structure ST.
+/* Returns the value of pointer @field in structure @st.
    Aborts if there is no such field of if it does not contain a pointer.  */
 
 static gpointer ATTR_UNUSED

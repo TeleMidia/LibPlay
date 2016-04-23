@@ -93,21 +93,58 @@ enum
 G_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
 
 
+static lp_Event
+message_to_event (GstMessage *msg, GObject **obj)
+{
+  const GstStructure *st;
+  const char *name;
+  GObject *target;
+
+  st = gst_message_get_structure (msg);
+  assert (st != NULL);
+
+  name = gst_structure_get_name (st);
+  assert (name != NULL);
+
+  target = G_OBJECT (gstx_structure_get_pointer (st, "target"));
+  assert (target != NULL);
+
+  set_if_nonnull (obj, target);
+  if (streq (name, "lp_Scene:tick"))
+    {
+      assert (LP_IS_SCENE  (target));
+      return LP_TICK;
+    }
+
+  assert (LP_IS_MEDIA (target));
+  if (streq (name, "lp_Media:start"))
+    return LP_START;
+
+  if (streq (name, "lp_Media:stop"))
+    return LP_STOP;
+
+  if (streq (name, "lp_Media:eos"))
+    return LP_EOS;
+
+  if (streq (name, "lp_Media:error"))
+    return LP_ERROR;
+
+  ASSERT_NOT_REACHED;
+}
+
+
 /* callbacks */
 
 /* Called asynchronously whenever the scene pipeline clock ticks.
-   Sends an "lp_Scene:tick" application message to pipeline.  */
+   Dispatches a tick event to scene.  */
 
 static int
 lp_scene_tick_callback (arg_unused (GstClock *clock),
-                        GstClockTime time,
+                        arg_unused (GstClockTime time),
                         arg_unused (GstClockID id),
                         lp_Scene *scene)
 {
-  gstx_element_post_application_message
-    (scene->pipeline, scene->pipeline, "lp_Scene:tick",
-     "scene", G_TYPE_POINTER, scene,
-     "time", GST_TYPE_CLOCK_TIME, time, NULL);
+  _lp_scene_dispatch (scene, G_OBJECT (scene), LP_TICK);
   return TRUE;
 }
 
@@ -125,23 +162,43 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     {
     case GST_MESSAGE_APPLICATION:
       {
-        const GstStructure *st;
+        GObject *obj;
 
-        st = gst_message_get_structure (msg);
-        if (gst_structure_has_name (st, "lp_Scene:tick"))
+        switch (message_to_event (msg, &obj))
           {
-            scene->prop.ticks++;
-          }
-        else if (gst_structure_has_name (st, "media-stop"))
-          {
-            lp_Media *media;
-
-            media = (lp_Media *) gstx_structure_get_pointer (st, "media");
-            assert (_lp_media_do_stop (media));
-          }
-        else
-          {
-            g_critical (G_STRLOC ": unknown application message");
+            case LP_TICK:
+              scene->prop.ticks++;
+              _lp_debug ("TICK %p", scene);
+              break;
+          case LP_START:
+            {
+              lp_Media *media = LP_MEDIA (obj);
+              _lp_media_finish_start (media);
+              assert (!_lp_media_is_starting (media));
+              _lp_debug ("START %p", media);
+              break;
+            }
+          case LP_STOP:
+            {
+              lp_Media *media = LP_MEDIA (obj);
+              _lp_media_finish_stop (media);
+              assert (!_lp_media_is_stopping (media));
+              _lp_debug ("STOP %p", media);
+            }
+          case LP_EOS:
+            {
+              lp_Media *media = LP_MEDIA (obj);
+              _lp_debug ("EOS %p", media);
+              break;
+            }
+          case LP_ERROR:
+            {
+              lp_Media *media = LP_MEDIA (obj);
+              _lp_warn ("ERROR %p", media);
+              break;
+            }
+          default:
+            ASSERT_NOT_REACHED;
           }
         assert (gst_message_ref (msg) == msg);
         scene->messages = g_list_append (scene->messages, msg);
@@ -171,7 +228,8 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
       {
         GError *err;
         gst_message_parse_error (msg, &err, NULL);
-        g_critical (G_STRLOC ": GStreamer error: %s", err->message);
+        assert (err != NULL);
+        _lp_error ("GStreamer error: %s", err->message);
         g_error_free (err);
         break;
       }
@@ -225,7 +283,36 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     case GST_MESSAGE_SEGMENT_START:
       break;
     case GST_MESSAGE_STATE_CHANGED:
-      break;
+      {
+        GstObject *obj;
+        gpointer data;
+
+        lp_Media *media;
+        GstState pending;
+        GstState newstate;
+
+        obj = GST_MESSAGE_SRC (msg);
+        if (!GST_IS_BIN (obj)
+            || !(data = g_object_get_data (G_OBJECT (obj), "lp_Media")))
+          {
+            break;              /* nothing to do */
+          }
+
+        media = LP_MEDIA (data);
+        assert (media != NULL);
+
+        gst_message_parse_state_changed (msg, NULL, &newstate, &pending);
+        if (pending == GST_STATE_VOID_PENDING
+            && newstate == GST_STATE_PLAYING)
+          {
+            _lp_scene_dispatch (scene, G_OBJECT (media), LP_START);
+          }
+        else
+          {
+                                /* nothing to do */
+          }
+        break;
+      }
     case GST_MESSAGE_STATE_DIRTY:
       break;
     case GST_MESSAGE_STEP_DONE:
@@ -243,7 +330,14 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     case GST_MESSAGE_TOC:
       break;
     case GST_MESSAGE_WARNING:
-      break;
+      {
+        GError *err;
+        gst_message_parse_warning (msg, &err, NULL);
+        assert (err != NULL);
+        _lp_warn ("GStreamer warning: %s", err->message);
+        g_error_free (err);
+        break;
+      }
     case GST_MESSAGE_UNKNOWN:
     default:
       break;
@@ -252,7 +346,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
 }
 
 
-/* private */
+/* methods */
 
 static void
 lp_scene_init (lp_Scene *scene)
@@ -303,8 +397,9 @@ static void
 lp_scene_set_property (GObject *object, guint prop_id,
                        const GValue *value, GParamSpec *pspec)
 {
-  lp_Scene *scene = LP_SCENE (object);
+  lp_Scene *scene;
 
+  scene = LP_SCENE (object);
   switch (prop_id)
     {
     case PROP_WIDTH:
@@ -396,17 +491,11 @@ lp_scene_finalize (GObject *object)
   scene = LP_SCENE (object);
 
   assert (scene->clock_id != NULL);
-  gst_clock_id_unschedule (scene->clock_id); /* disable ticks */
+  gst_clock_id_unschedule (scene->clock_id);
 
   while ((l = scene->children) != NULL) /* collect children */
     {
-      lp_Media *media = (lp_Media *)(l->data);
-      if (_lp_media_is_stopping (media))
-        {
-          lp_scene_pop (scene, TRUE, NULL, NULL);
-          continue;
-        }
-      g_object_unref (media);
+      g_object_unref (LP_MEDIA (l->data));
       scene->children = g_list_delete_link (scene->children, l);
     }
   assert (scene->children == NULL);
@@ -418,14 +507,16 @@ lp_scene_finalize (GObject *object)
   g_main_loop_unref (scene->loop);
   g_list_free_full (scene->messages, (GDestroyNotify) gst_message_unref);
 
+  _lp_debug ("finalizing scene %p", scene);
   G_OBJECT_CLASS (lp_scene_parent_class)->finalize (object);
 }
 
 static void
 lp_scene_class_init (lp_SceneClass *cls)
 {
-  GObjectClass *gobject_class = G_OBJECT_CLASS (cls);
+  GObjectClass *gobject_class;
 
+  gobject_class = G_OBJECT_CLASS (cls);
   gobject_class->get_property = lp_scene_get_property;
   gobject_class->set_property = lp_scene_set_property;
   gobject_class->constructed = lp_scene_constructed;
@@ -435,13 +526,13 @@ lp_scene_class_init (lp_SceneClass *cls)
     (gobject_class, PROP_WIDTH, g_param_spec_int
      ("width", "width", "width in pixels",
       0, G_MAXINT, DEFAULT_WIDTH,
-      (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_HEIGHT, g_param_spec_int
      ("height", "height", "height in pixels",
       0, G_MAXINT, DEFAULT_HEIGHT,
-      (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_PATTERN, g_param_spec_int
@@ -467,7 +558,7 @@ lp_scene_class_init (lp_SceneClass *cls)
       if (unlikely (!gst_init_check (NULL, NULL, &err)))
         {
           assert (err != NULL);
-          g_critical ("cannot initialize GStreamer: %s", err->message);
+          _lp_error ("cannot initialize GStreamer: %s", err->message);
           g_error_free (err);
         }
     }
@@ -517,6 +608,54 @@ _lp_scene_has_video (const lp_Scene *scene)
   return scene->prop.width > 0 && scene->prop.height > 0;
 }
 
+/* Runs a single iteration of @scene loop.
+   Call may block if @block is true.  */
+
+void
+_lp_scene_step (lp_Scene *scene, gboolean block)
+{
+  GMainContext *ctx;
+
+  ctx = g_main_loop_get_context (scene->loop);
+  assert (ctx != NULL);
+  g_main_context_iteration (ctx, block);
+}
+
+/* Dispatches event @evt with @target to @scene.  */
+
+void
+_lp_scene_dispatch (lp_Scene *scene, GObject *target, lp_Event evt)
+{
+  const char *name;
+  switch (evt)
+    {
+    case LP_TICK:
+      assert (LP_IS_SCENE (target));
+      name = "lp_Scene:tick";
+      break;
+    case LP_START:
+      assert (LP_IS_MEDIA (target));
+      name = "lp_Media:start";
+      break;
+    case LP_STOP:
+      assert (LP_IS_MEDIA (target));
+      name = "lp_Media:stop";
+      break;
+    case LP_EOS:
+      assert (LP_IS_MEDIA (target));
+      name = "lp_Media:eos";
+      break;
+    case LP_ERROR:
+      assert (LP_IS_SCENE (target));
+      name = "lp_Media:error";
+      break;
+    default:
+      ASSERT_NOT_REACHED;
+    }
+  gstx_element_post_application_message
+    (scene->pipeline, NULL, name, "target", G_TYPE_POINTER, target, NULL);
+}
+
 
 /* public */
 
@@ -553,21 +692,17 @@ gboolean
 lp_scene_pop (lp_Scene *scene, gboolean block,
                GObject **target, lp_Event *evt)
 {
-  GMainContext *ctx;
   GstMessage *msg;
-  const GstStructure *st;
-
-  ctx = g_main_loop_get_context (scene->loop);
-  assert (ctx != NULL);
+  lp_Event event;
 
   if (block)
     {
       while (scene->messages == NULL)
-        g_main_context_iteration (ctx, TRUE);
+        _lp_scene_step (scene, TRUE);
     }
   else
     {
-      g_main_context_iteration (ctx, FALSE);
+      _lp_scene_step (scene, FALSE);
     }
 
   if (scene->messages == NULL)
@@ -576,16 +711,8 @@ lp_scene_pop (lp_Scene *scene, gboolean block,
   msg = (GstMessage *) scene->messages->data;
   scene->messages = g_list_delete_link (scene->messages, scene->messages);
 
-  st = gst_message_get_structure (msg);
-  if (gst_structure_has_name (st, "lp_Scene:tick"))
-    {
-      set_if_nonnull (target, G_OBJECT (scene));
-      set_if_nonnull (evt, LP_TICK);
-    }
-  else
-    {
-      g_critical (G_STRLOC ": unknown application message");
-    }
+  event = message_to_event (msg, target);
+  set_if_nonnull (evt, event);
   gst_message_unref (msg);
 
   return TRUE;

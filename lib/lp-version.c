@@ -26,7 +26,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
  * Returns the version of LibPlay encoded in a single integer.
  * The encoding ensures that later version generate bigger numbers.
  *
- * Return value: the encoded version.
+ * Return value: the encoded version
  */
 ATTR_CONST int
 lp_version (void)
@@ -39,7 +39,7 @@ lp_version (void)
  *
  * Returns the version of LibPlay as a human-readable string.
  *
- * Return value: a string containing the version.
+ * Return value: a string containing the version
  */
 ATTR_CONST const char *
 lp_version_string (void)

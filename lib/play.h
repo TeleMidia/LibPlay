@@ -68,10 +68,11 @@ lp_version_string (void);
 /* events */
 typedef enum
 {
-  LP_START,
-  LP_STOP,
-  LP_TICK,
-  LP_ERROR,
+  LP_TICK,                      /* scene has ticked */
+  LP_START,                     /* media has started */
+  LP_STOP,                      /* media has stopped */
+  LP_EOS,                       /* media has drained */
+  LP_ERROR,                     /* async error */
 } lp_Event;
 
 /* scene */

@@ -43,8 +43,8 @@ libplay_la_LDFLAGS= -version-info $(LIBPLAY_LIBTOOL_STRING) -no-undefined\
   $(GLIB_LIBS) $(GSTREAMER_LIBS) -fPIC
 libplay_la_SOURCES=\
   gstx-macros.h\
-  lp-scene.c\
   lp-media.c\
+  lp-scene.c\
   lp-version.c\
   play.h\
   playconf.h\

@@ -31,13 +31,13 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #define AWAIT(scene, n)                                 \
   STMT_BEGIN                                            \
   {                                                     \
-    int total = (n);                                    \
-    while (total > 0)                                   \
+    int _total = (n);                                   \
+    while (_total > 0)                                  \
       {                                                 \
-        lp_Event evt;                                   \
-        lp_scene_pop ((scene), TRUE, NULL, &evt);       \
-        if (evt == LP_TICK)                             \
-          total--;                                      \
+        lp_Event _evt;                                  \
+        lp_scene_pop ((scene), TRUE, NULL, &_evt);      \
+        if (_evt == LP_TICK)                            \
+          _total--;                                     \
       }                                                 \
   }                                                     \
   STMT_END

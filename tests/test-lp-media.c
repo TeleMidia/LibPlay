@@ -54,30 +54,40 @@ main (void)
   STMT_BEGIN
     {
       lp_Scene *scene;
-      lp_Media *m1;
-      lp_Media *m2;
-      int i;
+      lp_Media *m1, *m2;
+      int n = 4;
 
       scene = lp_scene_new (800, 600);
-      g_object_set (scene, "wave", 8, NULL);
       assert (scene != NULL);
 
-      m1 = lp_media_new (scene, "samples/audiovideotest.ogg");
+      m1 = lp_media_new (scene, "samples/sync.m4v");
       assert (m1 != NULL);
+      g_object_set (m1, "width", 800, "height", 600, NULL);
+      assert (lp_media_start (m1));
 
+      AWAIT (scene, 2);
       m2 = lp_media_new (scene, "samples/misc.avi");
       assert (m2 != NULL);
-      g_object_set (m2, "x", 200, "y", 200, "alpha", .9, NULL);
+      g_object_set (m2, "width", 300, "height", 300, "alpha", .75, NULL);
+      assert (lp_media_start (m2));
 
-      lp_media_start (m1);
-      lp_media_start (m2);
-
-      for (i = 0; i < 8; i++)
+      while (n-- > 0)
         {
-          g_object_set (scene, "pattern", i, NULL);
-          lp_scene_pop (scene, TRUE, NULL, NULL);
-        }
+          GObject *obj;
+          lp_Event evt;
+          int x, y;
 
+          do
+              lp_scene_pop (scene, TRUE, &obj, &evt);
+          while (!(LP_IS_MEDIA (obj)
+                   && LP_MEDIA (obj) == m2
+                   && evt == LP_STOP));
+
+          assert (lp_media_start (m2));
+          g_object_get (m2, "x", &x, "y", &y, NULL);
+          g_object_set (m2, "x", x + 100, "y", y + 100, NULL);
+        }
+      AWAIT (scene, 4);
       g_object_unref (scene);
     }
   STMT_END;

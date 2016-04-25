@@ -293,11 +293,13 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
 
         obj = GST_MESSAGE_SRC (msg);
         if (!GST_IS_BIN (obj)
-            || !(data = g_object_get_data (G_OBJECT (obj), "lp_Media")))
+            || !(data = g_object_get_data (G_OBJECT (obj), "lp_Media"))
+            || (GST_OBJECT_REFCOUNT(data) == 0))  /* Warning: for some reason
+                                                    we get here during the 
+                                                    finalization. */
           {
             break;              /* nothing to do */
           }
-
         media = LP_MEDIA (data);
         assert (media != NULL);
 

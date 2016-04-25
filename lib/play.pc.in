@@ -8,6 +8,7 @@ Name: LibPlay
 Description: Simple multimedia library
 Version: @VERSION@
 
-Cflags:
+Cflags: -I${includedir}
+Requires: gobject-2.0
 Libs: -L${libdir} -lplay
 Libs.private: @GLIB_LIBS@ @GSTREAMER_LIBS@

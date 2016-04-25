@@ -415,7 +415,7 @@ lp_media_set_property (GObject *object, guint prop_id,
       media->prop.y = g_value_get_int (value);
       break;
     case PROP_Z:
-      media->prop.x = g_value_get_int (value);
+      media->prop.z = g_value_get_int (value);
       break;
     case PROP_WIDTH:
       media->prop.width = g_value_get_int (value);

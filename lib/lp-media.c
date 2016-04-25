@@ -552,16 +552,30 @@ lp_media_constructed (GObject *object)
 }
 
 static void
-lp_media_finalize (GObject *object)
+lp_media_dispose (GObject *object)
 {
   lp_Media *media;
 
   media = LP_MEDIA (object);
+  g_object_ref (media);
   while (!_lp_media_has_stopped (media))
     {
       lp_media_stop (media);
       _lp_scene_step (media->prop.scene, TRUE);
     }
+
+  g_object_unref (media);
+  _lp_debug ("disposing media %p", media);
+  G_OBJECT_CLASS (lp_media_parent_class)->dispose (object);
+}
+
+
+static void
+lp_media_finalize (GObject *object)
+{
+  lp_Media *media;
+
+  media = LP_MEDIA (object);
 
   g_free (media->final_uri);
   g_free (media->audio.mixerpad);
@@ -581,6 +595,7 @@ lp_media_class_init (lp_MediaClass *cls)
   gobject_class->get_property = lp_media_get_property;
   gobject_class->set_property = lp_media_set_property;
   gobject_class->constructed = lp_media_constructed;
+  gobject_class->dispose = lp_media_dispose;
   gobject_class->finalize = lp_media_finalize;
 
   g_object_class_install_property

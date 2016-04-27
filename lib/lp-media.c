@@ -43,7 +43,6 @@ struct _lp_Media
   } audio;
   struct
   {
-    GstElement *scale;          /* video scale */
     GstElement *filter;         /* video filter */
     char *mixerpad;             /* name of video sink pad in mixer */
   } video;
@@ -77,7 +76,6 @@ static const gstx_eltmap_t media_eltmap_audio[] = {
 };
 
 static const gstx_eltmap_t media_eltmap_video[] = {
-  {"videoscale",    offsetof (lp_Media, video.scale)},
   {"capsfilter",    offsetof (lp_Media, video.filter)},
   {NULL, 0},
 };
@@ -182,23 +180,12 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
                                   GST_TYPE_FRACTION, 1, 1, NULL);
       assert (caps != NULL);
 
-      if (media->prop.width > 0)
-        gst_caps_set_simple (caps, "width", G_TYPE_INT,
-                             media->prop.width, NULL);
-
-      if (media->prop.height > 0)
-        gst_caps_set_simple (caps, "height", G_TYPE_INT,
-                             media->prop.height, NULL);
-
-      g_object_set (media->video.scale, "add-borders", 0, NULL);
       g_object_set (media->video.filter, "caps", caps, NULL);
       gst_caps_unref (caps);
 
-      assert (gst_bin_add (GST_BIN (media->bin), media->video.scale));
       assert (gst_bin_add (GST_BIN (media->bin), media->video.filter));
-      assert (gst_element_link (media->video.scale, media->video.filter));
 
-      sinkpad = gst_element_get_static_pad (media->video.scale, "sink");
+      sinkpad = gst_element_get_static_pad (media->video.filter, "sink");
       assert (sinkpad != NULL);
       assert (gst_pad_link (pad, sinkpad) == GST_PAD_LINK_OK);;
       gst_object_unref (sinkpad);
@@ -226,8 +213,15 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
          "zorder", media->prop.z,
          "alpha", media->prop.alpha, NULL);
 
+      if (media->prop.width > 0)
+        g_object_set (sinkpad, 
+            "width", media->prop.width, NULL);
+      
+      if (media->prop.height > 0)
+        g_object_set (sinkpad, 
+            "height", media->prop.height, NULL);
+
       gstx_element_set_state_sync (media->video.filter, GST_STATE_PLAYING);
-      gstx_element_set_state_sync (media->video.scale, GST_STATE_PLAYING);
       gst_object_unref (sinkpad);
       g_atomic_int_inc (&media->active_pads);
     }

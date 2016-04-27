@@ -200,6 +200,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           default:
             ASSERT_NOT_REACHED;
           }
+        g_object_ref (obj);
         assert (gst_message_ref (msg) == msg);
         scene->messages = g_list_append (scene->messages, msg);
         break;
@@ -293,10 +294,9 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
 
         obj = GST_MESSAGE_SRC (msg);
         if (!GST_IS_BIN (obj)
-            || !(data = g_object_get_data (G_OBJECT (obj), "lp_Media"))
-            || (GST_OBJECT_REFCOUNT(data) == 0))  /* Warning: for some reason
-                                                    we get here during the 
-                                                    finalization. */
+            || !(data = g_object_get_data (G_OBJECT (obj), "lp_Media")))  
+          /* It is possible we reach this point through a call to lp_media_stop  
+           * during the dispose process. In this case, #data should be NULL. */
           {
             break;              /* nothing to do */
           }
@@ -313,6 +313,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           {
                                 /* nothing to do */
           }
+        
         break;
       }
     case GST_MESSAGE_STATE_DIRTY:
@@ -716,6 +717,8 @@ lp_scene_pop (lp_Scene *scene, gboolean block,
   event = message_to_event (msg, target);
   set_if_nonnull (evt, event);
   gst_message_unref (msg);
+  if (target != NULL)
+    g_object_unref(*target);
 
   return TRUE;
 }

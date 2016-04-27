@@ -557,15 +557,17 @@ lp_media_dispose (GObject *object)
   lp_Media *media;
 
   media = LP_MEDIA (object);
-  g_object_ref (media);
+  _lp_debug ("disposing media %p", media);
+
+  if (media->bin != NULL)
+    g_object_set_data (G_OBJECT (media->bin), "lp_Media", NULL);
+
   while (!_lp_media_has_stopped (media))
     {
       lp_media_stop (media);
       _lp_scene_step (media->prop.scene, TRUE);
     }
 
-  g_object_unref (media);
-  _lp_debug ("disposing media %p", media);
   G_OBJECT_CLASS (lp_media_parent_class)->dispose (object);
 }
 

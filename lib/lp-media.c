@@ -483,26 +483,24 @@ lp_media_set_property (GObject *object, guint prop_id,
     case PROP_WIDTH:
     case PROP_HEIGHT:
       {
-        GstCaps *caps;
-        GstCaps *tmp;
-
+        GstElement *mixer;
+        GstPad *sinkpad;
+        
         if (!_lp_scene_has_video (media->prop.scene))
           break;                /* nothing to do */
+        
+        mixer = _lp_scene_get_video_mixer (media->prop.scene);
+        assert (mixer != NULL);
 
-        g_object_get (media->video.filter, "caps", &caps, NULL);
-        assert (caps != NULL);
+        sinkpad = gst_element_get_static_pad (mixer, media->audio.mixerpad);
+        assert (sinkpad != NULL);
 
-        tmp = gst_caps_copy (caps);
-        assert (tmp != NULL);
-        gst_caps_unref (caps);
-        caps = tmp;
+        g_object_set
+          (sinkpad,
+           "width", media->prop.width,
+           "height", media->prop.height, NULL);
 
-        gst_caps_set_simple (caps,
-                             "width", G_TYPE_INT, media->prop.width,
-                             "height", G_TYPE_INT, media->prop.height,
-                             NULL);
-        g_object_set (media->video.filter, "caps", caps, NULL);
-        gst_caps_unref (caps);
+        g_object_unref (sinkpad);
         break;
       }
     case PROP_MUTE:
@@ -514,7 +512,7 @@ lp_media_set_property (GObject *object, guint prop_id,
         mixer = _lp_scene_get_audio_mixer (media->prop.scene);
         assert (mixer != NULL);
 
-        sink = gst_element_get_static_pad (mixer, media->video.mixerpad);
+        sink = gst_element_get_static_pad (mixer, media->audio.mixerpad);
         assert (sink != NULL);
         switch (prop_id)
           {

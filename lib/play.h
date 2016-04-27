@@ -59,6 +59,7 @@ LP_BEGIN_DECLS
 #define LP_VERSION_STRING\
   LP_VERSION_TOSTRING (LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_MICRO)
 
+
 LP_API int
 lp_version (void);
 
@@ -76,7 +77,7 @@ typedef enum
 } lp_Event;
 
 /* scene */
-G_DECLARE_FINAL_TYPE (lp_Scene, lp_scene, LP, SCENE, GObject)
+LP_API G_DECLARE_FINAL_TYPE (lp_Scene, lp_scene, LP, SCENE, GObject)
 #define LP_TYPE_SCENE (lp_scene_get_type ())
 
 LP_API lp_Scene *
@@ -86,7 +87,7 @@ LP_API gboolean
 lp_scene_pop (lp_Scene *, gboolean, GObject **, lp_Event *);
 
 /* media */
-G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
+LP_API G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
 #define LP_TYPE_MEDIA (lp_media_get_type ())
 
 LP_API lp_Media *
@@ -99,5 +100,4 @@ LP_API gboolean
 lp_media_stop (lp_Media *);
 
 LP_END_DECLS
-
 #endif /* PLAY_H */

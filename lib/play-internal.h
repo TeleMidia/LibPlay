@@ -90,6 +90,9 @@ _lp_scene_dispatch (lp_Scene *, GObject *, lp_Event);
 void
 _lp_scene_step (lp_Scene *, gboolean);
 
+GstClockTime
+_lp_scene_get_offset (lp_Scene *);
+
 /* media */
 gboolean
 _lp_media_is_starting (lp_Media *);
@@ -111,5 +114,12 @@ _lp_media_finish_start (lp_Media *);
 
 void
 _lp_media_finish_stop (lp_Media *);
+
+/* clock */
+G_DECLARE_FINAL_TYPE (lp_Clock, lp_clock, LP, CLOCK, GstSystemClock)
+#define LP_TYPE_CLOCK (lp_clock_get_type ())
+
+gboolean
+_lp_clock_advance_time (lp_Clock *, GstClockTime);
 
 #endif /* PLAY_INTERNAL_H */

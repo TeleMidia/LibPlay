@@ -809,7 +809,8 @@ lp_media_start (lp_Media *media)
   assert (gst_bin_add (GST_BIN (pipeline), media->bin));
 
   g_atomic_int_inc (&media->starting);
-  media->offset = gstx_element_get_clock_time (pipeline);
+  media->offset = gstx_element_get_clock_time (pipeline) - 
+    _lp_scene_get_offset (media->prop.scene);
 
   ret = gst_element_set_state (media->bin, GST_STATE_PLAYING);
   return ret != GST_STATE_CHANGE_FAILURE;

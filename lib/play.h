@@ -86,6 +86,9 @@ lp_scene_new (int, int);
 LP_API gboolean
 lp_scene_pop (lp_Scene *, gboolean, GObject **, lp_Event *);
 
+LP_API gboolean
+lp_scene_advance_time (lp_Scene *, guint64);
+
 /* media */
 LP_API G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
 #define LP_TYPE_MEDIA (lp_media_get_type ())

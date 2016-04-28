@@ -486,7 +486,7 @@ lp_media_set_property (GObject *object, guint prop_id,
         mixer = _lp_scene_get_video_mixer (media->prop.scene);
         assert (mixer != NULL);
 
-        sinkpad = gst_element_get_static_pad (mixer, media->audio.mixerpad);
+        sinkpad = gst_element_get_static_pad (mixer, media->video.mixerpad);
         assert (sinkpad != NULL);
 
         g_object_set

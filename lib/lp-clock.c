@@ -54,8 +54,7 @@ lp_clock_init (lp_Clock *self)
   g_mutex_init (&self->mutex);
   self->sync = DEFAULT_SYNC;
   self->internal_clock = gst_system_clock_obtain ();
-  self->curtime = 0;
-  self->reftime = 0;
+  self->curtime = self->reftime = 0;
 }
 
 static GstClockTime 
@@ -68,7 +67,7 @@ lp_clock_get_internal_time (GstClock *clock)
   if (myclock->sync == FALSE)
   {
     myclock->curtime += 
-      (gst_clock_get_time (myclock->internal_clock) - myclock->reftime)
+      (gst_clock_get_time (myclock->internal_clock) - myclock->reftime) 
       - myclock->curtime;
   }
 

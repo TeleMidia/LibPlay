@@ -189,6 +189,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
               _lp_media_finish_stop (media);
               assert (!_lp_media_is_stopping (media));
               _lp_debug ("STOP %p", media);
+              break;
             }
           case LP_EOS:
             {

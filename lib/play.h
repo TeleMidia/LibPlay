@@ -102,5 +102,8 @@ lp_media_start (lp_Media *);
 LP_API gboolean
 lp_media_stop (lp_Media *);
 
+LP_API void
+lp_media_abort (lp_Media *);
+
 LP_END_DECLS
 #endif /* PLAY_H */

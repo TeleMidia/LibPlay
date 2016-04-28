@@ -32,6 +32,8 @@ struct _lp_Media
   gint stopping;                /* true if media is stopping */
   gint drained;                 /* true if media has drained */
   gint active_pads;             /* number of active ghost pads in bin */
+  gulong drain_handler_id;      /* drain callback handler_id */
+  gulong pad_added_handler_id;  /* pad added callback handler_id */
   char *final_uri;              /* final URI */
   struct
   {
@@ -143,6 +145,7 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
   GstCaps *caps;
   const char *name;
 
+  _lp_debug ("PAD ADDED %p, DECODER %p", media, decoder);
   assert (_lp_media_is_starting (media));
   assert (!_lp_media_is_stopping (media));
 
@@ -325,6 +328,8 @@ lp_media_init (lp_Media *media)
   media->stopping = 0;
   media->drained = 0;
   media->active_pads = 0;
+  media->drain_handler_id = 0;
+  media->pad_added_handler_id = 0;
   media->final_uri = NULL;
 
   media->audio.mixerpad = NULL;
@@ -722,12 +727,17 @@ _lp_media_finish_stop (lp_Media *media)
 {
   GstElement *pipeline;
 
+  _lp_debug ("STOP %p", media);
   assert (g_atomic_int_get (&media->active_pads) == 0);
 
   gstx_element_set_state_sync (media->bin, GST_STATE_NULL);
   pipeline = _lp_scene_get_pipeline (media->prop.scene);
   assert (gst_bin_remove (GST_BIN (pipeline), media->bin));
+  g_signal_handler_disconnect (media->decoder, media->drain_handler_id);
+  g_signal_handler_disconnect (media->decoder, media->pad_added_handler_id);
   gst_object_unref (media->bin);
+
+  media->drain_handler_id = media->pad_added_handler_id = 0;
 
   media->bin = NULL;            /* indicates has_stopped */
   media->drained = 0;           /* indicates has_drained */
@@ -772,6 +782,8 @@ lp_media_start (lp_Media *media)
   GstElement *pipeline;
   GstStateChangeReturn ret;
 
+  _lp_debug ("MEDIA START: %p", media);
+
   if (unlikely (!_lp_media_has_stopped (media)))
     return FALSE;
 
@@ -793,16 +805,24 @@ lp_media_start (lp_Media *media)
     }
 
   _lp_eltmap_alloc_check (media, lp_media_eltmap);
+  _lp_debug ("Media (%p) (bin: %p, decoder: %p)", media,
+      media->bin, media->decoder);
+
   g_object_set_data (G_OBJECT (media->bin), "lp_Media", media);
   g_object_set (media->decoder, "uri", media->final_uri, NULL);
   gst_bin_add (GST_BIN (media->bin), media->decoder);
 
-  assert (g_signal_connect (media->decoder, "drained",
-                            G_CALLBACK (lp_media_drained_callback),
-                            media) > 0);
-  assert (g_signal_connect (media->decoder, "pad-added",
-                            G_CALLBACK (lp_media_pad_added_callback),
-                            media) > 0);
+  media->drain_handler_id =
+    g_signal_connect (media->decoder, "drained",
+        G_CALLBACK (lp_media_drained_callback), media);
+
+  assert (media->drain_handler_id > 0);
+  
+  media->pad_added_handler_id = 
+    g_signal_connect (media->decoder, "pad-added",
+        G_CALLBACK (lp_media_pad_added_callback), media);
+
+  assert (media->pad_added_handler_id > 0);
 
   assert (gst_object_ref (media->bin) == media->bin);
   pipeline = _lp_scene_get_pipeline (media->prop.scene);
@@ -873,4 +893,21 @@ lp_media_stop (lp_Media *media)
   gst_iterator_free (it);
 
   return TRUE;
+}
+
+/**
+ * lp_media_abort:
+ * @media: an #lp_Media
+ *
+ * Aborts @media synchronously.
+ *
+ */
+void
+lp_media_abort (lp_Media *media)
+{
+  while (!_lp_media_has_stopped (media))
+  {
+    lp_media_stop (media);
+    _lp_scene_step (media->prop.scene, TRUE);
+  }
 }

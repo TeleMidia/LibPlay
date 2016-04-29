@@ -25,7 +25,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 enum
 {
   PROP_SYNC = 1,
-  PROP_LAST 
+  PROP_LAST
 };
 
 /* Default values for clock properties.  */
@@ -46,7 +46,7 @@ struct _lp_Clock
 
 
 /* Define the lp_Clock type.  */
-G_DEFINE_TYPE (lp_Clock, lp_clock, GST_TYPE_SYSTEM_CLOCK)
+GX_DEFINE_TYPE (lp_Clock, lp_clock, GST_TYPE_SYSTEM_CLOCK)
 
 static void
 lp_clock_init (lp_Clock *self)

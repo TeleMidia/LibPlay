@@ -49,6 +49,7 @@ static int l_scene_new (lua_State *);
 static int __l_scene_gc (lua_State *);
 static int __l_scene_tostring (lua_State *);
 static int l_scene_get (lua_State *);
+int luaopen_play_play0 (lua_State *);
 
 /* Scene object metamethods.  */
 static const struct luaL_Reg scene_funcs[] = {
@@ -60,10 +61,11 @@ static const struct luaL_Reg scene_funcs[] = {
 };
 
 
+PRAGMA_DIAG_IGNORE (-Wunused-macros)
 #if defined DEBUG && DEBUG
-# define debug(fmt, ...)                                        \
-  g_print (G_STRLOC " (thread %p): " fmt "\n",                  \
-           (void *) g_thread_self (), ## __VA_ARGS__)           \
+# define debug(fmt, ...)                                \
+  g_print (G_STRLOC " (thread %p): " fmt "\n",          \
+           (void *) g_thread_self (), ## __VA_ARGS__)
 #else
 # define debug(fmt, ...)        /* nothing */
 #endif
@@ -75,7 +77,7 @@ static const struct luaL_Reg scene_funcs[] = {
 static Scene *
 scene_check (lua_State *L, int index)
 {
-  return luaL_checkudata (L, index, SCENE);
+  return (Scene *) luaL_checkudata (L, index, SCENE);
 }
 
 
@@ -98,10 +100,10 @@ l_scene_new (lua_State *L)
   int height;
 
   luax_optudata (L, 1, SCENE);
-  width = luaL_optinteger (L, 2, 0);
-  height = luaL_optinteger (L, 3, 0);
+  width = (int) clamp (luaL_optinteger (L, 2, 0), G_MININT, G_MAXINT);
+  height = (int) clamp (luaL_optinteger (L, 3, 0), G_MININT, G_MAXINT);
 
-  scene = lua_newuserdata (L, sizeof (*scene));
+  scene = (Scene *) lua_newuserdata (L, sizeof (*scene));
   assert (scene != NULL);
 
   scene->scene = lp_scene_new (width, height);
@@ -159,7 +161,7 @@ scene (%p)\n\
   ticks:   %d\n\
 ",
                    scene, width, height, pattern, wave,
-                   (int) (clamp (ticks, 0, G_MAXINT)));
+                   (int) clamp (ticks, 0, G_MAXINT));
   return 1;
 }
 
@@ -196,8 +198,8 @@ l_scene_get (lua_State *L)
       lua_pushinteger (L, g_value_get_int (&value));
       break;
     case G_TYPE_UINT64:
-      lua_pushinteger (L, (int)(clamp (g_value_get_uint64 (&value),
-                                       0, G_MAXINT)));
+      lua_pushinteger (L, (int) clamp (g_value_get_uint64 (&value),
+                                       0, G_MAXINT));
       break;
     default:
       ASSERT_NOT_REACHED;

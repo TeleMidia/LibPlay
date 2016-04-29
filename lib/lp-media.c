@@ -112,7 +112,7 @@ enum
 #define DEFAULT_VOLUME  1.0     /* natural volume */
 
 /* Define the lp_Media type.  */
-G_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
+GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 
 
 /* callbacks */

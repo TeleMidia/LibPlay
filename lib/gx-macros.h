@@ -28,6 +28,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #define GX_INCLUDE_PROLOGUE                     \
   PRAGMA_DIAG_PUSH ()                           \
+  PRAGMA_DIAG_IGNORE (-Wbad-function-cast)
 
 #define GX_INCLUDE_EPILOGUE                     \
   PRAGMA_DIAG_POP ()
@@ -36,6 +37,12 @@ GX_INCLUDE_PROLOGUE
 #include <glib.h>
 #include <glib-object.h>
 GX_INCLUDE_EPILOGUE
+
+/* Warning-free G_DEFINE_TYPE wrapper.  */
+#define GX_DEFINE_TYPE(TN, t_n, T_P)            \
+  GX_INCLUDE_PROLOGUE                           \
+  G_DEFINE_TYPE (TN, t_n, T_P)                  \
+  GX_INCLUDE_EPILOGUE
 
 
 /* Gets the #GParamSpec of property @name of @obj.   */

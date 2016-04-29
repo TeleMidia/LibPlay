@@ -95,7 +95,7 @@ enum
 #define DEFAULT_SYNCCLOCK  FALSE  /* no sync clock */
 
 /* Define the lp_Scene type.  */
-G_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
+GX_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
 
 
 static lp_Event
@@ -459,7 +459,7 @@ lp_scene_constructed (GObject *object)
   scene = LP_SCENE (object);
 
   _lp_eltmap_alloc_check (scene, lp_scene_eltmap);
-  scene->clock = g_object_new (LP_TYPE_CLOCK, NULL);
+  scene->clock = GST_CLOCK (g_object_new (LP_TYPE_CLOCK, NULL));
 
   gst_pipeline_use_clock (GST_PIPELINE (scene->pipeline), scene->clock);
 

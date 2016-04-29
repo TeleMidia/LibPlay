@@ -132,6 +132,7 @@ Makefile
 lib/Makefile
 lib/play.pc
 lib/playconf.h
+src/Makefile
 play/Makefile
 tests/Makefile
 ])

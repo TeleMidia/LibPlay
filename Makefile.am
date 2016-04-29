@@ -18,7 +18,7 @@
 
 include $(top_srcdir)/build-aux/Makefile.am.common
 
-SUBDIRS= lib tests
+SUBDIRS= lib src tests
 if WITH_LUA
 SUBDIRS+= play
 endif

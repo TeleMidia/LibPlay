@@ -1,4 +1,4 @@
-/* lp-media.c -- Media object.
+/* lp-clock.c -- Clock object.
    Copyright (C) 2015-2016 PUC-Rio/Laboratorio TeleMidia
 
 This file is part of LibPlay.

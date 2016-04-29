@@ -26,19 +26,15 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <stdarg.h>
 
 #include "macros.h"
+#include "gx-macros.h"
 
 #define GSTX_INCLUDE_PROLOGUE                   \
-  PRAGMA_DIAG_IGNORE (-Wbad-function-cast)      \
   PRAGMA_DIAG_PUSH ()                           \
-  PRAGMA_DIAG_IGNORE (-Wcast-qual)              \
-  PRAGMA_DIAG_IGNORE (-Wconversion)             \
-  PRAGMA_DIAG_IGNORE (-Wsign-conversion)
 
-#define GSTX_INCLUDE_EPILOGUE\
+#define GSTX_INCLUDE_EPILOGUE                   \
   PRAGMA_DIAG_POP ()
 
 GSTX_INCLUDE_PROLOGUE
-#include <glib.h>
 #include <gst/gst.h>
 GSTX_INCLUDE_EPILOGUE
 

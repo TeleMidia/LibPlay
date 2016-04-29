@@ -68,6 +68,7 @@
 /tests/env.csh
 /tests/env.sh
 /tests/gdb.cfg
+/tests/lua
 /tests/suppfile
 /tests/test-lp-media
 /tests/test-lp-scene

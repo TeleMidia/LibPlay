@@ -54,8 +54,10 @@ AU_LIBTOOL_VERSION([LIBPLAY], [0], [0], [0])
 # Dependencies version.
 m4_define([glib_required_version], [2.32.4])
 m4_define([gstreamer_required_version], [1.6.0])
+m4_define([lua_required_version], [5.2])
 AC_SUBST([GLIB_REQUIRED_VERSION], glib_required_version)
 AC_SUBST([GSTREAMER_REQUIRED_VERSION], gstreamer_required_version)
+AC_SUBST([LUA_REQUIRED_VERSION], lua_required_version)
 
 # Tool checks.
 AU_PROG_CC_VISIBILITY
@@ -110,11 +112,27 @@ gst_init (0, 0);
 gst_video_info_from_caps (0, 0);
  ]])])
 
+# Check for Lua.
+AU_CHECK_LUA(lua_required_version,
+ [au_check_lua=yes],
+ [au_check_lua=no])
+AS_IF([test "$au_check_lua" = yes],
+ [LUA_LIBS="$LUA_LIBS -export-dynamic"
+  AC_DEFINE([WITH_LUA], [1], [build Lua bindings])])
+AS_IF([test "$au_lua_version" = 5.3],
+ [AC_DEFINE([LUA_COMPAT_APIINTCASTS], [1],
+   [Define to 1 to enable Lua macros for integer manipulation])])
+AM_CONDITIONAL([WITH_LUA],
+ [test "$au_check_lua=yes"])
+AC_SUBST([luaplaydatadir], ["${luadatadir}/play"])
+AC_SUBST([luaplaylibdir], ["${lualibdir}/play"])
+
 AC_CONFIG_FILES([
 Makefile
 lib/Makefile
 lib/play.pc
 lib/playconf.h
+play/Makefile
 tests/Makefile
 ])
 
@@ -130,4 +148,6 @@ AC_MSG_NOTICE([summary of main build options:
   Warning flags:      ${WERROR_CFLAGS} ${WARN_CFLAGS}
   Library types:      Shared=${enable_shared}, Static=${enable_static}
   Valgrind:           ${VALGRIND}
+
+  Lua bindings:       ${au_check_lua}
 ])

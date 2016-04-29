@@ -28,6 +28,11 @@ LDADD= $(top_builddir)/lib/libplay.la
 
 # Auxiliary programs.
 noinst_PROGRAMS=
+if WITH_LUA
+noinst_PROGRAMS+= lua
+lua_CFLAGS = $(AM_CFLAGS) $(LUA_CFLAGS)
+lua_LDFLAGS = $(AM_LDFLAGS) $(LUA_LIBS)
+endif
 
 # Auxiliary scripts.
 noinst_SCRIPTS=
@@ -41,21 +46,33 @@ include $(top_srcdir)/build-aux/Makefile.am.valgrind
 # Setup test framework.
 AM_COLOR_TESTS= always
 DISABLE_HARD_ERRORS= true
-TEST_EXTENSIONS= .sh
+TEST_EXTENSIONS= .lua .sh
 LOG_COMPILER= $(_VALGRIND)
+LUA_LOG_COMPILER= $(_VALGRIND) $(builddir)/lua
 SH_LOG_COMPILER= $(SHELL)
+
+# Setup tests environment.
+LD_PRELOAD=
+if WITH_LUA
+LD_PRELOAD+= play0$(SOEXT)
+endif
 
 AM_TESTS_ENVIRONMENT=\
   export GST_DEBUG="*:WARN";\
   export G_DEBUG="all";\
   export G_SLICE="always-malloc";\
-  export LD_LIBRARY_PATH="$(top_builddir)/lib/.libs;$LD_LIBRARY_PATH";\
-  export LD_PRELOAD="libplay$(SOEXT)";\
+  export LD_LIBRARY_PATH="$(top_builddir)/lib/.libs:$(top_builddir)/play:$$LD_LIBRARY_PATH";\
   export MALLOC_CHECK_=1;\
+  export LD_PRELOAD="$(LD_PRELOAD)";\
+  export LUA_CPATH="$(builddir)/.libs/?$(SOEXT);$(top_builddir)/?$(SOEXT);;";\
+  export LUA_PATH="$(top_srcdir)/?.lua;$(top_srcdir)/?/init.lua;$(top_srcdir)/tests/?.lua;;";\
   $(NULL)
 
 # Test scripts.
 scripts=
+if WITH_LUA
+scripts+= lua-play0-scene.lua
+endif
 check_SCRIPTS= $(scripts)
 
 # Test programs.
@@ -76,7 +93,10 @@ XFAIL_TESTS=\
   $(NULL)
 
 EXTRA_DIST=\
+  $(check_SCRIPTS)\
   gst.supp\
   suppfile.m4\
   tests.h\
   $(NULL)
+
+CLEANFILES+= *.log *.trs

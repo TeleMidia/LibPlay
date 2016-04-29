@@ -819,6 +819,5 @@ lp_scene_advance (lp_Scene *scene, guint64 time)
 {
   if (scene->prop.lockstep == FALSE)
     return FALSE;
-
-  return _lp_clock_advance (LP_CLOCK(scene->clock), time);
+  return _lp_clock_advance (LP_CLOCK (scene->clock), time);
 }

@@ -660,7 +660,7 @@ _lp_scene_get_pipeline (const lp_Scene *scene)
 
 /* Returns the @scene running time (in nanoseconds).  */
 
-ATTR_PURE GstClockTime
+GstClockTime
 _lp_scene_get_clock_time (const lp_Scene *scene)
 {
   return gstx_element_get_clock_time (scene->pipeline) - scene->offset;
@@ -795,7 +795,6 @@ lp_scene_pop (lp_Scene *scene, gboolean block,
 
   event = message_to_event (msg, target);
   set_if_nonnull (evt, event);
-  _lp_debug ("%d", GST_OBJECT_REFCOUNT (msg));
   gst_message_unref (msg);
   if (target != NULL)
     g_object_unref (*target);

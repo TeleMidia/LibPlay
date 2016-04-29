@@ -20,11 +20,14 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <lua.h>
 #include <lauxlib.h>
-#include "play.h"
 
 #include "macros.h"
 #include "gx-macros.h"
 #include "luax-macros.h"
+
+GX_INCLUDE_PROLOGUE
+#include "play.h"
+GX_INCLUDE_EPILOGUE
 
 
 /* Property descriptor.  */

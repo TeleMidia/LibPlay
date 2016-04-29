@@ -20,9 +20,12 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #define PLAY_INTERNAL_H
 
 #include "macros.h"
+#include "gx-macros.h"
 #include "gstx-macros.h"
 
+GX_INCLUDE_PROLOGUE
 #include "play.h"
+GX_INCLUDE_EPILOGUE
 
 /* debugging */
 #if defined DEBUG && DEBUG
@@ -116,7 +119,7 @@ void
 _lp_media_finish_stop (lp_Media *);
 
 /* clock */
-G_DECLARE_FINAL_TYPE (lp_Clock, lp_clock, LP, CLOCK, GstSystemClock)
+GX_DECLARE_FINAL_TYPE (lp_Clock, lp_clock, LP, CLOCK, GstSystemClock)
 #define LP_TYPE_CLOCK (lp_clock_get_type ())
 
 gboolean

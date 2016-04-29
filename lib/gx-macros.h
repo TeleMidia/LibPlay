@@ -28,7 +28,8 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #define GX_INCLUDE_PROLOGUE                     \
   PRAGMA_DIAG_PUSH ()                           \
-  PRAGMA_DIAG_IGNORE (-Wbad-function-cast)
+  PRAGMA_DIAG_IGNORE (-Wbad-function-cast)      \
+  PRAGMA_DIAG_IGNORE (-Wcast-qual)
 
 #define GX_INCLUDE_EPILOGUE                     \
   PRAGMA_DIAG_POP ()
@@ -37,6 +38,14 @@ GX_INCLUDE_PROLOGUE
 #include <glib.h>
 #include <glib-object.h>
 GX_INCLUDE_EPILOGUE
+
+/* Warning-free G_DECLARE_FINAL_TYPE wrapper.  */
+#define GX_DECLARE_FINAL_TYPE(ModuleObjName, module_obj_name,   \
+                              MODULE, OBJ_NAME, ParentName)     \
+  GX_INCLUDE_PROLOGUE                                           \
+  G_DECLARE_FINAL_TYPE (ModuleObjName, module_obj_name,         \
+                        MODULE, OBJ_NAME, ParentName)           \
+  GX_INCLUDE_EPILOGUE
 
 /* Warning-free G_DEFINE_TYPE wrapper.  */
 #define GX_DEFINE_TYPE(TN, t_n, T_P)            \

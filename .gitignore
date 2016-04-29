@@ -72,6 +72,7 @@
 /tests/suppfile
 /tests/test-lp-media
 /tests/test-lp-scene
+/tests/test-lp-scene-advance
 /tests/test-lp-version
 /tests/test-lp-version-string
 Makefile

@@ -30,6 +30,9 @@ GX_INCLUDE_PROLOGUE
 #include "play.h"
 GX_INCLUDE_EPILOGUE
 
+/* Sleeps for @n seconds.  */
+#define SLEEP(n) g_usleep ((n) * 1000000)
+
 /* Waits for @n ticks in @scene.  */
 #define AWAIT(scene, n)                                 \
   STMT_BEGIN                                            \

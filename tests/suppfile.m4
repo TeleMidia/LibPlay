@@ -8,30 +8,5 @@ define([suppress],[dnl
     fun:$1
 }])dnl
 include(gst.supp)
-{
-   libasound:
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   obj:/usr/lib/libasound.so.2.0.0
-   ...
-}
-{
-   libasound:
-   Memcheck:Leak
-   match-leak-kinds: possible
-   ...
-   fun:calloc
-   obj:/usr/lib/libasound.so.2.0.0
-   ...
-}
-{
-   libasound:
-   Memcheck:Leak
-   match-leak-kinds: possible
-   ...
-   fun:strdup
-   obj:/usr/lib/libasound.so.2.0.0
-   ...
-}
 suppress(_dl_init)
+suppress(gst_init_check)

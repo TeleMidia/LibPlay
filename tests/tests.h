@@ -23,21 +23,27 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <assert.h>
 
 #include "macros.h"
+#include "gx-macros.h"
 #include "gstx-macros.h"
 
+GX_INCLUDE_PROLOGUE
 #include "play.h"
+GX_INCLUDE_EPILOGUE
+
+/* Sleeps for @n seconds.  */
+#define SLEEP(n) g_usleep ((n) * 1000000)
 
 /* Waits for @n ticks in @scene.  */
 #define AWAIT(scene, n)                                 \
   STMT_BEGIN                                            \
   {                                                     \
-    int _total = (n);                                   \
-    while (_total > 0)                                  \
+    int __total = (n);                                  \
+    while (__total > 0)                                 \
       {                                                 \
-        lp_Event _evt;                                  \
-        lp_scene_pop ((scene), TRUE, NULL, &_evt);      \
-        if (_evt == LP_TICK)                            \
-          _total--;                                     \
+        lp_Event __evt;                                 \
+        lp_scene_pop ((scene), TRUE, NULL, &__evt);     \
+        if (__evt == LP_TICK)                           \
+          __total--;                                    \
       }                                                 \
   }                                                     \
   STMT_END

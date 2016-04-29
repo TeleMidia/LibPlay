@@ -87,7 +87,7 @@ LP_API gboolean
 lp_scene_pop (lp_Scene *, gboolean, GObject **, lp_Event *);
 
 LP_API gboolean
-lp_scene_advance_time (lp_Scene *, guint64);
+lp_scene_advance (lp_Scene *, guint64);
 
 /* media */
 LP_API G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
@@ -106,4 +106,5 @@ LP_API void
 lp_media_abort (lp_Media *);
 
 LP_END_DECLS
+
 #endif /* PLAY_H */

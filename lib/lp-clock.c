@@ -1,4 +1,4 @@
-/* lp-media.c -- Media object.
+/* lp-clock.c -- Clock object.
    Copyright (C) 2015-2016 PUC-Rio/Laboratorio TeleMidia
 
 This file is part of LibPlay.
@@ -17,154 +17,182 @@ You should have received a copy of the GNU General Public License
 along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
-
 #include "play-internal.h"
-#include "play.h"
+
+/* Clock object.  */
+struct _lp_Clock
+{
+  GstSystemClock parent;        /* parent object */
+  GMutex mutex;                 /* sync access to clock object */
+  gboolean lockstep;            /* true if clock advances in lock-step */
+  GstClock *sysclock;           /* system clock */
+  GstClockTime time;            /* clock time */
+  GstClockTime unlock_time;     /* clock time when lock-step was disabled */
+  GstClockTime unlock_systime;  /* systime when lock-step was disabled */
+};
 
 /* Clock properties. */
 enum
 {
-  PROP_SYNC = 1,
-  PROP_LAST 
+  PROP_LOCKSTEP = 1,
+  PROP_LAST
 };
 
 /* Default values for clock properties.  */
-#define DEFAULT_SYNC FALSE  /* nonsynchronous */
-
-struct _lp_Clock
-{
-  GstSystemClock parent;                /* parent object */
-  gboolean sync;                        /* sync mode */
-  GMutex mutex;                         /* concurrent access */
-  GstClockTime curtime;                 /* deterministic time */
-  GstClockTime reftime;                 /* reference time */
-  GstClock *internal_clock;             /* internal clock */
-};
-
-#define lp_clock_lock(c) g_mutex_lock(&c->mutex)
-#define lp_clock_unlock(c) g_mutex_unlock(&c->mutex)
-
+#define DEFAULT_LOCKSTEP FALSE  /* clock advances in real-time */
 
 /* Define the lp_Clock type.  */
-G_DEFINE_TYPE (lp_Clock, lp_clock, GST_TYPE_SYSTEM_CLOCK)
+GX_DEFINE_TYPE (lp_Clock, lp_clock, GST_TYPE_SYSTEM_CLOCK)
+
+
+#define __lp_clock_lock(clock)\
+  g_mutex_lock (&(clock)->mutex)
+
+#define __lp_clock_unlock(clock)\
+  g_mutex_unlock (&(clock)->mutex)
+
+#define __lp_clock_get_systime(clock)\
+  gst_clock_get_time ((clock)->sysclock)
+
+
+/* methods */
 
 static void
-lp_clock_init (lp_Clock *self)
+lp_clock_init (lp_Clock *clock)
 {
-  g_mutex_init (&self->mutex);
-  self->sync = DEFAULT_SYNC;
-  self->internal_clock = gst_system_clock_obtain ();
-  self->curtime = self->reftime = 0;
+  g_mutex_init (&clock->mutex);
+  clock->lockstep = DEFAULT_LOCKSTEP;
+  clock->sysclock = gst_system_clock_obtain ();
+  assert (clock->sysclock != NULL);
+  clock->time = 0;
+  clock->unlock_time = 0;
+  clock->unlock_systime = 0;
 }
 
-static GstClockTime 
-lp_clock_get_internal_time (GstClock *clock)
+static void
+lp_clock_get_property (GObject *object, guint prop_id,
+                       GValue *value, GParamSpec *pspec)
 {
-  lp_Clock *myclock = LP_CLOCK (clock);
-  GstClockTime curtime;
+  lp_Clock *clock;
 
-  lp_clock_lock (myclock);
-  if (myclock->sync == FALSE)
-  {
-    myclock->curtime += 
-      (gst_clock_get_time (myclock->internal_clock) - myclock->reftime) 
-      - myclock->curtime;
-  }
+  clock = LP_CLOCK (object);
+  switch (prop_id)
+    {
+    case PROP_LOCKSTEP:
+      {
+        __lp_clock_lock (clock);
+        g_value_set_boolean (value, g_atomic_int_get (&clock->lockstep));
+        __lp_clock_unlock (clock);
+        break;
+      }
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
+}
 
-  curtime = myclock->curtime;
-  lp_clock_unlock (myclock);
- 
-  return curtime;
+static void
+lp_clock_set_property (GObject *object, guint prop_id,
+                       const GValue *value, GParamSpec *pspec)
+{
+  lp_Clock *clock;
+
+  clock = LP_CLOCK (object);
+  switch (prop_id)
+    {
+    case PROP_LOCKSTEP:
+      {
+        gboolean lockstep;
+
+        lockstep = g_value_get_boolean (value);
+        __lp_clock_lock (clock);
+
+        if (unlikely (lockstep == clock->lockstep))
+          goto done;            /* nothing to do */
+
+        clock->lockstep = lockstep;
+        if (!lockstep)
+          {
+            clock->unlock_systime = gst_clock_get_time (clock->sysclock);
+            clock->unlock_time = clock->time;
+          }
+
+      done:
+        __lp_clock_unlock (clock);
+        break;
+      }
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
 }
 
 static void
 lp_clock_finalize (GObject *object)
 {
-  lp_Clock *self = LP_CLOCK (object);
-  g_mutex_clear (&self->mutex);
-  g_object_unref (self->internal_clock);
+  lp_Clock *clock;
 
-  G_OBJECT_CLASS (lp_clock_parent_class)->finalize(object);
+  clock = LP_CLOCK (object);
+  g_mutex_clear (&clock->mutex);
+  g_object_unref (clock->sysclock);
+
+  _lp_debug ("finalizing clock %p", clock);
+  G_OBJECT_CLASS (lp_clock_parent_class)->finalize (object);
 }
 
-static void
-lp_clock_set_property (GObject *object, guint prop_id,
-    const GValue *value, GParamSpec *pspec)
+static GstClockTime
+lp_clock_get_internal_time (GstClock *gst_clock)
 {
-  lp_Clock *clock = LP_CLOCK (object);
+  lp_Clock *clock;
+  GstClockTime result;
 
-  switch (prop_id)
-  {
-    case PROP_SYNC:
+  clock = LP_CLOCK (gst_clock);
+  __lp_clock_lock (clock);
+
+  if (!clock->lockstep)
     {
-      gboolean newval = g_value_get_boolean(value);
-      if (clock->sync != newval)
-      {
-        GstClockTime curtime = gst_clock_get_time (clock->internal_clock);
-
-        lp_clock_lock (clock);
-        if (newval == TRUE)
-          clock->curtime = curtime;
-        else
-          clock->reftime = curtime;
-
-        clock->sync = newval;
-        lp_clock_unlock (clock);
-      }
-      break;
+      GstClockTime now = __lp_clock_get_systime (clock);
+      clock->time = now - clock->unlock_systime + clock->unlock_time;
     }
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
-  }
+  result = clock->time;
+
+  __lp_clock_unlock (clock);
+  return result;
 }
 
 static void
-lp_clock_get_property (GObject * object, guint prop_id,
-    GValue *value, GParamSpec *pspec)
-{
-  lp_Clock *clock = LP_CLOCK (object);
-
-  switch (prop_id)
-  {
-    case PROP_SYNC:
-    {
-      g_value_set_boolean (value, g_atomic_int_get(&clock->sync));
-      break;
-    }
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
-  }
-}
-static void
-lp_clock_class_init (lp_ClockClass *klass)
+lp_clock_class_init (lp_ClockClass *cls)
 {
   GObjectClass *gobject_class;
-  GstClockClass *clock_class;
+  GstClockClass *gstclock_class;
 
-  gobject_class = (GObjectClass *) klass;
-  clock_class = (GstClockClass *) klass;
-
-  gobject_class->finalize = lp_clock_finalize;
-  gobject_class->set_property = lp_clock_set_property;
+  gobject_class = (GObjectClass *) cls;
   gobject_class->get_property = lp_clock_get_property;
+  gobject_class->set_property = lp_clock_set_property;
+  gobject_class->finalize = lp_clock_finalize;
 
-  clock_class->get_internal_time = lp_clock_get_internal_time;
-  
-  g_object_class_install_property (gobject_class, PROP_SYNC,
-      g_param_spec_boolean ("sync", "Sync", "use sync clock ", DEFAULT_SYNC, 
-        G_PARAM_READWRITE));
+  gstclock_class = (GstClockClass *) cls;
+  gstclock_class->get_internal_time = lp_clock_get_internal_time;
+
+  g_object_class_install_property
+    (gobject_class, PROP_LOCKSTEP, g_param_spec_boolean
+     ("lockstep", "lock-step mode", "enable lock-step mode ",
+      DEFAULT_LOCKSTEP, G_PARAM_READWRITE));
 }
 
-gboolean
-_lp_clock_advance_time (lp_Clock *clock, GstClockTime value)
-{
-  g_return_val_if_fail (clock->sync, FALSE);
+
+/* internal */
 
-  lp_clock_lock (clock);
-  clock->curtime += value;
-  lp_clock_unlock (clock);
+/* Advances @clock time by @time nanoseconds.
+   Does nothing if clock is not operating in lock-step mode.  */
+
+gboolean
+_lp_clock_advance (lp_Clock *clock, GstClockTime time)
+{
+  if (unlikely (!clock->lockstep))
+    return FALSE;
+
+  __lp_clock_lock (clock);
+  clock->time += time;
+  __lp_clock_unlock (clock);
 
   return TRUE;
 }

@@ -8,12 +8,15 @@ define([suppress],[dnl
     fun:$1
 }])dnl
 include(gst.supp)
+suppress(_dl_init)
+suppress(gst_init_check)
+suppress(jack_client_open)
 {
    libasound:
    Memcheck:Leak
    match-leak-kinds: possible
    fun:malloc
-   obj:/usr/lib/libasound.so.2.0.0
+   obj:/usr/lib/libasound.so.*
    ...
 }
 {
@@ -22,7 +25,7 @@ include(gst.supp)
    match-leak-kinds: possible
    ...
    fun:calloc
-   obj:/usr/lib/libasound.so.2.0.0
+   obj:/usr/lib/libasound.so.*
    ...
 }
 {
@@ -31,7 +34,6 @@ include(gst.supp)
    match-leak-kinds: possible
    ...
    fun:strdup
-   obj:/usr/lib/libasound.so.2.0.0
+   obj:/usr/lib/libasound.so.*
    ...
 }
-suppress(_dl_init)

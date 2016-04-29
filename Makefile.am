@@ -19,6 +19,10 @@
 include $(top_srcdir)/build-aux/Makefile.am.common
 
 SUBDIRS= lib tests
+if WITH_LUA
+SUBDIRS+= play
+endif
+
 ACLOCAL_AMFLAGS= -I build-aux ${ACLOCAL_FLAGS}
 
 # Setup code coverage.

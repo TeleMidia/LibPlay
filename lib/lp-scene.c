@@ -17,16 +17,14 @@ You should have received a copy of the GNU General Public License
 along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
-
 #include "play-internal.h"
-#include "play.h"
 
 /* Scene object.  */
 struct _lp_Scene
 {
   GObject parent;               /* parent object */
   GstElement *pipeline;         /* scene pipeline */
-  GstClock *clock;              /* pipeline clock */
+  GstClock *clock;              /* scene pipeline clock */
   GstClockTime offset;          /* start time offset */
   GstClockID clock_id;          /* last clock id */
   GMainLoop *loop;              /* scene loop */
@@ -52,7 +50,9 @@ struct _lp_Scene
     int pattern;                /* cached pattern */
     int wave;                   /* cached wave */
     guint64 ticks;              /* cached ticks */
-    gboolean syncclock;         /* syncclock */
+    guint64 interval;           /* cached interval */
+    guint64 time;               /* cached time */
+    gboolean lockstep;          /* cached lockstep */
   } prop;
 };
 
@@ -82,20 +82,28 @@ enum
   PROP_PATTERN,
   PROP_WAVE,
   PROP_TICKS,
-  PROP_SYNCCLOCK,
+  PROP_INTERVAL,
+  PROP_TIME,
+  PROP_LOCKSTEP,
   PROP_LAST
 };
 
 /* Default values for scene properties.  */
-#define DEFAULT_WIDTH      0      /* no video output */
-#define DEFAULT_HEIGHT     0      /* no video output */
-#define DEFAULT_PATTERN    2      /* black */
-#define DEFAULT_WAVE       4      /* silence */
-#define DEFAULT_TICKS      0      /* no ticks */
-#define DEFAULT_SYNCCLOCK  FALSE  /* no sync clock */
+#define DEFAULT_WIDTH      0          /* no video output */
+#define DEFAULT_HEIGHT     0          /* no video output */
+#define DEFAULT_PATTERN    2          /* black */
+#define DEFAULT_WAVE       4          /* silence */
+#define DEFAULT_TICKS      0          /* no ticks */
+#define DEFAULT_INTERVAL   GST_SECOND /* one tick per second */
+#define DEFAULT_TIME       0          /* zero nanoseconds */
+#define DEFAULT_LOCKSTEP   FALSE      /* real-time mode */
 
 /* Define the lp_Scene type.  */
-G_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
+GX_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
+
+/* Forward declarations:  */
+static int lp_scene_tick_callback (GstClock *, GstClockTime, GstClockID, lp_Scene *);
+static gboolean lp_scene_bus_callback (GstBus *, GstMessage *, lp_Scene *);
 
 
 static lp_Event
@@ -135,6 +143,38 @@ message_to_event (GstMessage *msg, GObject **obj)
     return LP_ERROR;
 
   ASSERT_NOT_REACHED;
+  return LP_ERROR;
+}
+
+static void
+__lp_scene_update_clock_id (lp_Scene *scene)
+{
+  GstClock *clock;
+  GstClockID id;
+  GstClockTime time;
+  GstClockCallback cb;
+  GstClockReturn ret;
+
+  clock = gst_pipeline_get_clock (GST_PIPELINE (scene->pipeline));
+  assert (clock != NULL);
+  assert (clock == scene->clock);
+
+  time = gst_clock_get_time (clock);
+  assert (time != GST_CLOCK_TIME_NONE);
+
+  id = gst_clock_new_periodic_id (clock, time, scene->prop.interval);
+  assert (id != NULL);
+  g_object_unref (clock);
+
+  cb = (GstClockCallback) lp_scene_tick_callback;
+  ret = gst_clock_id_wait_async (id, cb, scene, NULL);
+  assert (ret == GST_CLOCK_OK);
+  if (scene->clock_id != NULL)
+    {
+      gst_clock_id_unschedule (scene->clock_id);
+      gst_clock_id_unref (scene->clock_id);
+    }
+  scene->clock_id = id;
 }
 
 
@@ -158,11 +198,9 @@ lp_scene_tick_callback (arg_unused (GstClock *clock),
 static gboolean
 lp_scene_bus_callback (arg_unused (GstBus *bus),
                        GstMessage *msg,
-                       gpointer user_data)
+                       lp_Scene *scene)
 {
-  lp_Scene *scene;
-
-  scene = LP_SCENE (user_data);
+  assert (LP_IS_SCENE (scene));
   switch (GST_MESSAGE_TYPE (msg))
     {
     case GST_MESSAGE_APPLICATION:
@@ -194,19 +232,20 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           case LP_EOS:
             {
               lp_Media *media = LP_MEDIA (obj);
+              (void) media;
               _lp_debug ("EOS %p", media);
               break;
             }
           case LP_ERROR:
             {
               lp_Media *media = LP_MEDIA (obj);
+              (void) media;
               _lp_warn ("ERROR %p", media);
               break;
             }
           default:
             ASSERT_NOT_REACHED;
           }
-        g_object_ref (obj);
         assert (gst_message_ref (msg) == msg);
         scene->messages = g_list_append (scene->messages, msg);
         break;
@@ -252,33 +291,8 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
       break;
     case GST_MESSAGE_NEW_CLOCK:
       {
-        GstClock *clock;
-        GstClockID id;
-        GstClockTime time;
-        GstClockCallback func;
-        GstClockReturn ret;
-
-        clock = gst_pipeline_get_clock (GST_PIPELINE (scene->pipeline));
-        assert (clock != NULL);
-        assert (clock == scene->clock);
-
-        time = gst_clock_get_time (clock);
-        assert (time != GST_CLOCK_TIME_NONE);
-
-        id = gst_clock_new_periodic_id (clock, time, 1 * GST_SECOND);
-        assert (id != NULL);
-
-        func = (GstClockCallback) lp_scene_tick_callback;
-        ret = gst_clock_id_wait_async (id, func, scene, NULL);
-        assert (ret == GST_CLOCK_OK);
-        if (scene->clock_id != NULL)
-          {
-            gst_clock_id_unschedule (scene->clock_id);
-            gst_clock_id_unref (scene->clock_id);
-          }
-        scene->clock_id = id;
-
-        gst_object_unref (clock);
+        __lp_scene_update_clock_id (scene);
+        break;
       }
     case GST_MESSAGE_PROGRESS:
       break;
@@ -302,27 +316,23 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
         GstState newstate;
 
         obj = GST_MESSAGE_SRC (msg);
-        if (!GST_IS_BIN (obj)
-            || !(data = g_object_get_data (G_OBJECT (obj), "lp_Media")))  
-          /* It is possible we reach this point through a call to lp_media_stop  
-           * during the dispose process. In this case, #data should be NULL. */
-          {
-            break;              /* nothing to do */
-          }
+        if (!GST_IS_BIN (obj))
+          break;                /* nothing to do */
+
+        if (!(data = g_object_get_data (G_OBJECT (obj), "lp_Media")))
+          break;                /* no associated media, nothing to do */
+
         media = LP_MEDIA (data);
         assert (media != NULL);
 
         gst_message_parse_state_changed (msg, NULL, &newstate, &pending);
-        if (pending == GST_STATE_VOID_PENDING
-            && newstate == GST_STATE_PLAYING)
+        if (!(pending == GST_STATE_VOID_PENDING
+              && newstate == GST_STATE_PLAYING))
           {
-            _lp_scene_dispatch (scene, G_OBJECT (media), LP_START);
+            break;              /* nothing to do */
           }
-        else
-          {
-                                /* nothing to do */
-          }
-        
+
+        _lp_scene_dispatch (scene, G_OBJECT (media), LP_START);
         break;
       }
     case GST_MESSAGE_STATE_DIRTY:
@@ -363,9 +373,13 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
 static void
 lp_scene_init (lp_Scene *scene)
 {
+  scene->clock = NULL;
+  scene->offset = GST_CLOCK_TIME_NONE;
   scene->clock_id = NULL;
+
   scene->loop = g_main_loop_new (NULL, FALSE);
   assert (scene->loop != NULL);
+
   scene->messages = NULL;
   scene->children = NULL;
 
@@ -374,7 +388,9 @@ lp_scene_init (lp_Scene *scene)
   scene->prop.pattern = DEFAULT_PATTERN;
   scene->prop.wave = DEFAULT_WAVE;
   scene->prop.ticks = DEFAULT_TICKS;
-  scene->prop.syncclock = DEFAULT_SYNCCLOCK;
+  scene->prop.interval= DEFAULT_INTERVAL;
+  scene->prop.time= DEFAULT_TIME;
+  scene->prop.lockstep = DEFAULT_LOCKSTEP;
 }
 
 static void
@@ -401,8 +417,15 @@ lp_scene_get_property (GObject *object, guint prop_id,
     case PROP_TICKS:
       g_value_set_uint64 (value, scene->prop.ticks);
       break;
-    case PROP_SYNCCLOCK:
-      g_value_set_boolean (value, scene->prop.syncclock);
+    case PROP_INTERVAL:
+      g_value_set_uint64 (value, scene->prop.interval);
+      break;
+    case PROP_TIME:
+      scene->prop.time = _lp_scene_get_clock_time (scene);
+      g_value_set_uint64 (value, scene->prop.time);
+      break;
+    case PROP_LOCKSTEP:
+      g_value_set_boolean (value, scene->prop.lockstep);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -439,10 +462,17 @@ lp_scene_set_property (GObject *object, guint prop_id,
     case PROP_TICKS:
       scene->prop.ticks = g_value_get_uint64 (value);
       break;
-    case PROP_SYNCCLOCK:
-      scene->prop.syncclock = g_value_get_boolean (value);
-      g_object_set (G_OBJECT(scene->clock), "sync", 
-          scene->prop.syncclock, NULL);
+    case PROP_INTERVAL:
+      scene->prop.interval = g_value_get_uint64 (value);
+      __lp_scene_update_clock_id (scene);
+      break;
+    case PROP_TIME:
+      scene->prop.time = g_value_get_uint64 (value);
+      break;
+    case PROP_LOCKSTEP:
+      scene->prop.lockstep = g_value_get_boolean (value);
+      g_object_set (G_OBJECT(scene->clock),
+                    "lockstep", scene->prop.lockstep, NULL);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -459,13 +489,15 @@ lp_scene_constructed (GObject *object)
   scene = LP_SCENE (object);
 
   _lp_eltmap_alloc_check (scene, lp_scene_eltmap);
-  scene->clock = g_object_new (LP_TYPE_CLOCK, NULL);
 
+  scene->clock = GST_CLOCK (g_object_new (LP_TYPE_CLOCK, NULL));
+  assert (scene->clock != NULL);
   gst_pipeline_use_clock (GST_PIPELINE (scene->pipeline), scene->clock);
 
   bus = gst_pipeline_get_bus (GST_PIPELINE (scene->pipeline));
   assert (bus != NULL);
-  assert (gst_bus_add_watch (bus, lp_scene_bus_callback, scene) > 0);
+  assert (gst_bus_add_watch (bus, (GstBusFunc) lp_scene_bus_callback,
+                             scene) > 0);
   gst_object_unref (bus);
 
   assert (gst_bin_add (GST_BIN (scene->pipeline), scene->audio.blank));
@@ -504,8 +536,8 @@ lp_scene_constructed (GObject *object)
   gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
   assert (lp_scene_pop (scene, TRUE, NULL, &evt));
   assert (evt == LP_TICK && scene->prop.ticks == 1);
-  scene->prop.ticks = 0;
   scene->offset = gstx_element_get_clock_time (scene->pipeline);
+  scene->prop.ticks = 0;
 }
 
 static void
@@ -578,11 +610,23 @@ lp_scene_class_init (lp_SceneClass *cls)
      ("ticks", "ticks", "total number of ticks so far",
       0, G_MAXUINT64, DEFAULT_TICKS,
       G_PARAM_READABLE));
-  
+
   g_object_class_install_property
-    (gobject_class, PROP_SYNCCLOCK, g_param_spec_boolean
-     ("sync-clock", "sync clock", "use sync clock",
-      DEFAULT_SYNCCLOCK, G_PARAM_READWRITE));
+    (gobject_class, PROP_INTERVAL, g_param_spec_uint64
+     ("interval", "interval", "interval between ticks (in nanoseconds)",
+      0, G_MAXUINT64, DEFAULT_TICKS,
+      G_PARAM_READWRITE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_TIME, g_param_spec_uint64
+     ("time", "time", "running time (in nanoseconds)",
+      0, G_MAXUINT64, DEFAULT_TIME,
+      G_PARAM_READABLE));
+
+  g_object_class_install_property
+    (gobject_class, PROP_LOCKSTEP, g_param_spec_boolean
+     ("lockstep", "lock-step mode ", "enable lock-step mode",
+      DEFAULT_LOCKSTEP, G_PARAM_READWRITE));
 
   if (!gst_is_initialized ())
     {
@@ -616,10 +660,18 @@ _lp_scene_get_pipeline (const lp_Scene *scene)
   return scene->pipeline;
 }
 
+/* Returns the @scene running time (in nanoseconds).  */
+
+GstClockTime
+_lp_scene_get_clock_time (const lp_Scene *scene)
+{
+  return gstx_element_get_clock_time (scene->pipeline) - scene->offset;
+}
+
 /* Returns @scene audio mixer.  */
 
-GstElement *
-ATTR_PURE _lp_scene_get_audio_mixer (const lp_Scene *scene)
+ATTR_PURE GstElement *
+_lp_scene_get_audio_mixer (const lp_Scene *scene)
 {
   return scene->audio.mixer;
 }
@@ -747,32 +799,26 @@ lp_scene_pop (lp_Scene *scene, gboolean block,
   set_if_nonnull (evt, event);
   gst_message_unref (msg);
   if (target != NULL)
-    g_object_unref(*target);
+    g_object_unref (*target);
 
   return TRUE;
 }
 
 /**
- * lp_scene_advance_time:
- * @scene: an #lp_Scene to advance time
- * @time: the amount of time to advance.
+ * lp_scene_advance:
+ * @scene: an #lp_Scene
+ * @time: the amount of time to advance (in nanoseconds)
  *
- * Advances the scene clock by #time nanoseconds. This function is supposed
- * to be used after the sync-clock property is set to TRUE.
+ * Advances the scene clock by @time nanoseconds.  This function should only
+ * be used when @scene is in lock-step mode, i.e., when its "lockstep"
+ * property is set to %TRUE.
  *
- * Returns: %TRUE if the sync-clock property is TRUE, or %FALSE otherwise
+ * Returns: %TRUE successful, or %FALSE otherwise
  */
 gboolean
-lp_scene_advance_time (lp_Scene *scene, guint64 time)
+lp_scene_advance (lp_Scene *scene, guint64 time)
 {
-  if (scene->prop.syncclock == FALSE)
+  if (scene->prop.lockstep == FALSE)
     return FALSE;
-
-  return _lp_clock_advance_time (LP_CLOCK(scene->clock), time);
-}
-
-GstClockTime
-_lp_scene_get_offset (lp_Scene *scene)
-{
-  return scene->offset;
+  return _lp_clock_advance (LP_CLOCK (scene->clock), time);
 }

@@ -27,7 +27,6 @@ main (void)
 
       scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, NULL));
       assert (scene != NULL);
-
       g_object_unref (scene);
     }
   STMT_END;
@@ -140,6 +139,40 @@ main (void)
       AWAIT (scene, 1);
       g_object_get (scene, "wave", &wave, NULL);
       assert (wave == 0);
+      g_object_unref (scene);
+    }
+  STMT_END;
+
+  /* get/set interval */
+  STMT_BEGIN
+    {
+      lp_Scene *scene;
+      guint64 interval = G_MAXUINT64;
+      guint64 v[] = {500, 250, 100, 1000};
+      size_t i;
+
+      scene = lp_scene_new (200, 200);
+      assert (scene != NULL);
+      g_object_get (scene, "interval", &interval, NULL);
+      assert (interval == GST_SECOND);
+
+      for (i = 0; i < nelementsof (v); i++)
+        {
+          int pattern = 0;
+          int wave = 0;
+          int n;
+
+          g_object_set (scene, "interval", v[i] * GST_MSECOND, NULL);
+          g_object_get (scene, "interval", &interval, NULL);
+          assert (interval == v[i] * GST_MSECOND);
+          for (n = 0; n < 10; n++)
+            {
+              AWAIT (scene, 1);
+              g_object_set (scene,
+                            "pattern", pattern++ % 25,
+                            "wave", wave++ % 13, NULL);
+            }
+        }
       g_object_unref (scene);
     }
   STMT_END;

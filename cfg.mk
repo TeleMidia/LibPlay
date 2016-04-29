@@ -41,20 +41,15 @@ INDENT_TYPES=\
   $(NULL)
 
 SC_USELESS_IF_BEFORE_FREE_ALIASES=\
+  g_free\
   $(NULL)
 
 SYNTAX_CHECK_EXCLUDE=\
   $(NULL)
 
 SC_COPYRIGHT_EXCLUDE=\
-  build-aux/Makefile.am.common\
-  build-aux/Makefile.am.coverage\
-  build-aux/Makefile.am.env\
-  build-aux/Makefile.am.gitlog\
-  build-aux/Makefile.am.link\
-  build-aux/Makefile.am.valgrind\
-  lib/macros.h\
-  maint.mk\
+  $(REMOTE_FILES)\
+  play/luax-macros.h\
   $(NULL)
 
 UPDATE_COPYRIGHT_EXCLUDE=\
@@ -84,8 +79,10 @@ NCLUA_FILES+= build-aux/Makefile.am.gitlog
 NCLUA_FILES+= build-aux/Makefile.am.link
 NCLUA_FILES+= build-aux/Makefile.am.valgrind
 NCLUA_FILES+= build-aux/util.m4
+NCLUA_FILES+= lib/luax-macros.h
 NCLUA_FILES+= lib/macros.h
 NCLUA_FILES+= maint.mk
+NCLUA_FILES+= tests/lua.c
 NCLUA_SCRIPTS+= bootstrap
 NCLUA_SCRIPTS+= build-aux/syntax-check
 NCLUA_SCRIPTS+= build-aux/syntax-check-copyright
@@ -94,7 +91,7 @@ REMOTE_SCRIPTS+= $(NCLUA_SCRIPTS)
 fetch-remote-local:
 	$(V_at)for path in $(NCLUA_FILES) $(NCLUA_SCRIPTS); do\
 	  if test "$$path" = "lib/luax-macros.h"; then\
-	    dir=lua;\
+	    dir=play;\
 	  else\
 	    dir=`dirname "$$path"`;\
 	  fi;\

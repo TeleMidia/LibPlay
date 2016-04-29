@@ -47,14 +47,8 @@ SYNTAX_CHECK_EXCLUDE=\
   $(NULL)
 
 SC_COPYRIGHT_EXCLUDE=\
-  build-aux/Makefile.am.common\
-  build-aux/Makefile.am.coverage\
-  build-aux/Makefile.am.env\
-  build-aux/Makefile.am.gitlog\
-  build-aux/Makefile.am.link\
-  build-aux/Makefile.am.valgrind\
-  lib/macros.h\
-  maint.mk\
+  $(REMOTE_FILES)\
+  play/luax-macros.h\
   $(NULL)
 
 UPDATE_COPYRIGHT_EXCLUDE=\

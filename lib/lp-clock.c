@@ -57,7 +57,7 @@ lp_clock_init (lp_Clock *self)
   self->curtime = self->reftime = 0;
 }
 
-static GstClockTime 
+static GstClockTime
 lp_clock_get_internal_time (GstClock *clock)
 {
   lp_Clock *myclock = LP_CLOCK (clock);
@@ -66,14 +66,14 @@ lp_clock_get_internal_time (GstClock *clock)
   lp_clock_lock (myclock);
   if (myclock->sync == FALSE)
   {
-    myclock->curtime += 
-      (gst_clock_get_time (myclock->internal_clock) - myclock->reftime) 
+    myclock->curtime +=
+      (gst_clock_get_time (myclock->internal_clock) - myclock->reftime)
       - myclock->curtime;
   }
 
   curtime = myclock->curtime;
   lp_clock_unlock (myclock);
- 
+
   return curtime;
 }
 
@@ -151,9 +151,9 @@ lp_clock_class_init (lp_ClockClass *klass)
   gobject_class->get_property = lp_clock_get_property;
 
   clock_class->get_internal_time = lp_clock_get_internal_time;
-  
+
   g_object_class_install_property (gobject_class, PROP_SYNC,
-      g_param_spec_boolean ("sync", "Sync", "use sync clock ", DEFAULT_SYNC, 
+      g_param_spec_boolean ("sync", "Sync", "use sync clock ", DEFAULT_SYNC,
         G_PARAM_READWRITE));
 }
 

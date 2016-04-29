@@ -303,8 +303,8 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
 
         obj = GST_MESSAGE_SRC (msg);
         if (!GST_IS_BIN (obj)
-            || !(data = g_object_get_data (G_OBJECT (obj), "lp_Media")))  
-          /* It is possible we reach this point through a call to lp_media_stop  
+            || !(data = g_object_get_data (G_OBJECT (obj), "lp_Media")))
+          /* It is possible we reach this point through a call to lp_media_stop
            * during the dispose process. In this case, #data should be NULL. */
           {
             break;              /* nothing to do */
@@ -322,7 +322,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           {
                                 /* nothing to do */
           }
-        
+
         break;
       }
     case GST_MESSAGE_STATE_DIRTY:
@@ -441,7 +441,7 @@ lp_scene_set_property (GObject *object, guint prop_id,
       break;
     case PROP_SYNCCLOCK:
       scene->prop.syncclock = g_value_get_boolean (value);
-      g_object_set (G_OBJECT(scene->clock), "sync", 
+      g_object_set (G_OBJECT(scene->clock), "sync",
           scene->prop.syncclock, NULL);
       break;
     default:
@@ -578,7 +578,7 @@ lp_scene_class_init (lp_SceneClass *cls)
      ("ticks", "ticks", "total number of ticks so far",
       0, G_MAXUINT64, DEFAULT_TICKS,
       G_PARAM_READABLE));
-  
+
   g_object_class_install_property
     (gobject_class, PROP_SYNCCLOCK, g_param_spec_boolean
      ("sync-clock", "sync clock", "use sync clock",

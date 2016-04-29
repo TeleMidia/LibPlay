@@ -217,11 +217,11 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
          "alpha", media->prop.alpha, NULL);
 
       if (media->prop.width > 0)
-        g_object_set (sinkpad, 
+        g_object_set (sinkpad,
             "width", media->prop.width, NULL);
-      
+
       if (media->prop.height > 0)
-        g_object_set (sinkpad, 
+        g_object_set (sinkpad,
             "height", media->prop.height, NULL);
 
       gstx_element_set_state_sync (media->video.filter, GST_STATE_PLAYING);
@@ -484,10 +484,10 @@ lp_media_set_property (GObject *object, guint prop_id,
       {
         GstElement *mixer;
         GstPad *sinkpad;
-        
+
         if (!_lp_scene_has_video (media->prop.scene))
           break;                /* nothing to do */
-        
+
         mixer = _lp_scene_get_video_mixer (media->prop.scene);
         assert (mixer != NULL);
 
@@ -817,8 +817,8 @@ lp_media_start (lp_Media *media)
         G_CALLBACK (lp_media_drained_callback), media);
 
   assert (media->drain_handler_id > 0);
-  
-  media->pad_added_handler_id = 
+
+  media->pad_added_handler_id =
     g_signal_connect (media->decoder, "pad-added",
         G_CALLBACK (lp_media_pad_added_callback), media);
 
@@ -829,7 +829,7 @@ lp_media_start (lp_Media *media)
   assert (gst_bin_add (GST_BIN (pipeline), media->bin));
 
   g_atomic_int_inc (&media->starting);
-  media->offset = gstx_element_get_clock_time (pipeline) - 
+  media->offset = gstx_element_get_clock_time (pipeline) -
     _lp_scene_get_offset (media->prop.scene);
 
   ret = gst_element_set_state (media->bin, GST_STATE_PLAYING);

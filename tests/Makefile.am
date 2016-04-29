@@ -30,8 +30,8 @@ LDADD= $(top_builddir)/lib/libplay.la
 noinst_PROGRAMS=
 if WITH_LUA
 noinst_PROGRAMS+= lua
-lua_CFLAGS = $(AM_CFLAGS) $(LUA_CFLAGS)
-lua_LDFLAGS = $(AM_LDFLAGS) $(LUA_LIBS)
+lua_CFLAGS= $(AM_CFLAGS) $(LUA_CFLAGS)
+lua_LDFLAGS= $(AM_LDFLAGS) $(LUA_LIBS)
 endif
 
 # Auxiliary scripts.

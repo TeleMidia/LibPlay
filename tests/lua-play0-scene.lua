@@ -31,6 +31,7 @@ end
 -- check constructor
 do
    local sc = scene.new ()
+   print (sc)
    assert (sc:get ('width') == 0)
    assert (sc:get ('height') == 0)
    assert (sc:get ('pattern') == 2)

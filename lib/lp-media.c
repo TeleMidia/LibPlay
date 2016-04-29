@@ -34,6 +34,8 @@ struct _lp_Media
   gint active_pads;             /* number of active ghost pads in bin */
   gulong drain_handler_id;      /* drain callback handler_id */
   gulong pad_added_handler_id;  /* pad added callback handler_id */
+  gulong autoplug_handler_id;   /* autoplug continue callback handler_id */
+  gboolean has_image;           /* true if the content is an image */
   char *final_uri;              /* final URI */
   struct
   {
@@ -46,6 +48,7 @@ struct _lp_Media
   struct
   {
     GstElement *filter;         /* video filter */
+    GstElement *freeze;         /* image freezer */
     char *mixerpad;             /* name of video sink pad in mixer */
   } video;
   struct
@@ -123,7 +126,7 @@ static void
 lp_media_drained_callback (arg_unused (GstElement *decoder),
                            lp_Media *media)
 {
-  if (unlikely (_lp_media_has_drained (media)))
+  if (unlikely (_lp_media_has_drained (media)) || media->has_image)
     return;                     /* nothing to do */
 
   g_atomic_int_inc (&media->drained);
@@ -187,8 +190,23 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
       gst_caps_unref (caps);
 
       assert (gst_bin_add (GST_BIN (media->bin), media->video.filter));
+      if (media->has_image)
+      {
+        media->video.freeze = gst_element_factory_make ("imagefreeze", NULL);
+        assert (media->video.freeze != NULL);
+        assert (gst_bin_add (GST_BIN (media->bin), media->video.freeze) 
+            == TRUE);
+        assert (gst_element_link (media->video.freeze, media->video.filter)
+            == TRUE);
 
-      sinkpad = gst_element_get_static_pad (media->video.filter, "sink");
+        sinkpad = gst_element_get_static_pad (media->video.freeze, "sink");
+      }
+      else
+      {
+        media->video.freeze = NULL;
+        sinkpad = gst_element_get_static_pad (media->video.filter, "sink");
+      }
+
       assert (sinkpad != NULL);
       assert (gst_pad_link (pad, sinkpad) == GST_PAD_LINK_OK);;
       gst_object_unref (sinkpad);
@@ -288,6 +306,22 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
     }
 }
 
+static gboolean
+lp_media_autoplug_continue_callback (GstElement *element, GstPad *pad,
+    GstCaps *caps, gpointer data)
+{
+  lp_Media *media = LP_MEDIA (data);
+  char *str;
+
+  str = gst_caps_to_string (caps);
+  if (g_str_has_prefix(str, "image"))
+    media->has_image = TRUE;
+
+  g_free (str);
+
+  return TRUE;
+}
+
 /* Called whenever pad state matches BLOCK_DOWNSTREAM.
    This callback is triggered by lp_media_stop().  */
 
@@ -330,6 +364,8 @@ lp_media_init (lp_Media *media)
   media->active_pads = 0;
   media->drain_handler_id = 0;
   media->pad_added_handler_id = 0;
+  media->autoplug_handler_id = 0;
+  media->has_image = FALSE;
   media->final_uri = NULL;
 
   media->audio.mixerpad = NULL;
@@ -808,21 +844,26 @@ lp_media_start (lp_Media *media)
   _lp_debug ("Media (%p) (bin: %p, decoder: %p)", media,
       media->bin, media->decoder);
 
-  g_object_set_data (G_OBJECT (media->bin), "lp_Media", media);
-  g_object_set (media->decoder, "uri", media->final_uri, NULL);
-  gst_bin_add (GST_BIN (media->bin), media->decoder);
-
   media->drain_handler_id =
     g_signal_connect (media->decoder, "drained",
         G_CALLBACK (lp_media_drained_callback), media);
-
   assert (media->drain_handler_id > 0);
 
   media->pad_added_handler_id =
     g_signal_connect (media->decoder, "pad-added",
         G_CALLBACK (lp_media_pad_added_callback), media);
-
   assert (media->pad_added_handler_id > 0);
+
+  /* Fixme: this is a temporary solution. I've tried to use a typefind element,
+   * but the callback connected to the signal have-type was never called. */
+  media->autoplug_handler_id = 
+    g_signal_connect (G_OBJECT(media->decoder), "autoplug-continue", 
+        G_CALLBACK (lp_media_autoplug_continue_callback), media);
+  assert (media->autoplug_handler_id > 0);
+      
+  g_object_set_data (G_OBJECT (media->bin), "lp_Media", media);
+  g_object_set (media->decoder, "uri", media->final_uri, NULL);
+  gst_bin_add (GST_BIN (media->bin), media->decoder);
 
   assert (gst_object_ref (media->bin) == media->bin);
   pipeline = _lp_scene_get_pipeline (media->prop.scene);

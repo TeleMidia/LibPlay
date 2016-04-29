@@ -246,6 +246,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           default:
             ASSERT_NOT_REACHED;
           }
+        g_object_ref (obj);
         assert (gst_message_ref (msg) == msg);
         scene->messages = g_list_append (scene->messages, msg);
         break;

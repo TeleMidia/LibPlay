@@ -232,12 +232,14 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           case LP_EOS:
             {
               lp_Media *media = LP_MEDIA (obj);
+              (void) media;
               _lp_debug ("EOS %p", media);
               break;
             }
           case LP_ERROR:
             {
               lp_Media *media = LP_MEDIA (obj);
+              (void) media;
               _lp_warn ("ERROR %p", media);
               break;
             }

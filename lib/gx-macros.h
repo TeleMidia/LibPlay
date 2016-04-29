@@ -27,9 +27,10 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "macros.h"
 
 #define GX_INCLUDE_PROLOGUE                     \
+  PRAGMA_DIAG_IGNORE (-Wsign-conversion)        \
   PRAGMA_DIAG_PUSH ()                           \
   PRAGMA_DIAG_IGNORE (-Wbad-function-cast)      \
-  PRAGMA_DIAG_IGNORE (-Wcast-qual)
+  PRAGMA_DIAG_IGNORE (-Wcast-qual)              \
 
 #define GX_INCLUDE_EPILOGUE                     \
   PRAGMA_DIAG_POP ()

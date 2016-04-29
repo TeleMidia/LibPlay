@@ -246,8 +246,6 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           default:
             ASSERT_NOT_REACHED;
           }
-        if (LP_IS_MEDIA(obj))
-            g_object_ref (obj);
         assert (gst_message_ref (msg) == msg);
         scene->messages = g_list_append (scene->messages, msg);
         break;
@@ -800,8 +798,6 @@ lp_scene_pop (lp_Scene *scene, gboolean block,
   event = message_to_event (msg, target);
   set_if_nonnull (evt, event);
   gst_message_unref (msg);
-  if (target != NULL)
-    g_object_unref (*target);
 
   return TRUE;
 }

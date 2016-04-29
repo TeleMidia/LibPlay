@@ -84,8 +84,8 @@ programs+= test-lp-media
 check_PROGRAMS= $(programs)
 
 TESTS=\
-  $(check_SCRIPTS)\
   $(check_PROGRAMS)\
+  $(check_SCRIPTS)\
   $(NULL)
 
 # Tests that should fail.

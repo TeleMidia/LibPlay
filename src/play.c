@@ -1,5 +1,5 @@
 /* play.c -- Simple media player.
-   Copyright (C) 2015 PUC-Rio/Laboratorio TeleMidia
+   Copyright (C) 2015-2016 PUC-Rio/Laboratorio TeleMidia
 
 This file is part of LibPlay.
 
@@ -21,7 +21,6 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <assert.h>
 
 #include "gx-macros.h"
-
 
 GX_INCLUDE_PROLOGUE
 #include "play.h"

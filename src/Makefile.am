@@ -1,5 +1,5 @@
 # Makefile.am -- Template for generating Makefile via Automake.
-# Copyright (C) 2015 PUC-Rio/Laboratorio TeleMidia
+# Copyright (C) 2015-2016 PUC-Rio/Laboratorio TeleMidia
 #
 # This file is part of LibPlay.
 #
@@ -19,13 +19,9 @@
 include $(top_srcdir)/build-aux/Makefile.am.common
 
 AM_CPPFLAGS= -I$(top_srcdir)/lib -I$(top_builddir)/lib
-AM_CFLAGS= $(WERROR_CFLAGS) $(WARN_CFLAGS)
-AM_LDFLAGS= -static $(GLIB_LIBS) $(GSTREAMER_LIBS)
+AM_CFLAGS= $(WERROR_CFLAGS) $(WARN_CFLAGS) $(GLIB_CFLAGS)
+AM_LDFLAGS= -static $(GLIB_LIBS)
 
 bin_PROGRAMS= play
-play_CFLAGS= $(AM_CFLAGS) $(GLIB_CFLAGS)
 play_LDADD= $(top_builddir)/lib/libplay.la
-play_LDFLAGS= $(AM_LDFLAGS) 
-play_SOURCES=\
-  play.c\
-  $(NULL)
+play_SOURCES= play.c

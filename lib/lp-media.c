@@ -194,7 +194,7 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
       {
         media->video.freeze = gst_element_factory_make ("imagefreeze", NULL);
         assert (media->video.freeze != NULL);
-        assert (gst_bin_add (GST_BIN (media->bin), media->video.freeze) 
+        assert (gst_bin_add (GST_BIN (media->bin), media->video.freeze)
             == TRUE);
         assert (gst_element_link (media->video.freeze, media->video.filter)
             == TRUE);
@@ -307,8 +307,10 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
 }
 
 static gboolean
-lp_media_autoplug_continue_callback (GstElement *element, GstPad *pad,
-    GstCaps *caps, gpointer data)
+lp_media_autoplug_continue_callback (arg_unused (GstElement *element),
+                                     arg_unused (GstPad *pad),
+                                     GstCaps *caps,
+                                     gpointer data)
 {
   lp_Media *media = LP_MEDIA (data);
   char *str;
@@ -856,11 +858,11 @@ lp_media_start (lp_Media *media)
 
   /* Fixme: this is a temporary solution. I've tried to use a typefind element,
    * but the callback connected to the signal have-type was never called. */
-  media->autoplug_handler_id = 
-    g_signal_connect (G_OBJECT(media->decoder), "autoplug-continue", 
+  media->autoplug_handler_id =
+    g_signal_connect (G_OBJECT(media->decoder), "autoplug-continue",
         G_CALLBACK (lp_media_autoplug_continue_callback), media);
   assert (media->autoplug_handler_id > 0);
-      
+
   g_object_set_data (G_OBJECT (media->bin), "lp_Media", media);
   g_object_set (media->decoder, "uri", media->final_uri, NULL);
   gst_bin_add (GST_BIN (media->bin), media->decoder);

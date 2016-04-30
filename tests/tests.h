@@ -40,9 +40,9 @@ GX_INCLUDE_EPILOGUE
     int __total = (n);                                  \
     while (__total > 0)                                 \
       {                                                 \
-        lp_Event __evt;                                 \
+        lp_EEvent __evt;                                \
         lp_scene_pop ((scene), TRUE, NULL, &__evt);     \
-        if (__evt == LP_TICK)                           \
+        if (__evt == LP_ETICK)                          \
           __total--;                                    \
       }                                                 \
   }                                                     \

@@ -74,14 +74,14 @@ main (void)
       while (n-- > 0)
         {
           GObject *obj;
-          lp_Event evt;
+          lp_EEvent evt;
           int x, y;
 
           do
               lp_scene_pop (scene, TRUE, &obj, &evt);
           while (!(LP_IS_MEDIA (obj)
                    && LP_MEDIA (obj) == m2
-                   && evt == LP_STOP));
+                   && evt == LP_ESTOP));
 
           assert (lp_media_start (m2));
           g_object_get (m2, "x", &x, "y", &y, NULL);

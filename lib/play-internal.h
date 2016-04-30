@@ -94,7 +94,7 @@ void
 _lp_scene_add_media (lp_Scene *, lp_Media *);
 
 void
-_lp_scene_dispatch (lp_Scene *, GObject *, lp_Event);
+_lp_scene_dispatch (lp_Scene *, GObject *, lp_EEvent);
 
 void
 _lp_scene_step (lp_Scene *, gboolean);

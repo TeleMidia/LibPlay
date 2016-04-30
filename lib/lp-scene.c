@@ -106,7 +106,7 @@ static int lp_scene_tick_callback (GstClock *, GstClockTime, GstClockID, lp_Scen
 static gboolean lp_scene_bus_callback (GstBus *, GstMessage *, lp_Scene *);
 
 
-static lp_Event
+static lp_EEvent
 message_to_event (GstMessage *msg, GObject **obj)
 {
   const GstStructure *st;
@@ -126,24 +126,24 @@ message_to_event (GstMessage *msg, GObject **obj)
   if (streq (name, "lp_Scene:tick"))
     {
       assert (LP_IS_SCENE  (target));
-      return LP_TICK;
+      return LP_ETICK;
     }
 
   assert (LP_IS_MEDIA (target));
   if (streq (name, "lp_Media:start"))
-    return LP_START;
+    return LP_ESTART;
 
   if (streq (name, "lp_Media:stop"))
-    return LP_STOP;
+    return LP_ESTOP;
 
   if (streq (name, "lp_Media:eos"))
-    return LP_EOS;
+    return LP_EEOS;
 
   if (streq (name, "lp_Media:error"))
-    return LP_ERROR;
+    return LP_EERROR;
 
   ASSERT_NOT_REACHED;
-  return LP_ERROR;
+  return LP_EERROR;
 }
 
 static void
@@ -189,7 +189,7 @@ lp_scene_tick_callback (arg_unused (GstClock *clock),
                         arg_unused (GstClockID id),
                         lp_Scene *scene)
 {
-  _lp_scene_dispatch (scene, G_OBJECT (scene), LP_TICK);
+  _lp_scene_dispatch (scene, G_OBJECT (scene), LP_ETICK);
   return TRUE;
 }
 
@@ -209,11 +209,11 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
 
         switch (message_to_event (msg, &obj))
           {
-            case LP_TICK:
+            case LP_ETICK:
               scene->prop.ticks++;
               _lp_debug ("TICK %p", scene);
               break;
-          case LP_START:
+          case LP_ESTART:
             {
               lp_Media *media = LP_MEDIA (obj);
               _lp_media_finish_start (media);
@@ -221,7 +221,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
               _lp_debug ("START %p", media);
               break;
             }
-          case LP_STOP:
+          case LP_ESTOP:
             {
               lp_Media *media = LP_MEDIA (obj);
               _lp_media_finish_stop (media);
@@ -229,14 +229,14 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
               _lp_debug ("STOP %p", media);
               break;
             }
-          case LP_EOS:
+          case LP_EEOS:
             {
               lp_Media *media = LP_MEDIA (obj);
               (void) media;
               _lp_debug ("EOS %p", media);
               break;
             }
-          case LP_ERROR:
+          case LP_EERROR:
             {
               lp_Media *media = LP_MEDIA (obj);
               (void) media;
@@ -332,7 +332,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
             break;              /* nothing to do */
           }
 
-        _lp_scene_dispatch (scene, G_OBJECT (media), LP_START);
+        _lp_scene_dispatch (scene, G_OBJECT (media), LP_ESTART);
         break;
       }
     case GST_MESSAGE_STATE_DIRTY:
@@ -484,7 +484,7 @@ lp_scene_constructed (GObject *object)
 {
   lp_Scene *scene;
   GstBus *bus;
-  lp_Event evt;
+  lp_EEvent evt;
 
   scene = LP_SCENE (object);
 
@@ -535,7 +535,7 @@ lp_scene_constructed (GObject *object)
   /* Start pipeline and wait for the first tick.  */
   gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
   assert (lp_scene_pop (scene, TRUE, NULL, &evt));
-  assert (evt == LP_TICK && scene->prop.ticks == 1);
+  assert (evt == LP_ETICK && scene->prop.ticks == 1);
   scene->offset = gstx_element_get_clock_time (scene->pipeline);
   scene->prop.ticks = 0;
 }
@@ -708,32 +708,33 @@ _lp_scene_step (lp_Scene *scene, gboolean block)
 /* Dispatches event @evt with @target to @scene.  */
 
 void
-_lp_scene_dispatch (lp_Scene *scene, GObject *target, lp_Event evt)
+_lp_scene_dispatch (lp_Scene *scene, GObject *target, lp_EEvent evt)
 {
   const char *name;
   switch (evt)
     {
-    case LP_TICK:
+    case LP_ETICK:
       assert (LP_IS_SCENE (target));
       name = "lp_Scene:tick";
       break;
-    case LP_START:
+    case LP_ESTART:
       assert (LP_IS_MEDIA (target));
       name = "lp_Media:start";
       break;
-    case LP_STOP:
+    case LP_ESTOP:
       assert (LP_IS_MEDIA (target));
       name = "lp_Media:stop";
       break;
-    case LP_EOS:
+    case LP_EEOS:
       assert (LP_IS_MEDIA (target));
       name = "lp_Media:eos";
       break;
-    case LP_ERROR:
+    case LP_EERROR:
       assert (LP_IS_SCENE (target));
       name = "lp_Media:error";
       break;
     default:
+      name = NULL;
       ASSERT_NOT_REACHED;
     }
   gstx_element_post_application_message
@@ -774,10 +775,10 @@ lp_scene_new (int width, int height)
  */
 gboolean
 lp_scene_pop (lp_Scene *scene, gboolean block,
-               GObject **target, lp_Event *evt)
+               GObject **target, lp_EEvent *evt)
 {
   GstMessage *msg;
-  lp_Event event;
+  lp_EEvent event;
 
   if (block)
     {

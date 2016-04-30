@@ -32,7 +32,7 @@ main (int argc, char **argv)
   lp_Scene *scene;
   lp_Media *media;
   GObject *obj;
-  lp_Event evt;
+  lp_EEvent evt;
 
   if (argc < 2)
   {
@@ -50,8 +50,8 @@ main (int argc, char **argv)
 
   while (1)
   {
-    lp_scene_pop(scene, TRUE, &obj, &evt);
-    if (evt == LP_ERROR || evt == LP_EOS || evt == LP_STOP)
+    lp_scene_pop (scene, TRUE, &obj, &evt);
+    if (evt == LP_EERROR || evt == LP_EEOS || evt == LP_ESTOP)
       break;
   }
 

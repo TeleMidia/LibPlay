@@ -346,8 +346,8 @@ lp_media_pad_probe_callback (GstPad *pad,
   if (g_atomic_int_dec_and_test (&media->active_pads)) /* no more pads */
     {
       if (_lp_media_has_drained (media))
-        _lp_scene_dispatch (media->prop.scene, G_OBJECT (media), LP_EOS);
-      _lp_scene_dispatch (media->prop.scene, G_OBJECT (media), LP_STOP);
+        _lp_scene_dispatch (media->prop.scene, G_OBJECT (media), LP_EEOS);
+      _lp_scene_dispatch (media->prop.scene, G_OBJECT (media), LP_ESTOP);
     }
 
   return GST_PAD_PROBE_REMOVE;
@@ -636,8 +636,8 @@ lp_media_class_init (lp_MediaClass *cls)
   gobject_class->finalize = lp_media_finalize;
 
   g_object_class_install_property
-    (gobject_class, PROP_SCENE, g_param_spec_pointer
-     ("scene", "scene", "parent scene",
+    (gobject_class, PROP_SCENE, g_param_spec_object
+     ("scene", "scene", "parent scene", LP_TYPE_SCENE,
       (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property

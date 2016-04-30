@@ -48,11 +48,17 @@ GX_INCLUDE_EPILOGUE
                         MODULE, OBJ_NAME, ParentName)           \
   GX_INCLUDE_EPILOGUE
 
+/* Warning-free G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE wrapper.  */
+#define GX_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(TN, t_n, T_P)      \
+  GX_INCLUDE_PROLOGUE                                           \
+  G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (TN, t_n, T_P)            \
+  GX_INCLUDE_EPILOGUE
+
 /* Warning-free G_DEFINE_TYPE wrapper.  */
 #define GX_DEFINE_TYPE(TN, t_n, T_P)            \
   GX_INCLUDE_PROLOGUE                           \
   G_DEFINE_TYPE (TN, t_n, T_P)                  \
-  GX_INCLUDE_EPILOGUE
+    GX_INCLUDE_EPILOGUE
 
 
 /* Gets the #GParamSpec of property @name of @obj.   */

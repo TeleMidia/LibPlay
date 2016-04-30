@@ -45,6 +45,7 @@ libplay_la_SOURCES=\
   gstx-macros.h\
   gx-macros.h\
   lp-clock.c\
+  lp-event.c\
   lp-media.c\
   lp-scene.c\
   lp-version.c\

@@ -70,6 +70,7 @@
 /tests/gdb.cfg
 /tests/lua
 /tests/suppfile
+/tests/test-lp-event
 /tests/test-lp-media
 /tests/test-lp-scene
 /tests/test-lp-scene-advance

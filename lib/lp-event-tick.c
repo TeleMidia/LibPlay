@@ -133,3 +133,20 @@ lp_event_tick_new (lp_Scene *source, guint64 serial)
                                       "source", source,
                                       "serial", serial, NULL));
 }
+
+/**
+ * lp_event_tick_get_serial:
+ * @event: an #lp_EventTick
+ *
+ * Gets the event serial number.
+ *
+ * Returns: the event serial number
+ */
+guint64
+lp_event_tick_get_serial (lp_EventTick *event)
+{
+  guint64 serial;
+
+  g_object_get (event, "serial", &serial, NULL);
+  return serial;
+}

@@ -25,7 +25,6 @@ main (void)
   lp_EventStart *event;
 
   lp_Media *source = NULL;
-  gboolean resume = TRUE;
 
   scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "lockstep", TRUE, NULL));
   g_assert_nonnull (scene);
@@ -37,17 +36,19 @@ main (void)
                                         "source", media, NULL));
   g_assert_nonnull (event);
 
-  g_object_get (event, "source", &source, "resume", &resume, NULL);
+  source = LP_MEDIA (lp_event_get_source (LP_EVENT (event)));
   g_assert (source == media);
-  g_assert (resume == FALSE);
+
+  g_assert_false (lp_event_start_is_resume (event));
   g_object_unref (event);
 
   event = lp_event_start_new (media, TRUE);
   g_assert_nonnull (event);
 
-  g_object_get (event, "source", &source, "resume", &resume, NULL);
+  source = LP_MEDIA (lp_event_get_source (LP_EVENT (event)));
   g_assert (source == media);
-  g_assert (resume == TRUE);
+
+  g_assert_true (lp_event_start_is_resume (event));
   g_object_unref (event);
 
   g_object_unref (scene);

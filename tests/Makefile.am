@@ -86,7 +86,7 @@ programs+= test-lp-event-start
 programs+= test-lp-event-stop
 programs+= test-lp-scene
 programs+= test-lp-scene-advance
-#programs+= test-lp-media
+programs+= test-lp-media
 check_PROGRAMS= $(programs)
 
 TESTS=\

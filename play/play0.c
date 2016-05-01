@@ -107,10 +107,10 @@ l_scene_new (lua_State *L)
   height = (int) clamp (luaL_optinteger (L, 3, 0), G_MININT, G_MAXINT);
 
   scene = (Scene *) lua_newuserdata (L, sizeof (*scene));
-  assert (scene != NULL);
+  g_assert_nonnull (scene);
 
   scene->scene = lp_scene_new (width, height);
-  assert (scene->scene != NULL);
+  g_assert_nonnull (scene->scene);
 
   luaL_setmetatable (L, SCENE);
 
@@ -205,7 +205,7 @@ l_scene_get (lua_State *L)
                                        0, G_MAXINT));
       break;
     default:
-      ASSERT_NOT_REACHED;
+     g_assert_not_reached ();
     }
   g_value_unset (&value);
 

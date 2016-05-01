@@ -25,7 +25,6 @@ main (void)
   lp_EventStop *event;
 
   lp_Media *source = NULL;
-  gboolean eos = TRUE;
 
   scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "lockstep", TRUE, NULL));
   g_assert_nonnull (scene);
@@ -37,17 +36,19 @@ main (void)
                                        "source", media, NULL));
   g_assert_nonnull (event);
 
-  g_object_get (event, "source", &source, "eos", &eos, NULL);
+  source = LP_MEDIA (lp_event_get_source (LP_EVENT (event)));
   g_assert (source == media);
-  g_assert (eos == FALSE);
+
+  g_assert_false (lp_event_stop_is_eos (event));
   g_object_unref (event);
 
   event = lp_event_stop_new (media, TRUE);
   g_assert_nonnull (event);
 
-  g_object_get (event, "source", &source, "eos", &eos, NULL);
+  source = LP_MEDIA (lp_event_get_source (LP_EVENT (event)));
   g_assert (source == media);
-  g_assert (eos == TRUE);
+
+  g_assert_true (lp_event_stop_is_eos (event));
   g_object_unref (event);
 
   g_object_unref (scene);

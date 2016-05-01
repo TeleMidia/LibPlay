@@ -118,3 +118,25 @@ lp_event_class_init (lp_EventClass *cls)
       G_TYPE_OBJECT,
       (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 }
+
+
+/* public */
+
+/**
+ * lp_event_get_source:
+ * @event: an #lp_Event
+ *
+ * Gets the source object of @event.
+ *
+ * Returns: (transfer none): the event source
+ */
+GObject *
+lp_event_get_source (lp_Event *event)
+{
+  GObject *source;
+
+  g_object_get (event, "source", &source, NULL);
+  g_assert_nonnull (source);
+
+  return source;
+}

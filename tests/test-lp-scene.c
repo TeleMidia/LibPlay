@@ -26,7 +26,7 @@ main (void)
       lp_Scene *scene;
 
       scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, NULL));
-      assert (scene != NULL);
+      g_assert_nonnull (scene);
       g_object_unref (scene);
     }
   STMT_END;
@@ -39,37 +39,37 @@ main (void)
       int height = -1;
 
       scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, NULL));
-      assert (scene != NULL);
+      g_assert_nonnull (scene);
       g_object_get (scene, "width", &width, "height", &height, NULL);
-      assert (width == 0 && height == 0);
+      g_assert (width == 0 && height == 0);
       g_object_unref (scene);
 
       scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "width", 800, NULL));
-      assert (scene != NULL);
+      g_assert_nonnull (scene);
       g_object_get (scene, "width", &width, "height", &height, NULL);
-      assert (width == 800 && height == 0);
+      g_assert (width == 800 && height == 0);
       g_object_unref (scene);
 
       scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "height", 600, NULL));
-      assert (scene != NULL);
+      g_assert_nonnull (scene);
       g_object_get (scene, "width", &width, "height", &height, NULL);
-      assert (width == 0 && height == 600);
+      g_assert (width == 0 && height == 600);
       g_object_unref (scene);
 
       scene = lp_scene_new (0, 0);
-      assert (scene != NULL);
+      g_assert_nonnull (scene);
       g_object_get (scene, "width", &width, "height", &height, NULL);
-      assert (width == 0 && height == 0);
+      g_assert (width == 0 && height == 0);
       g_object_unref (scene);
 
       scene = lp_scene_new (100, 100);
-      assert (scene != NULL);
+      g_assert_nonnull (scene);
       g_object_get (scene, "width", &width, "height", &height, NULL);
-      assert (width == 100 && height == 100);
+      g_assert (width == 100 && height == 100);
 
       AWAIT (scene, 1);
       g_object_get (scene, "width", &width, "height", &height, NULL);
-      assert (width == 100 && height == 100);
+      g_assert (width == 100 && height == 100);
       g_object_unref (scene);
     }
   STMT_END;
@@ -81,17 +81,17 @@ main (void)
       guint64 ticks = G_MAXUINT64;
 
       scene = lp_scene_new (0, 0);
-      assert (scene != NULL);
+      g_assert_nonnull (scene);
       g_object_get (scene, "ticks", &ticks, NULL);
-      assert (ticks == 0);
+      g_assert (ticks == 0);
 
       AWAIT (scene, 1);
       g_object_get (scene, "ticks", &ticks, NULL);
-      assert (ticks == 1);
+      g_assert (ticks == 1);
 
       AWAIT (scene, 1);
       g_object_get (scene, "ticks", &ticks, NULL);
-      assert (ticks == 2);
+      g_assert (ticks == 2);
       g_object_unref (scene);
     }
   STMT_END;
@@ -103,19 +103,19 @@ main (void)
       int pattern = -1;
 
       scene = lp_scene_new (800, 600);
-      assert (scene != NULL);
+      g_assert_nonnull (scene);
 
       g_object_get (scene, "pattern", &pattern, NULL);
-      assert (pattern == 2);
+      g_assert (pattern == 2);
 
       AWAIT (scene, 1);
       g_object_set (scene, "pattern", 8, NULL);
       g_object_get (scene, "pattern", &pattern, NULL);
-      assert (pattern == 8);
+      g_assert (pattern == 8);
 
       AWAIT (scene, 1);
       g_object_get (scene, "pattern", &pattern, NULL);
-      assert (pattern == 8);
+      g_assert (pattern == 8);
       g_object_unref (scene);
     }
   STMT_END;
@@ -127,18 +127,18 @@ main (void)
       int wave = -1;
 
       scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, NULL));
-      assert (scene != NULL);
+      g_assert_nonnull (scene);
       g_object_get (scene, "wave", &wave, NULL);
-      assert (wave == 4);
+      g_assert (wave == 4);
 
       AWAIT (scene, 1);
       g_object_set (scene, "wave", 0, NULL);
       g_object_get (scene, "wave", &wave, NULL);
-      assert (wave == 0);
+      g_assert (wave == 0);
 
       AWAIT (scene, 1);
       g_object_get (scene, "wave", &wave, NULL);
-      assert (wave == 0);
+      g_assert (wave == 0);
       g_object_unref (scene);
     }
   STMT_END;
@@ -152,9 +152,9 @@ main (void)
       size_t i;
 
       scene = lp_scene_new (200, 200);
-      assert (scene != NULL);
+      g_assert_nonnull (scene);
       g_object_get (scene, "interval", &interval, NULL);
-      assert (interval == GST_SECOND);
+      g_assert (interval == GST_SECOND);
 
       for (i = 0; i < nelementsof (v); i++)
         {
@@ -164,7 +164,7 @@ main (void)
 
           g_object_set (scene, "interval", v[i] * GST_MSECOND, NULL);
           g_object_get (scene, "interval", &interval, NULL);
-          assert (interval == v[i] * GST_MSECOND);
+          g_assert (interval == v[i] * GST_MSECOND);
           for (n = 0; n < 10; n++)
             {
               AWAIT (scene, 1);

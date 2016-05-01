@@ -23,7 +23,7 @@ main (void)
   const char *version;
 
   version = lp_version_string ();
-  assert (streq (version, LP_VERSION_STRING));
+  g_assert_true (g_str_equal (version, LP_VERSION_STRING));
 
   exit (EXIT_SUCCESS);
 }

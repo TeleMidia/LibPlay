@@ -38,21 +38,16 @@ enum
   PROP_LAST
 };
 
-/* Default values for clock properties.  */
-#define DEFAULT_LOCKSTEP FALSE  /* clock advances in real-time */
+/* Property defaults.  */
+#define DEFAULT_LOCKSTEP  FALSE  /* clock advances in real-time */
 
 /* Define the lp_Clock type.  */
 GX_DEFINE_TYPE (lp_Clock, lp_clock, GST_TYPE_SYSTEM_CLOCK)
 
 
-#define __lp_clock_lock(clock)\
-  g_mutex_lock (&(clock)->mutex)
-
-#define __lp_clock_unlock(clock)\
-  g_mutex_unlock (&(clock)->mutex)
-
-#define __lp_clock_get_systime(clock)\
-  gst_clock_get_time ((clock)->sysclock)
+#define clock_lock(clock)         g_mutex_lock (&((clock)->mutex))
+#define clock_unlock(clock)       g_mutex_unlock (&((clock)->mutex))
+#define clock_get_systime(clock)  gst_clock_get_time ((clock)->sysclock)
 
 
 /* methods */
@@ -63,7 +58,7 @@ lp_clock_init (lp_Clock *clock)
   g_mutex_init (&clock->mutex);
   clock->lockstep = DEFAULT_LOCKSTEP;
   clock->sysclock = gst_system_clock_obtain ();
-  assert (clock->sysclock != NULL);
+  g_assert_nonnull (clock->sysclock);
   clock->time = 0;
   clock->unlock_time = 0;
   clock->unlock_systime = 0;
@@ -80,9 +75,9 @@ lp_clock_get_property (GObject *object, guint prop_id,
     {
     case PROP_LOCKSTEP:
       {
-        __lp_clock_lock (clock);
+        clock_lock (clock);
         g_value_set_boolean (value, g_atomic_int_get (&clock->lockstep));
-        __lp_clock_unlock (clock);
+        clock_unlock (clock);
         break;
       }
     default:
@@ -104,7 +99,7 @@ lp_clock_set_property (GObject *object, guint prop_id,
         gboolean lockstep;
 
         lockstep = g_value_get_boolean (value);
-        __lp_clock_lock (clock);
+        clock_lock (clock);
 
         if (unlikely (lockstep == clock->lockstep))
           goto done;            /* nothing to do */
@@ -117,7 +112,7 @@ lp_clock_set_property (GObject *object, guint prop_id,
           }
 
       done:
-        __lp_clock_unlock (clock);
+        clock_unlock (clock);
         break;
       }
     default:
@@ -145,16 +140,16 @@ lp_clock_get_internal_time (GstClock *gst_clock)
   GstClockTime result;
 
   clock = LP_CLOCK (gst_clock);
-  __lp_clock_lock (clock);
+  clock_lock (clock);
 
   if (!clock->lockstep)
     {
-      GstClockTime now = __lp_clock_get_systime (clock);
+      GstClockTime now = clock_get_systime (clock);
       clock->time = (now - clock->unlock_systime) + clock->unlock_time;
     }
   result = clock->time;
 
-  __lp_clock_unlock (clock);
+  clock_unlock (clock);
   return result;
 }
 
@@ -174,7 +169,7 @@ lp_clock_class_init (lp_ClockClass *cls)
 
   g_object_class_install_property
     (gobject_class, PROP_LOCKSTEP, g_param_spec_boolean
-     ("lockstep", "lock-step mode", "enable lock-step mode ",
+     ("lockstep", "lock-step mode", "enable lock-step mode",
       DEFAULT_LOCKSTEP, G_PARAM_READWRITE));
 }
 
@@ -187,12 +182,20 @@ lp_clock_class_init (lp_ClockClass *cls)
 gboolean
 _lp_clock_advance (lp_Clock *clock, GstClockTime time)
 {
-  if (unlikely (!clock->lockstep))
-    return FALSE;
+  gboolean status;
 
-  __lp_clock_lock (clock);
-  clock->time += time;
-  __lp_clock_unlock (clock);
+  clock_lock (clock);
 
-  return TRUE;
+  if (likely (clock->lockstep))
+    {
+      clock->time += time;
+      status = TRUE;
+    }
+  else
+    {
+      status = FALSE;
+    }
+
+  clock_unlock (clock);
+  return status;
 }

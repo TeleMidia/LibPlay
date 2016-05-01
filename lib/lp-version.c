@@ -27,7 +27,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
  *
  * Return value: the encoded version
  */
-ATTR_CONST int
+ATTR_CONST gint
 lp_version (void)
 {
   return LP_VERSION;
@@ -40,7 +40,7 @@ lp_version (void)
  *
  * Return value: a string containing the version
  */
-ATTR_CONST const char *
+ATTR_CONST const gchar *
 lp_version_string (void)
 {
   return LP_VERSION_STRING;

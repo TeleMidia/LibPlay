@@ -34,18 +34,20 @@ GX_INCLUDE_EPILOGUE
 #define SLEEP(n) g_usleep ((n) * 1000000)
 
 /* Waits for @n ticks in @scene.  */
-#define AWAIT(scene, n)                                 \
-  STMT_BEGIN                                            \
-  {                                                     \
-    int __total = (n);                                  \
-    while (__total > 0)                                 \
-      {                                                 \
-        lp_EEvent __evt;                                \
-        lp_scene_pop ((scene), TRUE, NULL, &__evt);     \
-        if (__evt == LP_ETICK)                          \
-          __total--;                                    \
-      }                                                 \
-  }                                                     \
+#define AWAIT(scene, n)                                         \
+  STMT_BEGIN                                                    \
+  {                                                             \
+    int __total = (n);                                          \
+    while (__total > 0)                                         \
+      {                                                         \
+        lp_Event *__evt;                                        \
+        __evt = lp_scene_receive ((scene), TRUE);               \
+        g_assert_nonnull (__evt);                               \
+        if (G_OBJECT_TYPE (__evt) == LP_TYPE_EVENT_TICK)        \
+          __total--;                                            \
+        g_object_unref (__evt);                                 \
+      }                                                         \
+  }                                                             \
   STMT_END
 
 #endif /* TESTS_H */

@@ -23,7 +23,7 @@ main (void)
   int version;
 
   version = lp_version ();
-  assert (version == LP_VERSION);
+  g_assert (version == LP_VERSION);
 
   exit (EXIT_SUCCESS);
 }

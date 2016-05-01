@@ -25,7 +25,7 @@ struct _lp_EventStart
   lp_Event parent;              /* parent object */
   struct
   {
-    gboolean resume;            /* signals a resume */
+    gboolean resume;            /* indicates a resume */
   } prop;
 };
 
@@ -144,4 +144,21 @@ lp_event_start_new (lp_Media *source, gboolean resume)
   return LP_EVENT_START (g_object_new (LP_TYPE_EVENT_START,
                                        "source", source,
                                        "resume", resume, NULL));
+}
+
+/**
+ * lp_event_start_is_resume:
+ * @event: an #lp_EventStart
+ *
+ * Checks if event is resume.
+ *
+ * Returns: %TRUE if event indicates resume
+ */
+gboolean
+lp_event_start_is_resume (lp_EventStart *event)
+{
+  gboolean resume;
+
+  g_object_get (event, "resume", &resume, NULL);
+  return resume;
 }

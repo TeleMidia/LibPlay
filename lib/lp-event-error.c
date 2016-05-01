@@ -150,3 +150,22 @@ lp_event_error_new (lp_Media *source, GError *error)
                                        "source", source,
                                        "error", error, NULL));
 }
+
+/**
+ * lp_event_error_get_error:
+ * @event: an #lp_EventError
+ *
+ * Gets the the event #GError.
+ *
+ * Returns: (transfer none): the event #GError
+ */
+GError *
+lp_event_error_get_error (lp_EventError *event)
+{
+  GError *error = NULL;
+
+  g_object_get (event, "error", &error, NULL);
+  g_assert_nonnull (error);
+
+  return error;
+}

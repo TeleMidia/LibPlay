@@ -31,29 +31,33 @@ main (int argc, char **argv)
 {
   lp_Scene *scene;
   lp_Media *media;
-  GObject *obj;
-  lp_EEvent evt;
+  GType type;
 
-  if (argc < 2)
+  if (unlikely (argc < 2))
   {
     fprintf (stderr, "usage: %s <uri>\n", argv[0]);
     exit (EXIT_FAILURE);
   }
 
   scene = lp_scene_new (1080, 720);
-  assert (scene != NULL);
+  g_assert_nonnull (scene);
 
   media = lp_media_new (scene, argv[1]);
-  assert (media != NULL);
+  g_assert_nonnull (media);
 
-  lp_media_start (media);
+  g_assert (lp_media_start (media));
+  do
+    {
+      lp_Event *event;
 
-  while (1)
-  {
-    lp_scene_pop (scene, TRUE, &obj, &evt);
-    if (evt == LP_EERROR || evt == LP_EEOS || evt == LP_ESTOP)
-      break;
-  }
+      event = lp_scene_receive (scene, TRUE);
+      g_assert_nonnull (event);
+
+      type = G_OBJECT_TYPE (event);
+      g_assert (type != LP_TYPE_EVENT_ERROR);
+      g_object_unref (event);
+    }
+  while (type != LP_TYPE_EVENT_STOP);
 
   g_object_unref (scene);
 

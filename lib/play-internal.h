@@ -28,6 +28,7 @@ GX_INCLUDE_PROLOGUE
 GX_INCLUDE_EPILOGUE
 
 /* debugging */
+
 #if defined DEBUG && DEBUG
 # define _lp_debug(fmt, ...)                            \
   g_print (G_STRLOC " [thread %p] " fmt "\n",           \
@@ -51,7 +52,8 @@ GX_INCLUDE_EPILOGUE
 # define _lp_debug_dump_gst_message(msg) /* nothing */
 #endif
 
-/* errors and checks */
+/* checks */
+
 #define _lp_error(fmt, ...)\
   g_error (G_STRLOC ": " fmt, ## __VA_ARGS__)
 
@@ -61,20 +63,22 @@ GX_INCLUDE_EPILOGUE
 #define _lp_eltmap_alloc_check(obj, map)                                \
   STMT_BEGIN                                                            \
   {                                                                     \
-    const char *missing;                                                \
-    if (unlikely (!gstx_eltmap_alloc ((obj), (map), &missing)))         \
-      g_error (G_STRLOC ": missing GStreamer plugin: %s", missing);     \
+    const gchar *__missing;                                             \
+    if (unlikely (!gstx_eltmap_alloc ((obj), (map), &__missing)))       \
+      g_error (G_STRLOC ": missing GStreamer plugin: %s", __missing);   \
   }                                                                     \
   STMT_END
 
 /* clock */
-GX_DECLARE_FINAL_TYPE (lp_Clock, lp_clock, LP, CLOCK, GstSystemClock)
+
 #define LP_TYPE_CLOCK (lp_clock_get_type ())
+GX_DECLARE_FINAL_TYPE (lp_Clock, lp_clock, LP, CLOCK, GstSystemClock)
 
 gboolean
 _lp_clock_advance (lp_Clock *, GstClockTime);
 
 /* scene */
+
 GstElement *
 _lp_scene_get_pipeline (const lp_Scene *);
 
@@ -94,26 +98,12 @@ void
 _lp_scene_add_media (lp_Scene *, lp_Media *);
 
 void
-_lp_scene_dispatch (lp_Scene *, GObject *, lp_EEvent);
-
-void
 _lp_scene_step (lp_Scene *, gboolean);
 
+void
+_lp_scene_dispatch (lp_Scene *, lp_Event *);
+
 /* media */
-gboolean
-_lp_media_is_starting (lp_Media *);
-
-gboolean
-_lp_media_has_started (lp_Media *);
-
-gboolean
-_lp_media_is_stopping (lp_Media *);
-
-gboolean
-_lp_media_has_stopped (lp_Media *);
-
-gboolean
-_lp_media_has_drained (lp_Media *);
 
 void
 _lp_media_finish_start (lp_Media *);

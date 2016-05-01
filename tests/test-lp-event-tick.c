@@ -32,8 +32,10 @@ main (void)
   event = lp_event_tick_new (scene, G_MAXUINT64);
   g_assert_nonnull (event);
 
-  g_object_get (event, "source", &source, "serial", &serial, NULL);
+  source = LP_SCENE (lp_event_get_source (LP_EVENT (event)));
   g_assert (source == scene);
+
+  serial = lp_event_tick_get_serial (event);
   g_assert (serial == G_MAXUINT64);
 
   g_object_unref (event);

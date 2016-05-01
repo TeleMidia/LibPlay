@@ -68,7 +68,7 @@ GX_INCLUDE_EPILOGUE
 /* Gets the #GType of property @name of @obj.  */
 
 static ATTR_UNUSED GType
-gx_object_find_property_type (GObject *obj, const char *name)
+gx_object_find_property_type (GObject *obj, const gchar *name)
 {
   GParamSpec *pspec;
 

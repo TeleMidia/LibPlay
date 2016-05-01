@@ -25,7 +25,7 @@ struct _lp_EventStop
   lp_Event parent;              /* parent object */
   struct
   {
-    gboolean eos;               /* signals an eos (implicit stop) */
+    gboolean eos;               /* indicates an eos */
   } prop;
 };
 
@@ -144,4 +144,21 @@ lp_event_stop_new (lp_Media *source, gboolean eos)
   return LP_EVENT_STOP (g_object_new (LP_TYPE_EVENT_STOP,
                                       "source", source,
                                       "eos", eos, NULL));
+}
+
+/**
+ * lp_event_stop_is_eos:
+ * @event: an #lp_EventStop
+ *
+ * Checks if event is end-of-stream.
+ *
+ * Returns: %TRUE if event indicates end-of-stream
+ */
+gboolean
+lp_event_stop_is_eos (lp_EventStop *event)
+{
+  gboolean eos;
+
+  g_object_get (event, "eos", &eos, NULL);
+  return eos;
 }

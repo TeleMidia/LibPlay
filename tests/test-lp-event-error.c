@@ -41,9 +41,11 @@ main (void)
                                         "error", error, NULL));
   g_assert_nonnull (event);
 
-  error = NULL;
-  g_object_get (event, "source", &source, "error", &error, NULL);
+  source = LP_MEDIA (lp_event_get_source (LP_EVENT (event)));
   g_assert (source == media);
+
+  error = NULL;
+  error = lp_event_error_get_error (event);
   g_assert_nonnull (error);
   g_object_unref (event);
 
@@ -53,9 +55,11 @@ main (void)
   event = lp_event_error_new (media, error);
   g_assert_nonnull (event);
 
-  error = NULL;
-  g_object_get (event, "source", &source, "error", &error, NULL);
+  source = LP_MEDIA (lp_event_get_source (LP_EVENT (event)));
   g_assert (source == media);
+
+  error = NULL;
+  error = lp_event_error_get_error (event);
   g_assert_nonnull (error);
   g_object_unref (event);
 

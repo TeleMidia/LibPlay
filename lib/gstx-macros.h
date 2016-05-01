@@ -22,7 +22,6 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
-#include <assert.h>
 #include <stdarg.h>
 
 #include "macros.h"
@@ -44,7 +43,7 @@ GSTX_INCLUDE_EPILOGUE
 /* Maps a GStreamer element name to an offset within a structure.  */
 typedef struct _gstx_eltmap_t
 {
-  const char *name;
+  const gchar *name;
   ptrdiff_t offset;
 } gstx_eltmap_t;
 
@@ -54,7 +53,7 @@ typedef struct _gstx_eltmap_t
 
 static ATTR_UNUSED gboolean
 gstx_eltmap_alloc (const void *obj, const gstx_eltmap_t map[],
-                   const char **err)
+                   const gchar **err)
 {
   size_t i;
   for (i = 0; map[i].name != NULL; i++)
@@ -80,6 +79,22 @@ gstx_eltmap_alloc (const void *obj, const gstx_eltmap_t map[],
 }
 
 
+/* Asserted version of gst_bin_add().  */
+#define gstx_bin_add(bin, elt)                          \
+  STMT_BEGIN                                            \
+  {                                                     \
+    g_assert (gst_bin_add (GST_BIN ((bin)), (elt)));    \
+  }                                                     \
+  STMT_END
+
+/* Asserted version of gst_element_link().  */
+#define gstx_element_link(elt1, elt2)                   \
+  STMT_BEGIN                                            \
+  {                                                     \
+    g_assert (gst_element_link ((elt1), (elt2)));       \
+  }                                                     \
+  STMT_END
+
 /* Returns the current time of @elt's clock,
    or GST_CLOCK_TIME_NONE if @elt doesn't have a clock.  */
 
@@ -100,12 +115,12 @@ gstx_element_get_clock_time (GstElement *elt)
 }
 
 /* Asserted version of gst_element_get_state().  */
-#define gstx_element_get_state(elt, st, pend, tout)             \
-  STMT_BEGIN                                                    \
-  {                                                             \
-    assert (gst_element_get_state ((elt), (st), (pend), (tout)) \
-            != GST_STATE_CHANGE_FAILURE);                       \
-  }                                                             \
+#define gstx_element_get_state(elt, st, pend, tout)                     \
+  STMT_BEGIN                                                            \
+  {                                                                     \
+    g_assert (gst_element_get_state ((elt), (st), (pend), (tout))       \
+              != GST_STATE_CHANGE_FAILURE);                             \
+  }                                                                     \
   STMT_END
 
 /* Synchronous version of gstx_element_get_state().  */
@@ -117,12 +132,12 @@ gstx_element_get_clock_time (GstElement *elt)
   STMT_END
 
 /* Asserted version of gst_element_set_state().  */
-#define gstx_element_set_state(elt, st)         \
-  STMT_BEGIN                                    \
-  {                                             \
-    assert (gst_element_set_state ((elt), (st)) \
-            != GST_STATE_CHANGE_FAILURE);       \
-  }                                             \
+#define gstx_element_set_state(elt, st)                 \
+  STMT_BEGIN                                            \
+  {                                                     \
+    g_assert (gst_element_set_state ((elt), (st))       \
+              != GST_STATE_CHANGE_FAILURE);             \
+  }                                                     \
   STMT_END
 
 /* Synchronous version of gstx_element_set_state().  */
@@ -134,28 +149,6 @@ gstx_element_get_clock_time (GstElement *elt)
   }                                                     \
   STMT_END
 
-/* Posts an application message originating from element @orig and with the
-   given @name and fields on the bus of element @dest.  */
-
-static void ATTR_UNUSED
-gstx_element_post_application_message (GstElement *dest, GstObject *orig,
-                                       const char *name,
-                                       const char *first_field, ...)
-{
-  GstStructure *st;
-  GstMessage *msg;
-  va_list args;
-
-  va_start (args, first_field);
-  st = gst_structure_new_valist (name, first_field, args);
-  assert (st != NULL);
-  va_end (args);
-
-  msg = gst_message_new_application (orig, st);
-  assert (msg != NULL);
-  assert (gst_element_post_message (dest, msg));
-}
-
 
 /* Returns the value of pointer @field in structure @st.
    Aborts if there is no such field of if it does not contain a pointer.  */
@@ -166,8 +159,8 @@ gstx_structure_get_pointer (const GstStructure *st, const gchar *field)
   const GValue *value;
 
   value = gst_structure_get_value (st, field);
-  assert (value != NULL);
-  assert (G_VALUE_TYPE (deconst (GValue *, value)) == G_TYPE_POINTER);
+  g_assert_nonnull (value);
+  g_assert (G_VALUE_TYPE (deconst (GValue *, value)) == G_TYPE_POINTER);
 
   return g_value_get_pointer (value);
 }

@@ -60,55 +60,13 @@ LP_BEGIN_DECLS
 #define LP_VERSION_STRING\
   LP_VERSION_TOSTRING (LP_VERSION_MAJOR, LP_VERSION_MINOR, LP_VERSION_MICRO)
 
-LP_API int
+LP_API gint
 lp_version (void);
 
 LP_API const gchar *
 lp_version_string (void);
 
-/* LEGACY */
-
-typedef enum
-{
-  LP_EERROR,
-  LP_ETICK,
-  LP_ESTART,
-  LP_ESTOP,
-  LP_EEOS,
-} lp_EEvent;
-
-/* scene */
-
-#define LP_TYPE_SCENE (lp_scene_get_type ())
-LP_API G_DECLARE_FINAL_TYPE (lp_Scene, lp_scene, LP, SCENE, GObject)
-
-LP_API lp_Scene *
-lp_scene_new (int, int);
-
-LP_API gboolean
-lp_scene_pop (lp_Scene *, gboolean, GObject **, lp_EEvent *);
-
-LP_API gboolean
-lp_scene_advance (lp_Scene *, guint64);
-
-/* media */
-
-#define LP_TYPE_MEDIA (lp_media_get_type ())
-LP_API G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
-
-LP_API lp_Media *
-lp_media_new (lp_Scene *, const gchar *);
-
-LP_API gboolean
-lp_media_start (lp_Media *);
-
-LP_API gboolean
-lp_media_stop (lp_Media *);
-
-LP_API void
-lp_media_abort (lp_Media *);
-
-/* event */
+/* types */
 
 #define LP_TYPE_EVENT\
   (lp_event_get_type ())
@@ -164,6 +122,17 @@ LP_API G_DECLARE_FINAL_TYPE (lp_EventStart, lp_event_start,
 LP_API G_DECLARE_FINAL_TYPE (lp_EventStop, lp_event_stop,
                              LP, EVENT_STOP, lp_Event)
 
+#define LP_TYPE_SCENE (lp_scene_get_type ())
+LP_API G_DECLARE_FINAL_TYPE (lp_Scene, lp_scene, LP, SCENE, GObject)
+
+#define LP_TYPE_MEDIA (lp_media_get_type ())
+LP_API G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
+
+/* event */
+
+GObject *
+lp_event_get_source (lp_Event *);
+
 lp_EventTick *
 lp_event_tick_new (lp_Scene *, guint64);
 
@@ -175,6 +144,40 @@ lp_event_start_new (lp_Media *, gboolean);
 
 LP_API lp_EventStop *
 lp_event_stop_new (lp_Media *, gboolean);
+
+guint64
+lp_event_tick_get_serial (lp_EventTick *);
+
+GError *
+lp_event_error_get_error (lp_EventError *);
+
+gboolean
+lp_event_start_is_resume (lp_EventStart *);
+
+gboolean
+lp_event_stop_is_eos (lp_EventStop *);
+
+/* scene */
+
+LP_API lp_Scene *
+lp_scene_new (gint, gint);
+
+LP_API gboolean
+lp_scene_advance (lp_Scene *, guint64);
+
+LP_API lp_Event *
+lp_scene_receive (lp_Scene *, gboolean);
+
+/* media */
+
+LP_API lp_Media *
+lp_media_new (lp_Scene *, const gchar *);
+
+LP_API gboolean
+lp_media_start (lp_Media *);
+
+LP_API gboolean
+lp_media_stop (lp_Media *);
 
 LP_END_DECLS
 

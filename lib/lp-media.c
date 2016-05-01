@@ -439,8 +439,12 @@ lp_media_set_property (GObject *object, guint prop_id,
   switch (prop_id)
     {
     case PROP_SCENE:
-      media->prop.scene = LP_SCENE (g_value_get_pointer (value));
-      break;
+      {
+        GObject *obj = (GObject *) g_value_get_object (value);
+        g_assert (LP_IS_SCENE (obj));
+        media->prop.scene = LP_SCENE (obj);
+        break;
+      }
     case PROP_URI:
       g_free (media->prop.uri);
       media->prop.uri = g_value_dup_string (value);
@@ -576,9 +580,6 @@ lp_media_constructed (GObject *object)
   lp_Media *media;
 
   media = LP_MEDIA (object);
-
-  if (unlikely (media->prop.scene == DEFAULT_SCENE))
-    _lp_error ("empty parent scene: %p", media->prop.scene);
 
   /* FIXME: Users cannot unref media objects directly.  */
 

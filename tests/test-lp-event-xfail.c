@@ -20,16 +20,6 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  /* new/unref */
-  STMT_BEGIN
-    {
-      lp_Event *event;
-
-      event = LP_EVENT (g_object_new (LP_TYPE_EVENT, NULL));
-      assert (event != NULL);
-      g_object_unref (event);
-    }
-  STMT_END;
-
+  g_object_new (LP_TYPE_EVENT, NULL); /* abort */
   exit (EXIT_SUCCESS);
 }

@@ -58,7 +58,7 @@ GX_INCLUDE_EPILOGUE
 #define GX_DEFINE_TYPE(TN, t_n, T_P)            \
   GX_INCLUDE_PROLOGUE                           \
   G_DEFINE_TYPE (TN, t_n, T_P)                  \
-    GX_INCLUDE_EPILOGUE
+  GX_INCLUDE_EPILOGUE
 
 
 /* Gets the #GParamSpec of property @name of @obj.   */

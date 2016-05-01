@@ -89,14 +89,14 @@ enum
 };
 
 /* Default values for scene properties.  */
-#define DEFAULT_WIDTH      0          /* no video output */
-#define DEFAULT_HEIGHT     0          /* no video output */
-#define DEFAULT_PATTERN    2          /* black */
-#define DEFAULT_WAVE       4          /* silence */
-#define DEFAULT_TICKS      0          /* no ticks */
-#define DEFAULT_INTERVAL   GST_SECOND /* one tick per second */
-#define DEFAULT_TIME       0          /* zero nanoseconds */
-#define DEFAULT_LOCKSTEP   FALSE      /* real-time mode */
+#define DEFAULT_WIDTH     0          /* no video output */
+#define DEFAULT_HEIGHT    0          /* no video output */
+#define DEFAULT_PATTERN   2          /* black */
+#define DEFAULT_WAVE      4          /* silence */
+#define DEFAULT_TICKS     0          /* no ticks */
+#define DEFAULT_INTERVAL  GST_SECOND /* one tick per second */
+#define DEFAULT_TIME      0          /* zero nanoseconds */
+#define DEFAULT_LOCKSTEP  FALSE      /* real-time mode */
 
 /* Define the lp_Scene type.  */
 GX_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)

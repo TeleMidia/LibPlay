@@ -112,8 +112,8 @@ lp_clock_set_property (GObject *object, guint prop_id,
         clock->lockstep = lockstep;
         if (!lockstep)
           {
-            clock->unlock_systime = gst_clock_get_time (clock->sysclock);
             clock->unlock_time = clock->time;
+            clock->unlock_systime = gst_clock_get_time (clock->sysclock);
           }
 
       done:
@@ -150,7 +150,7 @@ lp_clock_get_internal_time (GstClock *gst_clock)
   if (!clock->lockstep)
     {
       GstClockTime now = __lp_clock_get_systime (clock);
-      clock->time = now - clock->unlock_systime + clock->unlock_time;
+      clock->time = (now - clock->unlock_systime) + clock->unlock_time;
     }
   result = clock->time;
 

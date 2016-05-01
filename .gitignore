@@ -70,7 +70,11 @@
 /tests/gdb.cfg
 /tests/lua
 /tests/suppfile
-/tests/test-lp-event
+/tests/test-lp-event-error
+/tests/test-lp-event-start
+/tests/test-lp-event-stop
+/tests/test-lp-event-tick
+/tests/test-lp-event-xfail
 /tests/test-lp-media
 /tests/test-lp-scene
 /tests/test-lp-scene-advance

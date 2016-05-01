@@ -61,7 +61,7 @@ AM_TESTS_ENVIRONMENT=\
   export GST_DEBUG="*:WARN";\
   export G_DEBUG="all";\
   export G_SLICE="always-malloc";\
-  export LD_LIBRARY_PATH="$(top_builddir)/lib/.libs:$(top_builddir)/play:$(LD_LIBRARY_PATH)";\
+  export LD_LIBRARY_PATH="$(top_builddir)/lib/.libs:$(top_builddir)/play:$$LD_LIBRARY_PATH";\
   export MALLOC_CHECK_=1;\
   export LD_PRELOAD="$(LD_PRELOAD)";\
   export LUA_CPATH="$(builddir)/.libs/?$(SOEXT);$(top_builddir)/?$(SOEXT);;";\
@@ -77,12 +77,16 @@ check_SCRIPTS= $(scripts)
 
 # Test programs.
 programs=
-programs+= test-lp-event
+programs+= test-lp-version
+programs+= test-lp-version-string
+programs+= test-lp-event-xfail
+programs+= test-lp-event-error
+programs+= test-lp-event-tick
+programs+= test-lp-event-start
+programs+= test-lp-event-stop
 programs+= test-lp-scene
 programs+= test-lp-scene-advance
 programs+= test-lp-media
-programs+= test-lp-version
-programs+= test-lp-version-string
 check_PROGRAMS= $(programs)
 
 TESTS=\
@@ -92,6 +96,7 @@ TESTS=\
 
 # Tests that should fail.
 XFAIL_TESTS=\
+  test-lp-event-xfail\
   $(NULL)
 
 EXTRA_DIST=\

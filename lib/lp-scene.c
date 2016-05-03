@@ -19,6 +19,8 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <config.h>
 #include "play-internal.h"
 
+#include <gst/video/navigation.h>
+
 /* Scene object.  */
 struct _lp_Scene
 {
@@ -222,6 +224,57 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     case GST_MESSAGE_DURATION_CHANGED:
       break;
     case GST_MESSAGE_ELEMENT:
+      {
+        const GstStructure *st;
+        const char* st_name; 
+
+        st = gst_message_get_structure(msg);
+        st_name = gst_structure_get_name (st);     
+        if (strcmp (st_name, "GstNavigationMessage") == 0)
+        {
+          GstNavigationMessageType nav_evt_type;
+          gpointer data;
+          GstEvent *gstevent;
+          lp_Event *event = NULL;
+
+          data = g_object_get_data (G_OBJECT (GST_MESSAGE_SRC(msg)), "lp_Scene");
+          g_assert_nonnull (data);
+
+          gst_navigation_message_parse_event (msg, &gstevent);
+          nav_evt_type = gst_navigation_event_get_type (gstevent);
+
+          switch (nav_evt_type) 
+          {
+            case GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS: 
+            case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE: 
+            {
+              int button;
+              double x, y;
+              gst_navigation_event_parse_mouse_button_event (gstevent, &button,
+                  &x, &y);
+              event = LP_EVENT (
+                lp_event_mouse_button_new (LP_SCENE(data), x, y, button,
+                  nav_evt_type == GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS ? 
+                  LP_EVENT_MOUSE_BUTTON_PRESS : LP_EVENT_MOUSE_BUTTON_RELEASE));
+                break;
+            }
+            case GST_NAVIGATION_EVENT_MOUSE_MOVE: 
+              break;
+            case GST_NAVIGATION_EVENT_KEY_PRESS: 
+              break;
+            case GST_NAVIGATION_EVENT_KEY_RELEASE: 
+              break;
+            default:
+              _lp_warn ("Invalid GstNavigationMessage");
+              break;
+          }
+          if (event != NULL)
+          {
+            scene->events = g_list_append (scene->events, event);
+            g_assert_nonnull (scene->events);
+          }
+        }
+      }
       break;
     case GST_MESSAGE_EOS:
       break;
@@ -463,6 +516,8 @@ lp_scene_constructed (GObject *object)
       gstx_element_link (scene->video.blank, scene->video.filter);
       gstx_element_link (scene->video.filter, scene->video.mixer);
       gstx_element_link (scene->video.mixer, scene->video.sink);
+
+      g_object_set_data (G_OBJECT (scene->video.sink), "lp_Scene", scene);
 
       caps = gst_caps_new_empty_simple ("video/x-raw");
       g_assert_nonnull (caps);

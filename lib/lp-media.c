@@ -786,8 +786,17 @@ _lp_media_finish_start (lp_Media *media)
   media_unlock (media);
 }
 
-/* Finishes async stop.  */
+/* Releases bin element.  */
+static gboolean
+_lp_media_release_bin(gpointer data)
+{
+  GstElement *bin = GST_ELEMENT(data);
+  gstx_element_set_state_sync (bin, GST_STATE_NULL);
+  gst_object_unref (bin);
+  return FALSE;
+}
 
+/* Finishes async stop.  */
 void
 _lp_media_finish_stop (lp_Media *media)
 {
@@ -798,14 +807,13 @@ _lp_media_finish_stop (lp_Media *media)
   g_assert_true (media_is_stopping (media));
   g_assert (media->active_pads == 0);
 
-  gstx_element_set_state_sync (media->bin, GST_STATE_NULL);
   pipeline = _lp_scene_get_pipeline (media->prop.scene);
   g_assert_true (gst_bin_remove (GST_BIN (pipeline), media->bin));
+  g_idle_add (_lp_media_release_bin, media->bin);
 
   g_signal_handler_disconnect (media->decoder, media->callback.autoplug);
   g_signal_handler_disconnect (media->decoder, media->callback.drain);
   g_signal_handler_disconnect (media->decoder, media->callback.padadded);
-  gst_object_unref (media->bin);
 
   media->bin = NULL;            /* indicates has_started and has_stopped */
   media->drained = FALSE;       /* indicates has_drained */

@@ -130,7 +130,7 @@ LP_API G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
 
 /* event */
 
-GObject *
+LP_API GObject *
 lp_event_get_source (lp_Event *);
 
 lp_EventTick *

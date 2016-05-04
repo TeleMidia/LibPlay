@@ -19,6 +19,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <config.h>
 #include "play-internal.h"
 
+#include <gst/audio/gstaudiobasesink.h>
 #include <gst/video/navigation.h>
 
 /* Scene object.  */
@@ -63,7 +64,7 @@ static const gstx_eltmap_t lp_scene_eltmap[] = {
   {"pipeline",      offsetof (lp_Scene, pipeline)},
   {"audiotestsrc",  offsetof (lp_Scene, audio.blank)},
   {"audiomixer",    offsetof (lp_Scene, audio.mixer)},
-  {"autoaudiosink", offsetof (lp_Scene, audio.sink)},
+  {"alsasink",      offsetof (lp_Scene, audio.sink)},
   {NULL, 0},
 };
 
@@ -489,6 +490,7 @@ lp_scene_constructed (GObject *object)
 {
   lp_Scene *scene;
   GstBus *bus;
+  GstClock *audioclock;
 
   scene = LP_SCENE (object);
   _lp_eltmap_alloc_check (scene, lp_scene_eltmap);
@@ -496,6 +498,13 @@ lp_scene_constructed (GObject *object)
   scene->clock = GST_CLOCK (g_object_new (LP_TYPE_CLOCK, NULL));
   g_assert_nonnull (scene->clock);
   gst_pipeline_use_clock (GST_PIPELINE (scene->pipeline), scene->clock);
+  GST_OBJECT_FLAG_SET (G_OBJECT(scene->audio.sink), 
+      GST_CLOCK_FLAG_CAN_SET_MASTER);
+
+  /* Setting 'scene->clock' as master of 'audioclock' */
+  audioclock = GST_AUDIO_BASE_SINK (scene->audio.sink)->provided_clock;
+  _lp_debug ("Trying to slave audioclock to scene clock: %s",
+      gst_clock_set_master (audioclock, scene->clock) ? "success" : "fail");
 
   bus = gst_pipeline_get_bus (GST_PIPELINE (scene->pipeline));
   g_assert_nonnull (bus);

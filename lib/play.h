@@ -103,17 +103,17 @@ struct _lp_Event
   lp_EventPrivate *priv;
 };
 
-enum lp_Event_Key_Type
+typedef enum
 {
   LP_EVENT_KEY_PRESS = 0,
   LP_EVENT_KEY_RELEASE,
-};
+} lp_EventKeyType;
 
-enum lp_Event_Mouse_Button_Type
+typedef enum
 {
   LP_EVENT_MOUSE_BUTTON_PRESS = 0,
   LP_EVENT_MOUSE_BUTTON_RELEASE,
-};
+} lp_EventMouseButtonType;
 
 
 LP_API GType
@@ -136,7 +136,7 @@ LP_API G_DECLARE_FINAL_TYPE (lp_EventStart, lp_event_start,
 #define LP_TYPE_EVENT_STOP (lp_event_stop_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_EventStop, lp_event_stop,
                              LP, EVENT_STOP, lp_Event)
-  
+
 #define LP_TYPE_EVENT_MOUSE_BUTTON (lp_event_mouse_button_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_EventMouseButton, lp_event_mouse_button,
                              LP, EVENT_MOUSE_BUTTON, lp_Event)
@@ -169,11 +169,11 @@ LP_API lp_EventStop *
 lp_event_stop_new (lp_Media *, gboolean);
 
 LP_API lp_EventMouseButton *
-lp_event_mouse_button_new (lp_Scene *, double, double, int, 
-    lp_Event_Mouse_Button_Type);
+lp_event_mouse_button_new (lp_Scene *, double, double, int,
+                           lp_EventMouseButtonType);
 
 LP_API lp_EventKey *
-lp_event_key_new (lp_Scene *, const char *key, lp_Event_Key_Type);
+lp_event_key_new (lp_Scene *, const char *key, lp_EventKeyType);
 
 guint64
 lp_event_tick_get_serial (lp_EventTick *);

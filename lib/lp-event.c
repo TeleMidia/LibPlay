@@ -116,7 +116,7 @@ lp_event_class_init (lp_EventClass *cls)
     (gobject_class, PROP_SOURCE, g_param_spec_object
      ("source", "source", "object that posted the event",
       G_TYPE_OBJECT,
-      (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 }
 
 

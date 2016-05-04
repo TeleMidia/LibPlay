@@ -111,7 +111,7 @@ lp_event_tick_class_init (lp_EventTickClass *cls)
     (gobject_class, PROP_SERIAL, g_param_spec_uint64
      ("serial", "serial", "serial number",
       0, G_MAXUINT64, DEFAULT_SERIAL,
-      (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 }
 
 

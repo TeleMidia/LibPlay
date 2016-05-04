@@ -128,7 +128,7 @@ lp_event_error_class_init (lp_EventErrorClass *cls)
     (gobject_class, PROP_ERROR, g_param_spec_boxed
      ("error", "error", "error object",
       G_TYPE_ERROR,
-      (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 }
 
 

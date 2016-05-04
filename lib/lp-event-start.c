@@ -123,7 +123,7 @@ lp_event_start_class_init (lp_EventStartClass *cls)
     (gobject_class, PROP_RESUME, g_param_spec_boolean
      ("resume", "resume", "true if start is a resume",
       DEFAULT_RESUME,
-      (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 }
 
 

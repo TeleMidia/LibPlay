@@ -56,21 +56,21 @@ main (int argc, char **argv)
       type = G_OBJECT_TYPE (event);
       g_assert (type != LP_TYPE_EVENT_ERROR);
       if (type == LP_TYPE_EVENT_MOUSE_BUTTON)
-      {
-        double x, y;
-        int button;
-        lp_Event_Mouse_Button_Type type;
-        lp_EventMouseButton *evtmouse = LP_EVENT_MOUSE_BUTTON (event);
-        
-        g_object_get (G_OBJECT(evtmouse), "x", &x, "y", &y, 
-            "button", &button, "type", &type, NULL);
+        {
+          double x, y;
+          int button;
+          lp_EventMouseButtonType press;
+          lp_EventMouseButton *evtmouse = LP_EVENT_MOUSE_BUTTON (event);
 
-        printf ("(x, y): %.0f, %.0f\n", x, y);
-        printf ("button: %d\n", button);
-        printf ("type: %s\n", type == LP_EVENT_MOUSE_BUTTON_PRESS ? 
-            "press" : "release");
-      }
+          g_object_get (G_OBJECT (evtmouse), "x", &x, "y", &y,
+                        "button", &button, "type", &press, NULL);
 
+          printf ("(x, y): %.0f, %.0f\n", x, y);
+          printf ("button: %d\n", button);
+          printf ("type: %s\n",
+                  press == LP_EVENT_MOUSE_BUTTON_PRESS
+                  ? "press" : "release");
+        }
       g_object_unref (event);
     }
   while (type != LP_TYPE_EVENT_STOP);

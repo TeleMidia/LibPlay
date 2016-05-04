@@ -22,13 +22,13 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 /* MouseButton event.  */
 struct _lp_EventMouseButton
 {
-  lp_Event parent;                    /* parent object */
+  lp_Event parent;              /* parent object */
   struct
   {
-    double x;                         /* x position */
-    double y;                         /* y position */
-    int button;                       /* button */
-    lp_Event_Mouse_Button_Type type;  /* mouse press or release */
+    double x;                     /* x position */
+    double y;                     /* y position */
+    int button;                   /* button number */
+    lp_EventMouseButtonType type; /* press or release */
   } prop;
 };
 
@@ -49,13 +49,13 @@ GX_DEFINE_TYPE (lp_EventMouseButton, lp_event_mouse_button, LP_TYPE_EVENT)
 
 /* methods */
 static void
-lp_event_mouse_button_init (lp_EventMouseButton *evt)
+lp_event_mouse_button_init (arg_unused (lp_EventMouseButton *evt))
 {
 }
 
 static void
 lp_event_mouse_button_get_property (GObject *object, guint prop_id,
-                            GValue *value, GParamSpec *pspec)
+                                    GValue *value, GParamSpec *pspec)
 {
   lp_EventMouseButton *event;
 
@@ -98,8 +98,11 @@ lp_event_mouse_button_set_property (GObject *object, guint prop_id,
       event->prop.button = g_value_get_int (value);
       break;
     case PROP_TYPE:
-      event->prop.type = g_value_get_int (value);
-      break;
+      {
+        gint type = g_value_get_int (value);
+        event->prop.type = (lp_EventMouseButtonType) type;
+        break;
+      }
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
   }
@@ -141,22 +144,26 @@ lp_event_mouse_button_class_init (lp_EventMouseButtonClass *cls)
   g_object_class_install_property
     (gobject_class, PROP_X, g_param_spec_double
      ("x", "x", "x position",
-      0, G_MAXDOUBLE, 0, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      0., G_MAXDOUBLE, 0.,
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_Y, g_param_spec_double
      ("y", "y", "y position",
-      0, G_MAXDOUBLE, 0, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      0., G_MAXDOUBLE, 0.,
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_BUTTON, g_param_spec_int
      ("button", "button", "mouse button",
-      0, G_MAXINT, 0, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      0, G_MAXINT, 0,
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_TYPE, g_param_spec_int
      ("type", "type", "mouse event type",
-      0, G_MAXINT, 0, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      0, G_MAXINT, 0,
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 }
 
 
@@ -174,13 +181,13 @@ lp_event_mouse_button_class_init (lp_EventMouseButtonClass *cls)
  * Returns: (transfer full): a new #lp_EventMouseButton
  */
 lp_EventMouseButton *
-lp_event_mouse_button_new (lp_Scene *source, double x, double y, 
-    int button, lp_Event_Mouse_Button_Type type)
+lp_event_mouse_button_new (lp_Scene *source, double x, double y,
+                           int button, lp_EventMouseButtonType type)
 {
   return LP_EVENT_MOUSE_BUTTON (g_object_new (LP_TYPE_EVENT_MOUSE_BUTTON,
                                        "source", source,
                                        "x", x,
-                                       "y", y, 
+                                       "y", y,
                                        "button", button,
                                        "type", type, NULL));
 }

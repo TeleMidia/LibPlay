@@ -22,11 +22,11 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 /* Key event.  */
 struct _lp_EventKey
 {
-  lp_Event parent;           /* parent object */
+  lp_Event parent;              /* parent object */
   struct
   {
-    char *key;               /* key */
-    lp_Event_Key_Type type;  /* key press or release */
+    char *key;                  /* key */
+    lp_EventKeyType type;       /* press or release */
   } prop;
 };
 
@@ -45,13 +45,13 @@ GX_DEFINE_TYPE (lp_EventKey, lp_event_key, LP_TYPE_EVENT)
 
 /* methods */
 static void
-lp_event_key_init (lp_EventKey *evt)
+lp_event_key_init (arg_unused (lp_EventKey *event))
 {
 }
 
 static void
 lp_event_key_get_property (GObject *object, guint prop_id,
-                            GValue *value, GParamSpec *pspec)
+                           GValue *value, GParamSpec *pspec)
 {
   lp_EventKey *event;
 
@@ -83,8 +83,11 @@ lp_event_key_set_property (GObject *object, guint prop_id,
       event->prop.key = g_strdup(g_value_get_string (value));
       break;
     case PROP_TYPE:
-      event->prop.type = g_value_get_int (value);
-      break;
+      {
+        gint type = g_value_get_int (value);
+        event->prop.type = (lp_EventKeyType) type;
+        break;
+      }
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
   }
@@ -127,12 +130,14 @@ lp_event_key_class_init (lp_EventKeyClass *cls)
   g_object_class_install_property
     (gobject_class, PROP_KEY, g_param_spec_string
      ("key", "key", "key that triggered the event",
-      "", G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      "",
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_TYPE, g_param_spec_int
      ("type", "type", "key event type",
-      0, G_MAXINT, 0, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      0, G_MAXINT, 0,
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 }
 
 
@@ -150,10 +155,10 @@ lp_event_key_class_init (lp_EventKeyClass *cls)
  */
 lp_EventKey *
 lp_event_key_new (lp_Scene *source, const char *key,
-    lp_Event_Key_Type type)
+                  lp_EventKeyType type)
 {
   return LP_EVENT_KEY (g_object_new (LP_TYPE_EVENT_KEY,
-        "source", source,
-        "key", key,
-        "type", type, NULL));
+                                     "source", source,
+                                     "key", key,
+                                     "type", type, NULL));
 }

@@ -712,7 +712,7 @@ lp_media_class_init (lp_MediaClass *cls)
   g_object_class_install_property
     (gobject_class, PROP_SCENE, g_param_spec_object
      ("scene", "scene", "parent scene", LP_TYPE_SCENE,
-      (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_URI, g_param_spec_string

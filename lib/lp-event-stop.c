@@ -123,7 +123,7 @@ lp_event_stop_class_init (lp_EventStopClass *cls)
     (gobject_class, PROP_EOS, g_param_spec_boolean
      ("eos", "eos", "true if stop was triggered by end-of-stream",
       DEFAULT_EOS,
-      (GParamFlags) (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 }
 
 

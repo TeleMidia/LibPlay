@@ -226,64 +226,64 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     case GST_MESSAGE_ELEMENT:
       {
         const GstStructure *st;
-        const char* st_name; 
+        const gchar *name;
 
-        st = gst_message_get_structure(msg);
-        st_name = gst_structure_get_name (st);     
-        if (strcmp (st_name, "GstNavigationMessage") == 0)
-        {
-          GstNavigationMessageType nav_evt_type;
-          gpointer data;
-          GstEvent *gstevent;
-          lp_Event *event = NULL;
+        GstNavigationEventType type;
+        GstEvent *gstevent;
+        lp_Event *event = NULL;
 
-          data = g_object_get_data (G_OBJECT (GST_MESSAGE_SRC(msg)), 
-              "lp_Scene");
-          g_assert_nonnull (data);
+        st = gst_message_get_structure (msg);
+        name = gst_structure_get_name (st);
+        if (!g_str_equal (name, "GstNavigationMessage"))
+          break;                /* nothing to do */
 
-          gst_navigation_message_parse_event (msg, &gstevent);
-          nav_evt_type = gst_navigation_event_get_type (gstevent);
-
-          switch (nav_evt_type) 
+        gst_navigation_message_parse_event (msg, &gstevent);
+        type = gst_navigation_event_get_type (gstevent);
+        switch (type)
           {
-            case GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS: 
-            case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE: 
+          case GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS:
+          case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE:
             {
               int button;
               double x, y;
-              gst_navigation_event_parse_mouse_button_event (gstevent, &button,
-                  &x, &y);
-              event = LP_EVENT (
-                lp_event_mouse_button_new (LP_SCENE(data), x, y, button,
-                  nav_evt_type == GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS ? 
-                  LP_EVENT_MOUSE_BUTTON_PRESS : LP_EVENT_MOUSE_BUTTON_RELEASE));
-                break;
-            }
-            case GST_NAVIGATION_EVENT_MOUSE_MOVE: 
+
+              gst_navigation_event_parse_mouse_button_event
+                (gstevent, &button, &x, &y);
+
+              event = LP_EVENT
+                (lp_event_mouse_button_new
+                 (scene, x, y, button,
+                  type == GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS
+                  ? LP_EVENT_MOUSE_BUTTON_PRESS
+                  : LP_EVENT_MOUSE_BUTTON_RELEASE));
               break;
-            case GST_NAVIGATION_EVENT_KEY_PRESS: 
-            case GST_NAVIGATION_EVENT_KEY_RELEASE: 
+            }
+            case GST_NAVIGATION_EVENT_MOUSE_MOVE:
+              break;
+            case GST_NAVIGATION_EVENT_KEY_PRESS:
+            case GST_NAVIGATION_EVENT_KEY_RELEASE:
             {
               const char *key;
               gst_navigation_event_parse_key_event (gstevent, &key);
-              event = LP_EVENT (
-                lp_event_key_new (LP_SCENE(data), key,
-                  nav_evt_type == GST_NAVIGATION_EVENT_KEY_PRESS ? 
-                  LP_EVENT_KEY_PRESS : LP_EVENT_KEY_RELEASE));
+
+              event = LP_EVENT
+                (lp_event_key_new
+                 (scene, key,
+                  type == GST_NAVIGATION_EVENT_KEY_PRESS
+                  ? LP_EVENT_KEY_PRESS : LP_EVENT_KEY_RELEASE));
               break;
             }
-            default:
-              _lp_warn ("Invalid GstNavigationMessage");
-              break;
+          default:
+            _lp_warn ("invalid GstNavigationMessage");
+            break;
           }
-          if (event != NULL)
+        if (likely (event != NULL))
           {
             scene->events = g_list_append (scene->events, event);
             g_assert_nonnull (scene->events);
           }
-        }
+        break;
       }
-      break;
     case GST_MESSAGE_EOS:
       break;
     case GST_MESSAGE_ERROR:

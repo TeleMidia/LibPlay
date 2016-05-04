@@ -237,7 +237,8 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           GstEvent *gstevent;
           lp_Event *event = NULL;
 
-          data = g_object_get_data (G_OBJECT (GST_MESSAGE_SRC(msg)), "lp_Scene");
+          data = g_object_get_data (G_OBJECT (GST_MESSAGE_SRC(msg)), 
+              "lp_Scene");
           g_assert_nonnull (data);
 
           gst_navigation_message_parse_event (msg, &gstevent);
@@ -261,9 +262,16 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
             case GST_NAVIGATION_EVENT_MOUSE_MOVE: 
               break;
             case GST_NAVIGATION_EVENT_KEY_PRESS: 
-              break;
             case GST_NAVIGATION_EVENT_KEY_RELEASE: 
+            {
+              const char *key;
+              gst_navigation_event_parse_key_event (gstevent, &key);
+              event = LP_EVENT (
+                lp_event_key_new (LP_SCENE(data), key,
+                  nav_evt_type == GST_NAVIGATION_EVENT_KEY_PRESS ? 
+                  LP_EVENT_KEY_PRESS : LP_EVENT_KEY_RELEASE));
               break;
+            }
             default:
               _lp_warn ("Invalid GstNavigationMessage");
               break;

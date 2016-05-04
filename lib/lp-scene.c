@@ -267,8 +267,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
               event = LP_EVENT
                 (lp_event_key_new
                  (scene, key,
-                  type == GST_NAVIGATION_EVENT_KEY_PRESS
-                  ? LP_EVENT_KEY_PRESS : LP_EVENT_KEY_RELEASE));
+                  type == GST_NAVIGATION_EVENT_KEY_PRESS));
               break;
             }
           default:

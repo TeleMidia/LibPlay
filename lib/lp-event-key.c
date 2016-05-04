@@ -26,7 +26,7 @@ struct _lp_EventKey
   struct
   {
     char *key;                  /* key */
-    lp_EventKeyType type;       /* press or release */
+    gboolean press;             /* TRUE if it is a press event  */
   } prop;
 };
 
@@ -35,7 +35,7 @@ enum
 {
   PROP_0,
   PROP_KEY,
-  PROP_TYPE,
+  PROP_PRESS,
   PROP_LAST
 };
 
@@ -61,8 +61,8 @@ lp_event_key_get_property (GObject *object, guint prop_id,
       case PROP_KEY:
         g_value_set_string (value, event->prop.key);
         break;
-      case PROP_TYPE:
-        g_value_set_int (value, event->prop.type);
+      case PROP_PRESS:
+        g_value_set_boolean (value, event->prop.press);
         break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -82,12 +82,9 @@ lp_event_key_set_property (GObject *object, guint prop_id,
       g_free (event->prop.key);
       event->prop.key = g_strdup(g_value_get_string (value));
       break;
-    case PROP_TYPE:
-      {
-        gint type = g_value_get_int (value);
-        event->prop.type = (lp_EventKeyType) type;
-        break;
-      }
+    case PROP_PRESS:
+      event->prop.press = g_value_get_boolean (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
   }
@@ -134,10 +131,9 @@ lp_event_key_class_init (lp_EventKeyClass *cls)
       (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
-    (gobject_class, PROP_TYPE, g_param_spec_int
-     ("type", "type", "key event type",
-      0, G_MAXINT, 0,
-      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+    (gobject_class, PROP_PRESS, g_param_spec_boolean
+     ("press", "press", "is key 'press' event?",
+      TRUE, (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 }
 
 
@@ -155,10 +151,10 @@ lp_event_key_class_init (lp_EventKeyClass *cls)
  */
 lp_EventKey *
 lp_event_key_new (lp_Scene *source, const char *key,
-                  lp_EventKeyType type)
+                  gboolean press)
 {
   return LP_EVENT_KEY (g_object_new (LP_TYPE_EVENT_KEY,
                                      "source", source,
                                      "key", key,
-                                     "type", type, NULL));
+                                     "press", press, NULL));
 }

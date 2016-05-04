@@ -89,8 +89,6 @@ lp_version_string (void);
 typedef struct _lp_Event lp_Event;
 typedef struct _lp_EventClass lp_EventClass;
 typedef struct _lp_EventPrivate lp_EventPrivate;
-typedef enum lp_Event_Mouse_Button_Type lp_Event_Mouse_Button_Type;
-typedef enum lp_Event_Key_Type lp_Event_Key_Type;
 
 struct _lp_EventClass
 {
@@ -102,12 +100,6 @@ struct _lp_Event
   GObject parent_instance;
   lp_EventPrivate *priv;
 };
-
-typedef enum
-{
-  LP_EVENT_KEY_PRESS = 0,
-  LP_EVENT_KEY_RELEASE,
-} lp_EventKeyType;
 
 LP_API GType
 lp_event_get_type (void) G_GNUC_CONST;
@@ -166,7 +158,7 @@ lp_event_mouse_button_new (lp_Scene *, double, double, int,
                            gboolean);
 
 LP_API lp_EventKey *
-lp_event_key_new (lp_Scene *, const char *key, lp_EventKeyType);
+lp_event_key_new (lp_Scene *, const char *key, gboolean);
 
 guint64
 lp_event_tick_get_serial (lp_EventTick *);

@@ -253,9 +253,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
               event = LP_EVENT
                 (lp_event_mouse_button_new
                  (scene, x, y, button,
-                  type == GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS
-                  ? LP_EVENT_MOUSE_BUTTON_PRESS
-                  : LP_EVENT_MOUSE_BUTTON_RELEASE));
+                  type == GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS));
               break;
             }
             case GST_NAVIGATION_EVENT_MOUSE_MOVE:

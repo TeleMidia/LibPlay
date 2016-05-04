@@ -28,7 +28,7 @@ struct _lp_EventMouseButton
     double x;                     /* x position */
     double y;                     /* y position */
     int button;                   /* button number */
-    lp_EventMouseButtonType type; /* press or release */
+    gboolean press;               /* TRUE if it is a press event */
   } prop;
 };
 
@@ -39,7 +39,7 @@ enum
   PROP_X,
   PROP_Y,
   PROP_BUTTON,
-  PROP_TYPE,
+  PROP_PRESS,
   PROP_LAST
 };
 
@@ -71,8 +71,8 @@ lp_event_mouse_button_get_property (GObject *object, guint prop_id,
       case PROP_BUTTON:
         g_value_set_int (value, event->prop.button);
         break;
-      case PROP_TYPE:
-        g_value_set_int (value, event->prop.type);
+      case PROP_PRESS:
+        g_value_set_boolean (value, event->prop.press);
         break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -97,12 +97,9 @@ lp_event_mouse_button_set_property (GObject *object, guint prop_id,
     case PROP_BUTTON:
       event->prop.button = g_value_get_int (value);
       break;
-    case PROP_TYPE:
-      {
-        gint type = g_value_get_int (value);
-        event->prop.type = (lp_EventMouseButtonType) type;
-        break;
-      }
+    case PROP_PRESS:
+      event->prop.press = g_value_get_boolean (value); 
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
   }
@@ -160,10 +157,9 @@ lp_event_mouse_button_class_init (lp_EventMouseButtonClass *cls)
       (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
-    (gobject_class, PROP_TYPE, g_param_spec_int
-     ("type", "type", "mouse event type",
-      0, G_MAXINT, 0,
-      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+    (gobject_class, PROP_PRESS, g_param_spec_boolean
+     ("press", "press", "is mouse 'press' button event?",
+      TRUE, (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 }
 
 
@@ -174,7 +170,7 @@ lp_event_mouse_button_class_init (lp_EventMouseButtonClass *cls)
  * @source: (transfer none): the source #lp_Scene
  * @x: x position
  * @y: y position
- * @type: mouse event type
+ * @press: is press event
  *
  * Creates a new mouse event.
  *
@@ -182,12 +178,12 @@ lp_event_mouse_button_class_init (lp_EventMouseButtonClass *cls)
  */
 lp_EventMouseButton *
 lp_event_mouse_button_new (lp_Scene *source, double x, double y,
-                           int button, lp_EventMouseButtonType type)
+                           int button, gboolean press)
 {
   return LP_EVENT_MOUSE_BUTTON (g_object_new (LP_TYPE_EVENT_MOUSE_BUTTON,
                                        "source", source,
                                        "x", x,
                                        "y", y,
                                        "button", button,
-                                       "type", type, NULL));
+                                       "press", press, NULL));
 }

@@ -109,13 +109,6 @@ typedef enum
   LP_EVENT_KEY_RELEASE,
 } lp_EventKeyType;
 
-typedef enum
-{
-  LP_EVENT_MOUSE_BUTTON_PRESS = 0,
-  LP_EVENT_MOUSE_BUTTON_RELEASE,
-} lp_EventMouseButtonType;
-
-
 LP_API GType
 lp_event_get_type (void) G_GNUC_CONST;
 
@@ -170,7 +163,7 @@ lp_event_stop_new (lp_Media *, gboolean);
 
 LP_API lp_EventMouseButton *
 lp_event_mouse_button_new (lp_Scene *, double, double, int,
-                           lp_EventMouseButtonType);
+                           gboolean);
 
 LP_API lp_EventKey *
 lp_event_key_new (lp_Scene *, const char *key, lp_EventKeyType);

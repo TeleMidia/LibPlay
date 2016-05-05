@@ -141,37 +141,6 @@ LP_API G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
 LP_API GObject *
 lp_event_get_source (lp_Event *);
 
-lp_EventTick *
-lp_event_tick_new (lp_Scene *, guint64);
-
-lp_EventError *
-lp_event_error_new (lp_Media *, GError *);
-
-LP_API lp_EventStart *
-lp_event_start_new (lp_Media *, gboolean);
-
-LP_API lp_EventStop *
-lp_event_stop_new (lp_Media *, gboolean);
-
-LP_API lp_EventMouseButton *
-lp_event_mouse_button_new (lp_Scene *, double, double, int,
-                           gboolean);
-
-LP_API lp_EventKey *
-lp_event_key_new (lp_Scene *, const char *key, gboolean);
-
-guint64
-lp_event_tick_get_serial (lp_EventTick *);
-
-GError *
-lp_event_error_get_error (lp_EventError *);
-
-gboolean
-lp_event_start_is_resume (lp_EventStart *);
-
-gboolean
-lp_event_stop_is_eos (lp_EventStop *);
-
 /* scene */
 
 LP_API lp_Scene *

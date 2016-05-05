@@ -111,4 +111,36 @@ _lp_media_finish_start (lp_Media *);
 void
 _lp_media_finish_stop (lp_Media *);
 
+/* event */
+lp_EventTick *
+lp_event_tick_new (lp_Scene *, guint64);
+
+lp_EventError *
+lp_event_error_new (lp_Media *, GError *);
+
+lp_EventStart *
+lp_event_start_new (lp_Media *, gboolean);
+
+lp_EventStop *
+lp_event_stop_new (lp_Media *, gboolean);
+
+lp_EventMouseButton *
+lp_event_mouse_button_new (lp_Scene *, double, double, int,
+                           gboolean);
+
+lp_EventKey *
+lp_event_key_new (lp_Scene *, const char *key, gboolean);
+
+guint64
+lp_event_tick_get_serial (lp_EventTick *);
+
+GError *
+lp_event_error_get_error (lp_EventError *);
+
+gboolean
+lp_event_start_is_resume (lp_EventStart *);
+
+gboolean
+lp_event_stop_is_eos (lp_EventStop *);
+
 #endif /* PLAY_INTERNAL_H */

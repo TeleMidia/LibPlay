@@ -615,6 +615,9 @@ lp_media_set_property (GObject *object, guint prop_id,
         mixer = _lp_scene_get_audio_mixer (media->prop.scene);
         g_assert_nonnull (mixer);
 
+        if (unlikely (media->audio.mixerpad == NULL))
+          break; /* media has no audio, nothing to do */
+
         sink = gst_element_get_static_pad (mixer, media->audio.mixerpad);
         g_assert_nonnull (sink);
 

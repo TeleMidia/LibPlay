@@ -84,7 +84,7 @@ static const gstx_eltmap_t media_eltmap_audio[] = {
 };
 
 static const gstx_eltmap_t media_eltmap_video_freeze[] = {
-  {"imagefreeze",  offsetof (lp_Media, video.freeze)},
+  {"imagefreeze",   offsetof (lp_Media, video.freeze)},
   {NULL, 0}
 };
 

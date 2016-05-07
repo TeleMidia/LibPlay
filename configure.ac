@@ -52,8 +52,8 @@ AC_SUBST([LIBPLAY_VERSION_STRING], libplay_version_string)
 AU_LIBTOOL_VERSION([LIBPLAY], [0], [0], [0])
 
 # Dependencies version.
-m4_define([glib_required_version], [2.32.4])
-m4_define([gstreamer_required_version], [1.6.0])
+m4_define([glib_required_version], [2.44])
+m4_define([gstreamer_required_version], [1.8.0])
 m4_define([lua_required_version], [5.2])
 AC_SUBST([GLIB_REQUIRED_VERSION], glib_required_version)
 AC_SUBST([GSTREAMER_REQUIRED_VERSION], gstreamer_required_version)

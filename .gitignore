@@ -59,6 +59,7 @@
 /coverage
 /coverage.info
 /dist-deb
+/examples/dump
 /lib/config.h
 /lib/config.h.in
 /lib/play.pc

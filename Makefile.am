@@ -22,7 +22,7 @@ SUBDIRS= lib src
 if WITH_LUA
 SUBDIRS+= play
 endif
-SUBDIRS+= tests
+SUBDIRS+= examples tests
 
 ACLOCAL_AMFLAGS= -I build-aux ${ACLOCAL_FLAGS}
 

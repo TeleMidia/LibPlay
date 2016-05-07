@@ -22,6 +22,7 @@ main (void)
 {
   lp_Scene *scene;
   lp_EventTick *event;
+  gchar *str = NULL;
 
   lp_Scene *source = NULL;
   lp_EventMask mask = 0;
@@ -37,6 +38,11 @@ main (void)
                 "source", &source,
                 "mask", &mask,
                 "serial", &serial, NULL);
+
+  str = lp_event_to_string (LP_EVENT (event));
+  g_assert_nonnull (str);
+  g_print ("%s", str);
+  g_free (str);
 
   g_assert (source == scene);
   g_assert (mask == LP_EVENT_MASK_TICK);

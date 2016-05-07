@@ -65,7 +65,7 @@ static const gstx_eltmap_t lp_scene_eltmap[] = {
   {"pipeline",      offsetof (lp_Scene, pipeline)},
   {"audiotestsrc",  offsetof (lp_Scene, audio.blank)},
   {"audiomixer",    offsetof (lp_Scene, audio.mixer)},
-  {"alsasink",      offsetof (lp_Scene, audio.sink)},
+  {"autoaudiosink", offsetof (lp_Scene, audio.sink)},
   {NULL, 0},
 };
 
@@ -291,12 +291,12 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
             {
               break;            /* ignore unknown events */
             }
-
-            if (likely (to != NULL))
-              _lp_scene_dispatch (scene, LP_EVENT (to));
-
-            g_object_unref (from);
           }
+
+        if (likely (to != NULL))
+          _lp_scene_dispatch (scene, LP_EVENT (to));
+
+        g_object_unref (from);
         break;
       }
     case GST_MESSAGE_EOS:

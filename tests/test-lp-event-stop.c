@@ -23,6 +23,7 @@ main (void)
   lp_Scene *scene;
   lp_Media *media;
   lp_EventStop *event;
+  gchar *str = NULL;
 
   lp_Media *source = NULL;
   lp_EventMask mask = 0;
@@ -41,6 +42,11 @@ main (void)
                 "source", &source,
                 "mask", &mask,
                 "eos", &eos, NULL);
+
+  str = lp_event_to_string (LP_EVENT (event));
+  g_assert_nonnull (str);
+  g_print ("%s", str);
+  g_free (str);
 
   g_assert (source == media);
   g_assert (mask == LP_EVENT_MASK_STOP);

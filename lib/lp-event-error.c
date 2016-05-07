@@ -115,16 +115,28 @@ lp_event_error_finalize (GObject *object)
   G_OBJECT_CLASS (lp_event_error_parent_class)->finalize (object);
 }
 
+static gchar *
+lp_event_error_to_string (lp_Event *event)
+{
+  return _lp_event_to_string (event, "\
+  error: %s\n\
+",                            LP_EVENT_ERROR (event)->prop.error->message);
+}
+
 static void
 lp_event_error_class_init (lp_EventErrorClass *cls)
 {
   GObjectClass *gobject_class;
+  lp_EventClass *lp_event_class;
 
   gobject_class = G_OBJECT_CLASS (cls);
   gobject_class->get_property = lp_event_error_get_property;
   gobject_class->set_property = lp_event_error_set_property;
   gobject_class->constructed = lp_event_error_constructed;
   gobject_class->finalize = lp_event_error_finalize;
+
+  lp_event_class = LP_EVENT_CLASS (cls);
+  lp_event_class->to_string = lp_event_error_to_string;
 
   g_object_class_install_property
     (gobject_class, PROP_ERROR, g_param_spec_boxed
@@ -134,17 +146,10 @@ lp_event_error_class_init (lp_EventErrorClass *cls)
 }
 
 
-/* public */
+/* internal */
 
-/**
- * lp_event_error_new:
- * @source: (transfer none): the source #lp_Media
- * @error: (transfer full): the associated #GError
- *
- * Creates a new error event.
- *
- * Returns: (transfer full): a new #lp_EventError
- */
+/* Creates a new error event.  */
+
 lp_EventError *
 _lp_event_error_new (lp_Media *source, GError *error)
 {

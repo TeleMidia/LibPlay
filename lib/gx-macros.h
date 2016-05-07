@@ -37,6 +37,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 GX_INCLUDE_PROLOGUE
 #include <glib.h>
+#include <glib/gprintf.h>
 #include <glib-object.h>
 GX_INCLUDE_EPILOGUE
 

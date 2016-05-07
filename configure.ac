@@ -130,11 +130,12 @@ AC_SUBST([luaplaylibdir], ["${lualibdir}/play"])
 
 AC_CONFIG_FILES([
 Makefile
+examples/Makefile
 lib/Makefile
 lib/play.pc
 lib/playconf.h
-src/Makefile
 play/Makefile
+src/Makefile
 tests/Makefile
 ])
 

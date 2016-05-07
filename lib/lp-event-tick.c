@@ -110,16 +110,28 @@ lp_event_tick_finalize (GObject *object)
   G_OBJECT_CLASS (lp_event_tick_parent_class)->finalize (object);
 }
 
+static gchar *
+lp_event_tick_to_string (lp_Event *event)
+{
+  return _lp_event_to_string (event, "\
+  serial: %"G_GUINT64_FORMAT"\n\
+",                                 LP_EVENT_TICK (event)->prop.serial);
+}
+
 static void
 lp_event_tick_class_init (lp_EventTickClass *cls)
 {
   GObjectClass *gobject_class;
+  lp_EventClass *lp_event_class;
 
   gobject_class = G_OBJECT_CLASS (cls);
   gobject_class->get_property = lp_event_tick_get_property;
   gobject_class->set_property = lp_event_tick_set_property;
   gobject_class->constructed = lp_event_tick_constructed;
   gobject_class->finalize = lp_event_tick_finalize;
+
+  lp_event_class = LP_EVENT_CLASS (cls);
+  lp_event_class->to_string = lp_event_tick_to_string;
 
   g_object_class_install_property
     (gobject_class, PROP_SERIAL, g_param_spec_uint64
@@ -129,17 +141,10 @@ lp_event_tick_class_init (lp_EventTickClass *cls)
 }
 
 
-/* methods */
+/* internal */
 
-/**
- * lp_event_tick_new:
- * @source: (transfer none): the source #lp_Scene
- * @serial: serial number
- *
- * Creates a new tick event.
- *
- * Returns: (transfer full): a new #lp_EventTick
- */
+/* Creates a new tick event.  */
+
 lp_EventTick *
 _lp_event_tick_new (lp_Scene *source, guint64 serial)
 {

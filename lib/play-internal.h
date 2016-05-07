@@ -19,6 +19,8 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #ifndef PLAY_INTERNAL_H
 #define PLAY_INTERNAL_H
 
+#include <stdarg.h>
+
 #include "macros.h"
 #include "gx-macros.h"
 #include "gstx-macros.h"
@@ -112,6 +114,9 @@ void
 _lp_media_finish_stop (lp_Media *);
 
 /* event */
+
+gchar *
+_lp_event_to_string (lp_Event *, const char *fmt, ...) G_GNUC_PRINTF (2,3);
 
 lp_EventTick *
 _lp_event_tick_new (lp_Scene *, guint64);

@@ -22,7 +22,6 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
-#include <stdarg.h>
 
 #include "macros.h"
 #include "gx-macros.h"

@@ -122,16 +122,31 @@ lp_event_key_finalize (GObject *object)
   G_OBJECT_CLASS (lp_event_key_parent_class)->finalize (object);
 }
 
+static gchar *
+lp_event_key_to_string (lp_Event *event)
+{
+  return _lp_event_to_string (event, "\
+  key: %s\n\
+  press: %s\n\
+",                            LP_EVENT_KEY (event)->prop.key,
+                              LP_EVENT_KEY (event)->prop.press
+                              ? "true" : "false");
+}
+
 static void
 lp_event_key_class_init (lp_EventKeyClass *cls)
 {
   GObjectClass *gobject_class;
+  lp_EventClass *lp_event_class;
 
   gobject_class = G_OBJECT_CLASS (cls);
   gobject_class->get_property = lp_event_key_get_property;
   gobject_class->set_property = lp_event_key_set_property;
   gobject_class->constructed = lp_event_key_constructed;
   gobject_class->finalize = lp_event_key_finalize;
+
+  lp_event_class = LP_EVENT_CLASS (cls);
+  lp_event_class->to_string = lp_event_key_to_string;
 
   g_object_class_install_property
     (gobject_class, PROP_KEY, g_param_spec_string
@@ -147,18 +162,10 @@ lp_event_key_class_init (lp_EventKeyClass *cls)
 }
 
 
-/* public */
+/* internal */
 
-/**
- * lp_event_key_new:
- * @source: (transfer none): the source #lp_Scene
- * @key: the key name
- * @press: whether key was pressed
- *
- * Creates a new key event.
- *
- * Returns: (transfer full): a new #lp_EventKey
- */
+/* Creates a new key event.  */
+
 lp_EventKey *
 _lp_event_key_new (lp_Scene *source, const gchar *key,
                    gboolean press)

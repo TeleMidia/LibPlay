@@ -110,16 +110,29 @@ lp_event_start_finalize (GObject *object)
   G_OBJECT_CLASS (lp_event_start_parent_class)->finalize (object);
 }
 
+static gchar *
+lp_event_start_to_string (lp_Event *event)
+{
+  return _lp_event_to_string (event, "\
+  resume: %s\n\
+",                            LP_EVENT_START (event)->prop.resume
+                              ? "true" : "false");
+}
+
 static void
 lp_event_start_class_init (lp_EventStartClass *cls)
 {
   GObjectClass *gobject_class;
+  lp_EventClass *lp_event_class;
 
   gobject_class = G_OBJECT_CLASS (cls);
   gobject_class->get_property = lp_event_start_get_property;
   gobject_class->set_property = lp_event_start_set_property;
   gobject_class->constructed = lp_event_start_constructed;
   gobject_class->finalize = lp_event_start_finalize;
+
+  lp_event_class = LP_EVENT_CLASS (cls);
+  lp_event_class->to_string = lp_event_start_to_string;
 
   g_object_class_install_property
     (gobject_class, PROP_RESUME, g_param_spec_boolean
@@ -129,17 +142,10 @@ lp_event_start_class_init (lp_EventStartClass *cls)
 }
 
 
-/* public */
+/* internal */
 
-/**
- * lp_event_start_new:
- * @source: (transfer none): the source #lp_Media
- * @resume: %TRUE if event signals a resume
- *
- * Creates a new start event.
- *
- * Returns: (transfer full): a new #lp_EventStart
- */
+/* Creates a new start event.  */
+
 lp_EventStart *
 _lp_event_start_new (lp_Media *source, gboolean resume)
 {

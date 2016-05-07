@@ -120,16 +120,31 @@ lp_event_pointer_move_finalize (GObject *object)
   G_OBJECT_CLASS (lp_event_pointer_move_parent_class)->finalize (object);
 }
 
+static gchar *
+lp_event_pointer_move_to_string (lp_Event *event)
+{
+  return _lp_event_to_string (event, "\
+  x: %g\n\
+  y: %g\n\
+",                            LP_EVENT_POINTER_MOVE (event)->prop.x,
+                              LP_EVENT_POINTER_MOVE (event)->prop.y);
+
+}
+
 static void
 lp_event_pointer_move_class_init (lp_EventPointerMoveClass *cls)
 {
   GObjectClass *gobject_class;
+  lp_EventClass *lp_event_class;
 
   gobject_class = G_OBJECT_CLASS (cls);
   gobject_class->get_property = lp_event_pointer_move_get_property;
   gobject_class->set_property = lp_event_pointer_move_set_property;
   gobject_class->constructed = lp_event_pointer_move_constructed;
   gobject_class->finalize = lp_event_pointer_move_finalize;
+
+  lp_event_class = LP_EVENT_CLASS (cls);
+  lp_event_class->to_string = lp_event_pointer_move_to_string;
 
   g_object_class_install_property
     (gobject_class, PROP_X, g_param_spec_double
@@ -145,18 +160,10 @@ lp_event_pointer_move_class_init (lp_EventPointerMoveClass *cls)
 }
 
 
-/* public */
+/* internal */
 
-/**
- * lp_event_pointer_move_new:
- * @source: (transfer none): the source #lp_Scene
- * @x: x coordinate
- * @y: y coordinate
- *
- * Creates a new pointer move event.
- *
- * Returns: (transfer full): a new #lp_EventPointerMove
- */
+/* Creates a new pointer move event.  */
+
 lp_EventPointerMove *
 _lp_event_pointer_move_new (lp_Scene *source, double x, double y)
 {

@@ -38,7 +38,7 @@ struct _lp_Media
   {
     gulong autoplug;            /* auto-plug callback id */
     gulong drain;               /* drain callback id */
-    gulong padadded;            /* pad-added callback id */
+    gulong pad_added;           /* pad-added callback id */
   } callback;
   struct
   {
@@ -112,8 +112,8 @@ enum
 /* Property defaults.  */
 #define DEFAULT_SCENE   NULL    /* not initialized */
 #define DEFAULT_URI     NULL    /* not initialized */
-#define DEFAULT_X       0       /* leftmost horizontal position */
-#define DEFAULT_Y       0       /* topmost vertical position */
+#define DEFAULT_X       0       /* origin */
+#define DEFAULT_Y       0       /* origin */
 #define DEFAULT_Z       1       /* lowest order */
 #define DEFAULT_WIDTH   0       /* natural width */
 #define DEFAULT_HEIGHT  0       /* natural height */
@@ -125,9 +125,8 @@ enum
 GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 
 
-#define media_lock(media)    g_rec_mutex_lock (&((media)->mutex))
-#define media_unlock(media)  g_rec_mutex_unlock (&((media)->mutex))
-
+#define media_lock(media)         g_rec_mutex_lock (&((media)->mutex))
+#define media_unlock(media)       g_rec_mutex_unlock (&((media)->mutex))
 #define media_is_starting(media)  ((media)->starting)
 #define media_is_stopping(media)  ((media)->stopping)
 #define media_has_drained(media)  ((media)->drained)
@@ -147,21 +146,22 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 
 /* callbacks */
 
-/* Called asynchronously whenever media decoder finds a new stream.  This is
-   triggered immediately before the decoder starts looking for elements to
-   handle given the stream.  */
+/* Called asynchronously whenever media decoder finds a new stream.
+   This callback is triggered immediately before the decoder starts looking
+   for elements to handle given the stream.  */
 
-static gboolean
-lp_media_autoplug_continue_callback (arg_unused (GstElement *element),
-                                          arg_unused (GstPad *pad),
-                                          GstCaps *caps,
-                                          lp_Media *media)
+  static gboolean
+lp_media_autoplug_continue_callback (arg_unused (GstElement *elt),
+                                     arg_unused (GstPad *pad),
+                                     GstCaps *caps, lp_Media *media)
 {
   const gchar *name;
 
   media_lock (media);
 
   name = gst_structure_get_name (gst_caps_get_structure (caps, 0));
+  g_assert_nonnull (name);
+
   if (g_str_has_prefix (name, "image"))
     media->video.frozen = TRUE;
 
@@ -173,16 +173,16 @@ lp_media_autoplug_continue_callback (arg_unused (GstElement *element),
 /* Called asynchronously whenever media decoder drains its source.  */
 
 static void
-lp_media_drained_callback (arg_unused (GstElement *decoder),
+lp_media_drained_callback (arg_unused (GstElement *dec),
                            lp_Media *media)
 {
   media_lock (media);
 
   if (unlikely (media_has_drained (media)))
-    goto done;                     /* already drained, nothing to do */
+    goto done;                  /* already drained, nothing to do */
 
   if (unlikely (media->video.frozen))
-    goto done;                     /* static image, nothing to do */
+    goto done;                  /* static image, nothing to do */
 
   g_assert_false (media->drained);
   media->drained = TRUE;
@@ -192,7 +192,7 @@ lp_media_drained_callback (arg_unused (GstElement *decoder),
 
   lp_media_stop (media);
 
-done:
+ done:
   media_unlock (media);
 }
 
@@ -200,9 +200,8 @@ done:
    Builds and starts the media processing graph.  */
 
 static void
-lp_media_pad_added_callback (arg_unused (GstElement *decoder),
-                             GstPad *pad,
-                             lp_Media *media)
+lp_media_pad_added_callback (arg_unused (GstElement *dec),
+                             GstPad *pad, lp_Media *media)
 {
   lp_Scene *scene;
   GstCaps *caps;
@@ -229,11 +228,16 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
 
   gst_pad_set_offset (pad, (gint64) media->offset);
 
-  if (g_str_equal (name, "video/x-raw") && _lp_scene_has_video (scene))
+  if (g_str_equal (name, "video/x-raw"))
     {
       GstElement *mixer;
       GstPad *sink;
       GstPad *ghost;
+
+      if (!_lp_scene_has_video (scene))
+        {
+          goto done;            /* nothing to do */
+        }
 
       if (unlikely (media_has_video (media)))
         {
@@ -297,6 +301,7 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
 
       g_assert_null (media->video.mixerpad);
       media->video.mixerpad = gst_pad_get_name (sink);
+      g_assert_nonnull (media->video.mixerpad);
 
       g_assert (gst_pad_link (ghost, sink) == GST_PAD_LINK_OK);
       g_object_set
@@ -337,6 +342,7 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
         }
 
       _lp_eltmap_alloc_check (media, media_eltmap_audio);
+
       gstx_bin_add (GST_BIN (media->bin), media->audio.volume);
       gstx_bin_add (GST_BIN (media->bin), media->audio.convert);
       gstx_bin_add (GST_BIN (media->bin), media->audio.resample);
@@ -366,6 +372,7 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
 
       g_assert_null (media->audio.mixerpad);
       media->audio.mixerpad = gst_pad_get_name (sink);
+      g_assert_nonnull (media->audio.mixerpad);
 
       g_assert (gst_pad_link (ghost, sink) == GST_PAD_LINK_OK);
       g_object_set (sink,
@@ -421,6 +428,7 @@ lp_media_pad_probe_callback (GstPad *pad,
     }
 
   media_unlock (media);
+
   return GST_PAD_PROBE_REMOVE;
 }
 
@@ -440,7 +448,7 @@ lp_media_init (lp_Media *media)
 
   media->callback.autoplug = 0;
   media->callback.drain = 0;
-  media->callback.padadded = 0;
+  media->callback.pad_added = 0;
 
   media->audio.mixerpad = NULL;
   media->video.mixerpad = NULL;
@@ -555,7 +563,7 @@ lp_media_set_property (GObject *object, guint prop_id,
     }
 
   if (!media_has_started (media))
-    goto done;
+    goto done;                  /* nothing else to do */
 
   switch (prop_id)
     {
@@ -687,7 +695,6 @@ lp_media_dispose (GObject *object)
   G_OBJECT_CLASS (lp_media_parent_class)->dispose (object);
 }
 
-
 static void
 lp_media_finalize (GObject *object)
 {
@@ -695,7 +702,6 @@ lp_media_finalize (GObject *object)
 
   media = LP_MEDIA (object);
   g_rec_mutex_clear (&media->mutex);
-
   g_free (media->final_uri);
   g_free (media->audio.mixerpad);
   g_free (media->video.mixerpad);
@@ -794,17 +800,8 @@ _lp_media_finish_start (lp_Media *media)
   media_unlock (media);
 }
 
-/* Releases bin element.  */
-static gboolean
-_lp_media_release_bin(gpointer data)
-{
-  GstElement *bin = GST_ELEMENT(data);
-  gstx_element_set_state_sync (bin, GST_STATE_NULL);
-  gst_object_unref (bin);
-  return FALSE;
-}
-
 /* Finishes async stop.  */
+
 void
 _lp_media_finish_stop (lp_Media *media)
 {
@@ -815,13 +812,14 @@ _lp_media_finish_stop (lp_Media *media)
   g_assert_true (media_is_stopping (media));
   g_assert (media->active_pads == 0);
 
-  pipeline = _lp_scene_get_pipeline (media->prop.scene);
-  g_assert_true (gst_bin_remove (GST_BIN (pipeline), media->bin));
-  g_idle_add (_lp_media_release_bin, media->bin);
-
   g_signal_handler_disconnect (media->decoder, media->callback.autoplug);
   g_signal_handler_disconnect (media->decoder, media->callback.drain);
-  g_signal_handler_disconnect (media->decoder, media->callback.padadded);
+  g_signal_handler_disconnect (media->decoder, media->callback.pad_added);
+
+  pipeline = _lp_scene_get_pipeline (media->prop.scene);
+  g_assert_true (gst_bin_remove (GST_BIN (pipeline), media->bin));
+  gstx_element_set_state_sync (media->bin, GST_STATE_NULL);
+  gst_object_unref (media->bin);
 
   media->bin = NULL;            /* indicates has_started and has_stopped */
   media->drained = FALSE;       /* indicates has_drained */
@@ -897,7 +895,7 @@ lp_media_start (lp_Media *media)
 
   media->callback.autoplug = g_signal_connect
     (G_OBJECT (media->decoder), "autoplug-continue",
-        G_CALLBACK (lp_media_autoplug_continue_callback), media);
+     G_CALLBACK (lp_media_autoplug_continue_callback), media);
   g_assert (media->callback.autoplug > 0);
 
   media->callback.drain = g_signal_connect
@@ -905,10 +903,10 @@ lp_media_start (lp_Media *media)
      G_CALLBACK (lp_media_drained_callback), media);
   g_assert (media->callback.drain > 0);
 
-  media->callback.padadded = g_signal_connect
+  media->callback.pad_added = g_signal_connect
     (media->decoder, "pad-added",
      G_CALLBACK (lp_media_pad_added_callback), media);
-  g_assert (media->callback.padadded > 0);
+  g_assert (media->callback.pad_added > 0);
 
   g_object_set_data (G_OBJECT (media->bin), "lp_Media", media);
   g_object_set (media->decoder, "uri", media->final_uri, NULL);
@@ -964,27 +962,27 @@ lp_media_stop (lp_Media *media)
       switch (gst_iterator_next (it, &item))
         {
         case GST_ITERATOR_OK:
-        {
-          GstPad *pad = GST_PAD (g_value_get_object (&item));
-          g_assert (gst_pad_add_probe
-                    (pad,
-                     GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
-                     (GstPadProbeCallback) lp_media_pad_probe_callback,
-                     media, NULL) > 0);
-          g_value_reset (&item);
+          {
+            GstPad *pad = GST_PAD (g_value_get_object (&item));
+            g_assert (gst_pad_add_probe
+                      (pad,
+                       GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
+                       (GstPadProbeCallback) lp_media_pad_probe_callback,
+                       media, NULL) > 0);
+            g_value_reset (&item);
+            break;
+          }
+        case GST_ITERATOR_RESYNC:
+          gst_iterator_resync (it);
+          break;
+        case GST_ITERATOR_DONE:
+          done = TRUE;
+          break;
+        case GST_ITERATOR_ERROR:
+        default:
+          g_assert_not_reached ();
           break;
         }
-      case GST_ITERATOR_RESYNC:
-        gst_iterator_resync (it);
-        break;
-      case GST_ITERATOR_DONE:
-        done = TRUE;
-        break;
-      case GST_ITERATOR_ERROR:
-      default:
-        g_assert_not_reached ();
-        break;
-      }
     }
   while (!done);
 
@@ -994,7 +992,7 @@ lp_media_stop (lp_Media *media)
   media_unlock (media);
   return TRUE;
 
-  fail:
+ fail:
   media_unlock (media);
   return FALSE;
 }

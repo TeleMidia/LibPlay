@@ -80,6 +80,7 @@
 /tests/test-lp-event-tick
 /tests/test-lp-event-xfail
 /tests/test-lp-media
+/tests/test-lp-media-image
 /tests/test-lp-scene
 /tests/test-lp-scene-advance
 /tests/test-lp-version

@@ -20,7 +20,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  /* new/unref */
+  /* start/stop */
   STMT_BEGIN
     {
       lp_Scene *scene;
@@ -31,29 +31,20 @@ main (void)
       scene = lp_scene_new (0, 0);
       g_assert_nonnull (scene);
 
-      media = LP_MEDIA (g_object_new (LP_TYPE_MEDIA, "scene", scene, NULL));
+      media = lp_media_new (scene, "samples/felis.jpg");
       g_assert_nonnull (media);
 
       g_object_get (media, "scene", &sc, NULL);
       g_assert (sc == scene);
 
       g_object_get (media, "uri", &uri, NULL);
-      g_assert_null (uri);
+      g_assert_nonnull (uri);
+      g_str_equal (uri, "samples/felis.jpg");
       g_free (uri);
-      g_object_unref (scene);
 
-      scene = lp_scene_new (0, 0);
-      g_assert_nonnull (scene);
+      g_assert (lp_media_start (media));
+      AWAIT (scene, 1);
 
-      media = lp_media_new (scene, "test");
-      g_assert_nonnull (media);
-
-      g_object_get (media, "scene", &sc, NULL);
-      g_assert (sc == scene);
-
-      g_object_get (media, "uri", &uri, NULL);
-      g_assert_true (g_str_equal (uri, "test"));
-      g_free (uri);
       g_object_unref (scene);
     }
   STMT_END;

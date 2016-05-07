@@ -35,16 +35,16 @@ main (void)
   while (!quit)
     {
       lp_Event *event;
-      /* char *str; */
+      char *str;
 
       event = lp_scene_receive (scene, TRUE);
       g_assert_nonnull (event);
 
-      /* str = lp_event_to_string (event); */
-      /* g_assert_nonnull (str); */
+      str = lp_event_to_string (event);
+      g_assert_nonnull (str);
 
-      /* g_print ("%s\n", str); */
-      /* g_free (str); */
+      g_print ("%s\n", str);
+      g_free (str);
 
       if (LP_IS_EVENT_ERROR (event))
         {

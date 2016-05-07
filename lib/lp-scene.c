@@ -296,7 +296,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
         if (likely (to != NULL))
           _lp_scene_dispatch (scene, LP_EVENT (to));
 
-        g_object_unref (from);
+        gst_event_unref (from);
         break;
       }
     case GST_MESSAGE_EOS:

@@ -54,16 +54,16 @@ lp_event_start_init (lp_EventStart *event)
 
 static void
 lp_event_start_get_property (GObject *object, guint prop_id,
-                            GValue *value, GParamSpec *pspec)
+                             GValue *value, GParamSpec *pspec)
 {
   lp_EventStart *event;
 
   event = LP_EVENT_START (object);
   switch (prop_id)
     {
-      case PROP_RESUME:
-        g_value_set_boolean (value, event->prop.resume);
-        break;
+    case PROP_RESUME:
+      g_value_set_boolean (value, event->prop.resume);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -71,7 +71,7 @@ lp_event_start_get_property (GObject *object, guint prop_id,
 
 static void
 lp_event_start_set_property (GObject *object, guint prop_id,
-                            const GValue *value, GParamSpec *pspec)
+                             const GValue *value, GParamSpec *pspec)
 {
   lp_EventStart *event;
 
@@ -91,10 +91,12 @@ lp_event_start_constructed (GObject *object)
 {
   lp_Event *event;
   GObject *source;
+  lp_EventMask mask;
 
   event = LP_EVENT (object);
-  g_object_get (event, "source", &source, NULL);
+  g_object_get (event, "source", &source, "mask", &mask, NULL);
   g_assert (LP_IS_MEDIA (source));
+  g_assert (mask == LP_EVENT_MASK_START);
 }
 
 static void
@@ -139,26 +141,10 @@ lp_event_start_class_init (lp_EventStartClass *cls)
  * Returns: (transfer full): a new #lp_EventStart
  */
 lp_EventStart *
-lp_event_start_new (lp_Media *source, gboolean resume)
+_lp_event_start_new (lp_Media *source, gboolean resume)
 {
   return LP_EVENT_START (g_object_new (LP_TYPE_EVENT_START,
                                        "source", source,
+                                       "mask", LP_EVENT_MASK_START,
                                        "resume", resume, NULL));
-}
-
-/**
- * lp_event_start_is_resume:
- * @event: an #lp_EventStart
- *
- * Checks if event is resume.
- *
- * Returns: %TRUE if event indicates resume
- */
-gboolean
-lp_event_start_is_resume (lp_EventStart *event)
-{
-  gboolean resume;
-
-  g_object_get (event, "resume", &resume, NULL);
-  return resume;
 }

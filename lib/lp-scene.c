@@ -27,9 +27,9 @@ struct _lp_Scene
 {
   GObject parent;               /* parent object */
   GstElement *pipeline;         /* scene pipeline */
-  GstClock *clock;              /* scene pipeline clock */
-  GstClockTime offset;          /* start time offset */
+  GstClock *clock;              /* pipeline clock */
   GstClockID clock_id;          /* last clock id */
+  GstClockTime offset;          /* start time offset */
   GMainLoop *loop;              /* scene loop */
   GList *events;                /* pending events */
   GList *children;              /* child media objects */
@@ -48,6 +48,7 @@ struct _lp_Scene
   } video;
   struct
   {
+    lp_EventMask mask;          /* cached event mask */
     gint width;                 /* cached width */
     gint height;                /* cached height */
     gint pattern;               /* cached pattern */
@@ -80,6 +81,7 @@ static const gstx_eltmap_t lp_scene_eltmap_video[] = {
 enum
 {
   PROP_0,
+  PROP_MASK,
   PROP_WIDTH,
   PROP_HEIGHT,
   PROP_PATTERN,
@@ -92,14 +94,15 @@ enum
 };
 
 /* Property defaults.  */
-#define DEFAULT_WIDTH     0          /* no video output */
-#define DEFAULT_HEIGHT    0          /* no video output */
-#define DEFAULT_PATTERN   2          /* black */
-#define DEFAULT_WAVE      4          /* silence */
-#define DEFAULT_TICKS     0          /* no ticks */
-#define DEFAULT_INTERVAL  GST_SECOND /* one tick per second */
-#define DEFAULT_TIME      0          /* zero nanoseconds */
-#define DEFAULT_LOCKSTEP  FALSE      /* real-time mode */
+#define DEFAULT_MASK      LP_EVENT_MASK_ANY /* any event */
+#define DEFAULT_WIDTH     0                 /* no video output */
+#define DEFAULT_HEIGHT    0                 /* no video output */
+#define DEFAULT_PATTERN   2                 /* black */
+#define DEFAULT_WAVE      4                 /* silence */
+#define DEFAULT_TICKS     0                 /* no ticks */
+#define DEFAULT_INTERVAL  GST_SECOND        /* one tick per second */
+#define DEFAULT_TIME      0                 /* zero nanoseconds */
+#define DEFAULT_LOCKSTEP  FALSE             /* real-time mode */
 
 /* Define the lp_Scene type.  */
 GX_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
@@ -116,7 +119,8 @@ scene_update_clock_id (lp_Scene *scene)
   GstClockCallback cb;
 
   clock = gst_pipeline_get_clock (GST_PIPELINE (scene->pipeline));
-  g_assert (clock != NULL && clock == scene->clock);
+  g_assert_nonnull (clock);
+  g_assert (clock == scene->clock);
 
   time = gst_clock_get_time (clock);
   g_assert (time != GST_CLOCK_TIME_NONE);
@@ -149,7 +153,7 @@ lp_scene_tick_callback (arg_unused (GstClock *clock),
 {
   lp_Event *event;
 
-  event = LP_EVENT (lp_event_tick_new (scene, scene->prop.ticks));
+  event = LP_EVENT (_lp_event_tick_new (scene, scene->prop.ticks));
   g_assert_nonnull (event);
   _lp_scene_dispatch (scene, event);
 
@@ -170,7 +174,6 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
       {
         const GstStructure *st;
         lp_Event *event;
-        GType type;
 
         st = gst_message_get_structure (msg);
         g_assert_nonnull (st);
@@ -178,32 +181,43 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
         event = LP_EVENT (gstx_structure_get_pointer (st, "lp_Event"));
         g_assert_nonnull (st);
 
-        type = G_OBJECT_TYPE (event);
-        if (type == LP_TYPE_EVENT_TICK)
+        switch (lp_event_get_mask (event))
           {
-            _lp_debug ("TICK %p", scene);
-            scene->prop.ticks++;
-          }
-        else if (type == LP_TYPE_EVENT_ERROR)
-          {
-            /* nothing to do */
-          }
-        else if (type == LP_TYPE_EVENT_START)
-          {
-            lp_Media *media = LP_MEDIA (lp_event_get_source (event));
-            _lp_debug ("START %p", media);
-            _lp_media_finish_start (LP_MEDIA (lp_event_get_source (event)));
-          }
-        else if (type == LP_TYPE_EVENT_STOP)
-          {
-            lp_Media *media = LP_MEDIA (lp_event_get_source (event));
-            _lp_debug ("STOP %p", media);
-            _lp_media_finish_stop (LP_MEDIA (lp_event_get_source (event)));
-          }
-        else
-          {
+          case LP_EVENT_MASK_TICK:
+            {
+              scene->prop.ticks++;
+              break;
+            }
+          case LP_EVENT_MASK_KEY:
+            {
+              break;
+            }
+          case LP_EVENT_MASK_POINTER_CLICK:
+            {
+              break;
+            }
+          case LP_EVENT_MASK_POINTER_MOVE:
+            {
+              break;
+            }
+          case LP_EVENT_MASK_ERROR:
+            {
+              break;
+            }
+          case LP_EVENT_MASK_START:
+            {
+              lp_Media *media = LP_MEDIA (lp_event_get_source (event));
+              _lp_media_finish_start (media);
+            }
+          case LP_EVENT_MASK_STOP:
+            {
+              lp_Media *media = LP_MEDIA (lp_event_get_source (event));
+              _lp_media_finish_stop (media);
+            }
+          default:
             g_assert_not_reached ();
           }
+
         scene->events = g_list_append (scene->events, event);
         g_assert_nonnull (scene->events);
         break;
@@ -226,59 +240,62 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
       break;
     case GST_MESSAGE_ELEMENT:
       {
-        const GstStructure *st;
-        const gchar *name;
-
         GstNavigationEventType type;
-        GstEvent *gstevent;
-        lp_Event *event = NULL;
+        GstEvent *from = NULL;
+        lp_Event *to = NULL;
 
-        st = gst_message_get_structure (msg);
-        name = gst_structure_get_name (st);
-        if (!g_str_equal (name, "GstNavigationMessage"))
+        if (gst_navigation_message_get_type (msg)
+            != GST_NAVIGATION_MESSAGE_EVENT)
           break;                /* nothing to do */
 
-        gst_navigation_message_parse_event (msg, &gstevent);
-        type = gst_navigation_event_get_type (gstevent);
+        if (unlikely (!gst_navigation_message_parse_event (msg, &from)))
+          break;                /* nothing to do */
+
+        g_assert_nonnull (from);
+        type = gst_navigation_event_get_type (from);
+
         switch (type)
           {
+          case GST_NAVIGATION_EVENT_KEY_PRESS:
+          case GST_NAVIGATION_EVENT_KEY_RELEASE:
+            {
+              const gchar *key;
+              gboolean press;
+              g_assert (gst_navigation_event_parse_key_event (from, &key));
+              press = type == GST_NAVIGATION_EVENT_KEY_PRESS;
+              to = LP_EVENT (_lp_event_key_new (scene, key, press));
+              break;
+            }
           case GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS:
           case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE:
             {
               int button;
               double x, y;
-
-              gst_navigation_event_parse_mouse_button_event
-                (gstevent, &button, &x, &y);
-
-              event = LP_EVENT
-                (lp_event_mouse_button_new
-                 (scene, x, y, button,
-                  type == GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS));
+              gboolean press;
+              g_assert (gst_navigation_event_parse_mouse_button_event
+                        (from, &button, &x, &y));
+              press = type == GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS;
+              to = LP_EVENT (_lp_event_pointer_click_new (scene, x, y,
+                                                          button, press));
               break;
             }
-            case GST_NAVIGATION_EVENT_MOUSE_MOVE:
-              break;
-            case GST_NAVIGATION_EVENT_KEY_PRESS:
-            case GST_NAVIGATION_EVENT_KEY_RELEASE:
+          case GST_NAVIGATION_EVENT_MOUSE_MOVE:
             {
-              const char *key;
-              gst_navigation_event_parse_key_event (gstevent, &key);
-
-              event = LP_EVENT
-                (lp_event_key_new
-                 (scene, key,
-                  type == GST_NAVIGATION_EVENT_KEY_PRESS));
+              gdouble x, y;
+              g_assert (gst_navigation_event_parse_mouse_move_event
+                        (from, &x, &y));
+              to = LP_EVENT (_lp_event_pointer_move_new (scene, x, y));
               break;
             }
           default:
-            _lp_warn ("invalid GstNavigationMessage");
-            break;
-          }
-        if (likely (event != NULL))
-          {
-            scene->events = g_list_append (scene->events, event);
-            g_assert_nonnull (scene->events);
+            {
+              break;            /* ignore unknown events */
+            }
+
+            if (likely (to != NULL))
+              _lp_scene_dispatch (scene, LP_EVENT (to));
+
+            g_object_unref (from);
           }
         break;
       }
@@ -338,7 +355,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
         if (newstate != GST_STATE_PLAYING)
           break;                /* nothing to do */
 
-        event = LP_EVENT (lp_event_start_new (LP_MEDIA (data), FALSE));
+        event = LP_EVENT (_lp_event_start_new (LP_MEDIA (data), FALSE));
         g_assert_nonnull (event);
         _lp_scene_dispatch (scene, event);
         break;
@@ -390,6 +407,7 @@ lp_scene_init (lp_Scene *scene)
   scene->events = NULL;
   scene->children = NULL;
 
+  scene->prop.mask = DEFAULT_MASK;
   scene->prop.width = DEFAULT_WIDTH;
   scene->prop.height = DEFAULT_HEIGHT;
   scene->prop.pattern = DEFAULT_PATTERN;
@@ -409,6 +427,9 @@ lp_scene_get_property (GObject *object, guint prop_id,
   scene = LP_SCENE (object);
   switch (prop_id)
     {
+    case PROP_MASK:
+      g_value_set_int (value, scene->prop.mask);
+      break;
     case PROP_WIDTH:
       g_value_set_int (value, scene->prop.width);
       break;
@@ -448,6 +469,13 @@ lp_scene_set_property (GObject *object, guint prop_id,
   scene = LP_SCENE (object);
   switch (prop_id)
     {
+    case PROP_MASK:
+      {
+        gint mask;
+        mask = g_value_get_int (value);
+        scene->prop.mask = (lp_EventMask) mask;
+        break;
+      }
     case PROP_WIDTH:
       scene->prop.width = g_value_get_int (value);
       break;
@@ -490,7 +518,6 @@ lp_scene_constructed (GObject *object)
 {
   lp_Scene *scene;
   GstBus *bus;
-  GstClock *audioclock;
 
   scene = LP_SCENE (object);
   _lp_eltmap_alloc_check (scene, lp_scene_eltmap);
@@ -498,18 +525,23 @@ lp_scene_constructed (GObject *object)
   scene->clock = GST_CLOCK (g_object_new (LP_TYPE_CLOCK, NULL));
   g_assert_nonnull (scene->clock);
   gst_pipeline_use_clock (GST_PIPELINE (scene->pipeline), scene->clock);
-  GST_OBJECT_FLAG_SET (G_OBJECT(scene->audio.sink), 
-      GST_CLOCK_FLAG_CAN_SET_MASTER);
 
-  /* Setting 'scene->clock' as master of 'audioclock' */
-  audioclock = GST_AUDIO_BASE_SINK (scene->audio.sink)->provided_clock;
-  _lp_debug ("Trying to slave audioclock to scene clock: %s",
-      gst_clock_set_master (audioclock, scene->clock) ? "success" : "fail");
+  if (scene->prop.lockstep)
+    {
+      GstClock *audio;
+
+      GST_OBJECT_FLAG_SET (G_OBJECT (scene->audio.sink),
+                           GST_CLOCK_FLAG_CAN_SET_MASTER);
+
+      audio = GST_AUDIO_BASE_SINK (scene->audio.sink)->provided_clock;
+      if (unlikely (!gst_clock_set_master (audio, scene->clock)))
+        _lp_warn ("cannot enslave audio clock to scene clock");
+    }
 
   bus = gst_pipeline_get_bus (GST_PIPELINE (scene->pipeline));
   g_assert_nonnull (bus);
-  g_assert (gst_bus_add_watch (bus, (GstBusFunc) lp_scene_bus_callback,
-                               scene) > 0);
+  g_assert (gst_bus_add_watch
+            (bus, (GstBusFunc) lp_scene_bus_callback, scene) > 0);
   gst_object_unref (bus);
 
   gstx_bin_add (scene->pipeline, scene->audio.blank);
@@ -530,8 +562,6 @@ lp_scene_constructed (GObject *object)
       gstx_element_link (scene->video.blank, scene->video.filter);
       gstx_element_link (scene->video.filter, scene->video.mixer);
       gstx_element_link (scene->video.mixer, scene->video.sink);
-
-      g_object_set_data (G_OBJECT (scene->video.sink), "lp_Scene", scene);
 
       caps = gst_caps_new_empty_simple ("video/x-raw");
       g_assert_nonnull (caps);
@@ -592,6 +622,12 @@ lp_scene_class_init (lp_SceneClass *cls)
   gobject_class->set_property = lp_scene_set_property;
   gobject_class->constructed = lp_scene_constructed;
   gobject_class->finalize = lp_scene_finalize;
+
+  g_object_class_install_property
+    (gobject_class, PROP_MASK, g_param_spec_int
+     ("mask", "mask", "event mask",
+      G_MININT, G_MAXINT, DEFAULT_MASK,
+      (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_WIDTH, g_param_spec_int
@@ -772,7 +808,6 @@ lp_scene_advance (lp_Scene *scene, guint64 time)
   return _lp_clock_advance (LP_CLOCK (scene->clock), time);
 }
 
-
 /**
  * lp_scene_receive:
  * @scene: an #lp_Scene
@@ -788,7 +823,9 @@ lp_Event *
 lp_scene_receive (lp_Scene *scene, gboolean block)
 {
   lp_Event *event;
+  lp_EventMask mask;
 
+ retry:
   if (block)
     {
       while (scene->events == NULL)
@@ -804,6 +841,13 @@ lp_scene_receive (lp_Scene *scene, gboolean block)
 
   event = LP_EVENT (scene->events->data);
   scene->events = g_list_delete_link (scene->events, scene->events);
+
+  mask = lp_event_get_mask (event);
+  if ((mask & scene->prop.mask) == 0)
+    {
+      g_object_unref (event);   /* consume event */
+      goto retry;
+    }
 
   return event;
 }

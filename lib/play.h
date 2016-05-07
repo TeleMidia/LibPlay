@@ -106,6 +106,19 @@ lp_event_get_type (void) G_GNUC_CONST;
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (lp_Event, g_object_unref)
 
+typedef enum
+{
+  LP_EVENT_MASK_NONE          = 0,
+  LP_EVENT_MASK_TICK          = (1 << 0),
+  LP_EVENT_MASK_KEY           = (1 << 1),
+  LP_EVENT_MASK_POINTER_CLICK = (1 << 2),
+  LP_EVENT_MASK_POINTER_MOVE  = (1 << 3),
+  LP_EVENT_MASK_ERROR         = (1 << 4),
+  LP_EVENT_MASK_START         = (1 << 5),
+  LP_EVENT_MASK_STOP          = (1 << 6),
+  LP_EVENT_MASK_ANY           = (gint)(0xffffffff)
+} lp_EventMask;
+
 #define LP_TYPE_EVENT_TICK (lp_event_tick_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_EventTick, lp_event_tick,
                              LP, EVENT_TICK, lp_Event)
@@ -114,6 +127,18 @@ LP_API G_DECLARE_FINAL_TYPE (lp_EventTick, lp_event_tick,
 LP_API G_DECLARE_FINAL_TYPE (lp_EventError, lp_event_error,
                              LP, EVENT_ERROR, lp_Event)
 
+#define LP_TYPE_EVENT_KEY (lp_event_key_get_type ())
+LP_API G_DECLARE_FINAL_TYPE (lp_EventKey, lp_event_key,
+                             LP, EVENT_KEY, lp_Event)
+
+#define LP_TYPE_EVENT_POINTER_CLICK (lp_event_pointer_click_get_type ())
+LP_API G_DECLARE_FINAL_TYPE (lp_EventPointerClick, lp_event_pointer_click,
+                             LP, EVENT_POINTER_CLICK, lp_Event)
+
+#define LP_TYPE_EVENT_POINTER_MOVE (lp_event_pointer_move_get_type ())
+LP_API G_DECLARE_FINAL_TYPE (lp_EventPointerMove, lp_event_pointer_move,
+                             LP, EVENT_POINTER_MOVE, lp_Event)
+
 #define LP_TYPE_EVENT_START (lp_event_start_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_EventStart, lp_event_start,
                              LP, EVENT_START, lp_Event)
@@ -121,14 +146,6 @@ LP_API G_DECLARE_FINAL_TYPE (lp_EventStart, lp_event_start,
 #define LP_TYPE_EVENT_STOP (lp_event_stop_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_EventStop, lp_event_stop,
                              LP, EVENT_STOP, lp_Event)
-
-#define LP_TYPE_EVENT_MOUSE_BUTTON (lp_event_mouse_button_get_type ())
-LP_API G_DECLARE_FINAL_TYPE (lp_EventMouseButton, lp_event_mouse_button,
-                             LP, EVENT_MOUSE_BUTTON, lp_Event)
-
-#define LP_TYPE_EVENT_KEY (lp_event_key_get_type ())
-LP_API G_DECLARE_FINAL_TYPE (lp_EventKey, lp_event_key,
-                             LP, EVENT_KEY, lp_Event)
 
 #define LP_TYPE_SCENE (lp_scene_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_Scene, lp_scene, LP, SCENE, GObject)
@@ -140,6 +157,9 @@ LP_API G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
 
 LP_API GObject *
 lp_event_get_source (lp_Event *);
+
+LP_API lp_EventMask
+lp_event_get_mask (lp_Event *);
 
 /* scene */
 

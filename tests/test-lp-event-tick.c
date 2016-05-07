@@ -24,18 +24,22 @@ main (void)
   lp_EventTick *event;
 
   lp_Scene *source = NULL;
+  lp_EventMask mask = 0;
   guint64 serial = 0;
 
   scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "lockstep", TRUE, NULL));
   g_assert_nonnull (scene);
 
-  event = lp_event_tick_new (scene, G_MAXUINT64);
+  event = _lp_event_tick_new (scene, G_MAXUINT64);
   g_assert_nonnull (event);
 
-  source = LP_SCENE (lp_event_get_source (LP_EVENT (event)));
-  g_assert (source == scene);
+  g_object_get (event,
+                "source", &source,
+                "mask", &mask,
+                "serial", &serial, NULL);
 
-  serial = lp_event_tick_get_serial (event);
+  g_assert (source == scene);
+  g_assert (mask == LP_EVENT_MASK_TICK);
   g_assert (serial == G_MAXUINT64);
 
   g_object_unref (event);

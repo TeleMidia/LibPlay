@@ -21,35 +21,35 @@ int
 main (void)
 {
   lp_Scene *scene;
-  lp_Media *media;
-  lp_EventError *event;
+  lp_EventPointerClick *event;
 
-  lp_Media *source = NULL;
+  lp_Scene *source = NULL;
   lp_EventMask mask = 0;
-  GError *error = NULL;
+  gdouble x = 0.;
+  gdouble y = 0.;
+  gint button = 0;
+  gboolean press = TRUE;
 
   scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "lockstep", TRUE, NULL));
   g_assert_nonnull (scene);
 
-  media = lp_media_new (scene, NULL);
-  g_assert_nonnull (media);
-
-  error = g_error_new_literal (G_MARKUP_ERROR, G_MARKUP_ERROR_EMPTY, "e1");
-  g_assert_nonnull (error);
-
-  event = _lp_event_error_new (media, error);
+  event = _lp_event_pointer_click_new (scene, 1., 1., 1, FALSE);
   g_assert_nonnull (event);
-  g_error_free (error);
 
-  error = NULL;
   g_object_get (event,
                 "source", &source,
                 "mask", &mask,
-                "error", &error, NULL);
+                "x", &x,
+                "y", &y,
+                "button", &button,
+                "press", &press, NULL);
 
-  g_assert (source == media);
-  g_assert (mask == LP_EVENT_MASK_ERROR);
-  g_assert_nonnull (error);
+  g_assert (source == scene);
+  g_assert (mask == LP_EVENT_MASK_POINTER_CLICK);
+  g_assert (x == 1.);
+  g_assert (y == 1.);
+  g_assert (button == 1);
+  g_assert (press == FALSE);
 
   g_object_unref (event);
   g_object_unref (scene);

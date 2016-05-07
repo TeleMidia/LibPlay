@@ -25,8 +25,8 @@ struct _lp_EventKey
   lp_Event parent;              /* parent object */
   struct
   {
-    char *key;                  /* key */
-    gboolean press;             /* TRUE if it is a press event  */
+    gchar *key;                 /* key name */
+    gboolean press;             /* true if key was pressed  */
   } prop;
 };
 
@@ -39,14 +39,21 @@ enum
   PROP_LAST
 };
 
+/* Property defaults.  */
+#define DEFAULT_KEY    NULL     /* not initialized */
+#define DEFAULT_PRESS  TRUE     /* press */
+
 /* Define the lp_EventKey type.  */
 GX_DEFINE_TYPE (lp_EventKey, lp_event_key, LP_TYPE_EVENT)
 
 
 /* methods */
+
 static void
-lp_event_key_init (arg_unused (lp_EventKey *event))
+lp_event_key_init (lp_EventKey *event)
 {
+  event->prop.key = DEFAULT_KEY;
+  event->prop.press = DEFAULT_PRESS;
 }
 
 static void
@@ -58,12 +65,12 @@ lp_event_key_get_property (GObject *object, guint prop_id,
   event = LP_EVENT_KEY (object);
   switch (prop_id)
     {
-      case PROP_KEY:
-        g_value_set_string (value, event->prop.key);
-        break;
-      case PROP_PRESS:
-        g_value_set_boolean (value, event->prop.press);
-        break;
+    case PROP_KEY:
+      g_value_set_string (value, event->prop.key);
+      break;
+    case PROP_PRESS:
+      g_value_set_boolean (value, event->prop.press);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -71,23 +78,23 @@ lp_event_key_get_property (GObject *object, guint prop_id,
 
 static void
 lp_event_key_set_property (GObject *object, guint prop_id,
-                            const GValue *value, GParamSpec *pspec)
+                           const GValue *value, GParamSpec *pspec)
 {
   lp_EventKey *event;
 
   event = LP_EVENT_KEY (object);
   switch (prop_id)
-  {
+    {
     case PROP_KEY:
-      g_free (event->prop.key);
-      event->prop.key = g_strdup(g_value_get_string (value));
+      g_assert (event->prop.key == DEFAULT_KEY);
+      event->prop.key = g_value_dup_string (value);
       break;
     case PROP_PRESS:
       event->prop.press = g_value_get_boolean (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-  }
+    }
 }
 
 static void
@@ -95,10 +102,12 @@ lp_event_key_constructed (GObject *object)
 {
   lp_Event *event;
   GObject *source;
+  lp_EventMask mask;
 
   event = LP_EVENT (object);
-  g_object_get (event, "source", &source, NULL);
+  g_object_get (event, "source", &source, "mask", &mask, NULL);
   g_assert (LP_IS_SCENE (source));
+  g_assert (mask == LP_EVENT_MASK_KEY);
 }
 
 static void
@@ -126,14 +135,15 @@ lp_event_key_class_init (lp_EventKeyClass *cls)
 
   g_object_class_install_property
     (gobject_class, PROP_KEY, g_param_spec_string
-     ("key", "key", "key that triggered the event",
-      "",
+     ("key", "key", "key name",
+      DEFAULT_KEY,
       (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_PRESS, g_param_spec_boolean
-     ("press", "press", "is key 'press' event?",
-      TRUE, (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+     ("press", "press", "true if key was pressed",
+      DEFAULT_PRESS,
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 }
 
 
@@ -142,19 +152,20 @@ lp_event_key_class_init (lp_EventKeyClass *cls)
 /**
  * lp_event_key_new:
  * @source: (transfer none): the source #lp_Scene
- * @key: the key
- * @type: key event type
+ * @key: the key name
+ * @press: whether key was pressed
  *
  * Creates a new key event.
  *
  * Returns: (transfer full): a new #lp_EventKey
  */
 lp_EventKey *
-lp_event_key_new (lp_Scene *source, const char *key,
-                  gboolean press)
+_lp_event_key_new (lp_Scene *source, const gchar *key,
+                   gboolean press)
 {
   return LP_EVENT_KEY (g_object_new (LP_TYPE_EVENT_KEY,
                                      "source", source,
+                                     "mask", LP_EVENT_MASK_KEY,
                                      "key", key,
                                      "press", press, NULL));
 }

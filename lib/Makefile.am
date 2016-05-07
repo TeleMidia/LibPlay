@@ -46,11 +46,12 @@ libplay_la_SOURCES=\
   gx-macros.h\
   lp-clock.c\
   lp-event-error.c\
-  lp-event-tick.c\
+  lp-event-key.c\
+  lp-event-pointer-click.c\
+  lp-event-pointer-move.c\
   lp-event-start.c\
   lp-event-stop.c\
-  lp-event-mouse-button.c\
-  lp-event-key.c\
+  lp-event-tick.c\
   lp-event.c\
   lp-media.c\
   lp-scene.c\

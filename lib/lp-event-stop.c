@@ -61,9 +61,9 @@ lp_event_stop_get_property (GObject *object, guint prop_id,
   event = LP_EVENT_STOP (object);
   switch (prop_id)
     {
-      case PROP_EOS:
-        g_value_set_boolean (value, event->prop.eos);
-        break;
+    case PROP_EOS:
+      g_value_set_boolean (value, event->prop.eos);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -91,10 +91,12 @@ lp_event_stop_constructed (GObject *object)
 {
   lp_Event *event;
   GObject *source;
+  lp_EventMask mask;
 
   event = LP_EVENT (object);
-  g_object_get (event, "source", &source, NULL);
+  g_object_get (event, "source", &source, "mask", &mask, NULL);
   g_assert (LP_IS_MEDIA (source));
+  g_assert (mask == LP_EVENT_MASK_STOP);
 }
 
 static void
@@ -139,26 +141,10 @@ lp_event_stop_class_init (lp_EventStopClass *cls)
  * Returns: (transfer full): a new #lp_EventStop
  */
 lp_EventStop *
-lp_event_stop_new (lp_Media *source, gboolean eos)
+_lp_event_stop_new (lp_Media *source, gboolean eos)
 {
   return LP_EVENT_STOP (g_object_new (LP_TYPE_EVENT_STOP,
                                       "source", source,
+                                      "mask", LP_EVENT_MASK_STOP,
                                       "eos", eos, NULL));
-}
-
-/**
- * lp_event_stop_is_eos:
- * @event: an #lp_EventStop
- *
- * Checks if event is end-of-stream.
- *
- * Returns: %TRUE if event indicates end-of-stream
- */
-gboolean
-lp_event_stop_is_eos (lp_EventStop *event)
-{
-  gboolean eos;
-
-  g_object_get (event, "eos", &eos, NULL);
-  return eos;
 }

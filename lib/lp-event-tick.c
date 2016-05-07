@@ -61,9 +61,9 @@ lp_event_tick_get_property (GObject *object, guint prop_id,
   event = LP_EVENT_TICK (object);
   switch (prop_id)
     {
-      case PROP_SERIAL:
-        g_value_set_uint64 (value, event->prop.serial);
-        break;
+    case PROP_SERIAL:
+      g_value_set_uint64 (value, event->prop.serial);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -87,6 +87,19 @@ lp_event_tick_set_property (GObject *object, guint prop_id,
 }
 
 static void
+lp_event_tick_constructed (GObject *object)
+{
+  lp_Event *event;
+  GObject *source;
+  lp_EventMask mask;
+
+  event = LP_EVENT (object);
+  g_object_get (event, "source", &source, "mask", &mask, NULL);
+  g_assert (LP_IS_SCENE (source));
+  g_assert (mask == LP_EVENT_MASK_TICK);
+}
+
+static void
 lp_event_tick_finalize (GObject *object)
 {
   lp_EventTick *event;
@@ -105,6 +118,7 @@ lp_event_tick_class_init (lp_EventTickClass *cls)
   gobject_class = G_OBJECT_CLASS (cls);
   gobject_class->get_property = lp_event_tick_get_property;
   gobject_class->set_property = lp_event_tick_set_property;
+  gobject_class->constructed = lp_event_tick_constructed;
   gobject_class->finalize = lp_event_tick_finalize;
 
   g_object_class_install_property
@@ -127,26 +141,10 @@ lp_event_tick_class_init (lp_EventTickClass *cls)
  * Returns: (transfer full): a new #lp_EventTick
  */
 lp_EventTick *
-lp_event_tick_new (lp_Scene *source, guint64 serial)
+_lp_event_tick_new (lp_Scene *source, guint64 serial)
 {
   return LP_EVENT_TICK (g_object_new (LP_TYPE_EVENT_TICK,
                                       "source", source,
+                                      "mask", LP_EVENT_MASK_TICK,
                                       "serial", serial, NULL));
-}
-
-/**
- * lp_event_tick_get_serial:
- * @event: an #lp_EventTick
- *
- * Gets the event serial number.
- *
- * Returns: the event serial number
- */
-guint64
-lp_event_tick_get_serial (lp_EventTick *event)
-{
-  guint64 serial;
-
-  g_object_get (event, "serial", &serial, NULL);
-  return serial;
 }

@@ -131,6 +131,8 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 #define media_is_starting(media)  ((media)->starting)
 #define media_is_stopping(media)  ((media)->stopping)
 #define media_has_drained(media)  ((media)->drained)
+#define media_has_audio(media)    ((media)->audio.mixerpad != NULL)
+#define media_has_video(media)    ((media)->video.mixerpad != NULL)
 
 #define media_has_started(media)                \
   (!media_is_starting ((media))                 \
@@ -233,7 +235,7 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
       GstPad *sink;
       GstPad *ghost;
 
-      if (unlikely (media->video.mixerpad != NULL))
+      if (unlikely (media_has_video (media)))
         {
           _lp_warn ("ignoring extra video stream");
           goto done;
@@ -328,7 +330,7 @@ lp_media_pad_added_callback (arg_unused (GstElement *decoder),
       GstPad *sink;
       GstPad *ghost;
 
-      if (unlikely (media->audio.mixerpad != NULL))
+      if (unlikely (media_has_audio (media)))
         {
           _lp_warn ("ignoring extra audio stream");
           goto done;
@@ -413,7 +415,7 @@ lp_media_pad_probe_callback (GstPad *pad,
   if (media->active_pads == 0)
     {
       lp_EventStop *event;
-      event = lp_event_stop_new (media, media_has_drained (media));
+      event = _lp_event_stop_new (media, media_has_drained (media));
       g_assert_nonnull (event);
       _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
     }
@@ -573,6 +575,9 @@ lp_media_set_property (GObject *object, guint prop_id,
         if (!_lp_scene_has_video (media->prop.scene))
           break;                /* nothing to do */
 
+        if (!media_has_video (media))
+          break;                /* nothing to do */
+
         mixer = _lp_scene_get_video_mixer (media->prop.scene);
         g_assert_nonnull (mixer);
 
@@ -612,11 +617,11 @@ lp_media_set_property (GObject *object, guint prop_id,
         GstElement *mixer;
         GstPad *sink;
 
+        if (!media_has_audio (media))
+          break;                /* nothing to do */
+
         mixer = _lp_scene_get_audio_mixer (media->prop.scene);
         g_assert_nonnull (mixer);
-
-        if (unlikely (media->audio.mixerpad == NULL))
-          break; /* media has no audio, nothing to do */
 
         sink = gst_element_get_static_pad (mixer, media->audio.mixerpad);
         g_assert_nonnull (sink);

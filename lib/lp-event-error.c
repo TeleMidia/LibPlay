@@ -61,9 +61,9 @@ lp_event_error_get_property (GObject *object, guint prop_id,
   event = LP_EVENT_ERROR (object);
   switch (prop_id)
     {
-      case PROP_ERROR:
-        g_value_set_boxed (value, event->prop.error);
-        break;
+    case PROP_ERROR:
+      g_value_set_boxed (value, event->prop.error);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -78,7 +78,7 @@ lp_event_error_set_property (GObject *object, guint prop_id,
   event = LP_EVENT_ERROR (object);
   switch (prop_id)
     {
-    case PROP_ERROR:            /* take ownership (transfer full) */
+    case PROP_ERROR:
       g_assert (event->prop.error == DEFAULT_ERROR);
       event->prop.error = (GError *) g_value_dup_boxed (value);
       g_assert_nonnull (event->prop.error);
@@ -93,10 +93,12 @@ lp_event_error_constructed (GObject *object)
 {
   lp_Event *event;
   GObject *source;
+  lp_EventMask mask;
 
   event = LP_EVENT (object);
-  g_object_get (event, "source", &source, NULL);
+  g_object_get (event, "source", &source, "mask", &mask, NULL);
   g_assert (LP_IS_MEDIA (source));
+  g_assert (mask == LP_EVENT_MASK_ERROR);
 }
 
 static void
@@ -144,28 +146,10 @@ lp_event_error_class_init (lp_EventErrorClass *cls)
  * Returns: (transfer full): a new #lp_EventError
  */
 lp_EventError *
-lp_event_error_new (lp_Media *source, GError *error)
+_lp_event_error_new (lp_Media *source, GError *error)
 {
   return LP_EVENT_ERROR (g_object_new (LP_TYPE_EVENT_ERROR,
                                        "source", source,
+                                       "mask", LP_EVENT_MASK_ERROR,
                                        "error", error, NULL));
-}
-
-/**
- * lp_event_error_get_error:
- * @event: an #lp_EventError
- *
- * Gets the the event #GError.
- *
- * Returns: (transfer none): the event #GError
- */
-GError *
-lp_event_error_get_error (lp_EventError *event)
-{
-  GError *error = NULL;
-
-  g_object_get (event, "error", &error, NULL);
-  g_assert_nonnull (error);
-
-  return error;
 }

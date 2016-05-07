@@ -17,9 +17,6 @@ You should have received a copy of the GNU General Public License
 along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
-#include <stdio.h>
-#include <assert.h>
-
 #include "gx-macros.h"
 
 GX_INCLUDE_PROLOGUE
@@ -35,7 +32,7 @@ main (int argc, char **argv)
 
   if (unlikely (argc < 2))
   {
-    fprintf (stderr, "usage: %s <uri>\n", argv[0]);
+    g_printerr ("usage: %s <uri>\n", argv[0]);
     exit (EXIT_FAILURE);
   }
 
@@ -55,26 +52,27 @@ main (int argc, char **argv)
 
       type = G_OBJECT_TYPE (event);
       g_assert (type != LP_TYPE_EVENT_ERROR);
-      if (type == LP_TYPE_EVENT_MOUSE_BUTTON)
+      if (type == LP_TYPE_EVENT_POINTER_CLICK)
         {
           double x, y;
           int button;
           gboolean press;
-          lp_EventMouseButton *evtmouse = LP_EVENT_MOUSE_BUTTON (event);
+          lp_EventPointerClick *click = LP_EVENT_POINTER_CLICK (event);
 
-          g_object_get (G_OBJECT (evtmouse), "x", &x, "y", &y,
-                        "button", &button, "press", &press, NULL);
+          g_object_get (G_OBJECT (click),
+                        "x", &x,
+                        "y", &y,
+                        "button", &button,
+                        "press", &press, NULL);
 
-          printf ("(x, y): %.0f, %.0f\n", x, y);
-          printf ("button: %d\n", button);
-          printf ("type: %s\n",
-                  press ? "press" : "release");
+          g_print ("(x, y): %.0f, %.0f\n", x, y);
+          g_print ("button: %d\n", button);
+          g_print ("type: %s\n", press ? "press" : "release");
         }
       g_object_unref (event);
     }
   while (type != LP_TYPE_EVENT_STOP);
 
   g_object_unref (scene);
-
   exit (EXIT_SUCCESS);
 }

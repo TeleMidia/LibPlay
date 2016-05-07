@@ -71,6 +71,9 @@
 /tests/lua
 /tests/suppfile
 /tests/test-lp-event-error
+/tests/test-lp-event-key
+/tests/test-lp-event-pointer-click
+/tests/test-lp-event-pointer-move
 /tests/test-lp-event-start
 /tests/test-lp-event-stop
 /tests/test-lp-event-tick

@@ -22,6 +22,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 /* Event private data.  */
 struct _lp_EventPrivate
 {
+  lp_EventMask mask;            /* event mask */
   GObject *source;              /* source object */
 };
 
@@ -29,12 +30,14 @@ struct _lp_EventPrivate
 enum
 {
   PROP_0,
+  PROP_MASK,
   PROP_SOURCE,
   PROP_LAST
 };
 
 /* Property defaults.  */
-#define DEFAULT_SOURCE  NULL    /* not initialized */
+#define DEFAULT_MASK    LP_EVENT_MASK_NONE /* not initialized */
+#define DEFAULT_SOURCE  NULL               /* not initialized */
 
 /* Define the lp_Event type.  */
 GX_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (lp_Event, lp_event, G_TYPE_OBJECT)
@@ -46,6 +49,7 @@ static void
 lp_event_init (lp_Event *event)
 {
   event->priv = (lp_EventPrivate *) lp_event_get_instance_private (event);
+  event->priv->mask = DEFAULT_MASK;
   event->priv->source = DEFAULT_SOURCE;
 }
 
@@ -58,6 +62,9 @@ lp_event_get_property (GObject *object, guint prop_id,
   event = LP_EVENT (object);
   switch (prop_id)
     {
+      case PROP_MASK:
+        g_value_set_int (value, event->priv->mask);
+        break;
       case PROP_SOURCE:
         g_value_take_object (value, event->priv->source);
         break;
@@ -75,6 +82,27 @@ lp_event_set_property (GObject *object, guint prop_id,
   event = LP_EVENT (object);
   switch (prop_id)
     {
+    case PROP_MASK:
+      {
+        gint mask;
+        g_assert (event->priv->mask == DEFAULT_MASK);
+        mask =  g_value_get_int (value);
+        event->priv->mask = (lp_EventMask) mask;
+        switch (event->priv->mask)
+          {
+          case LP_EVENT_MASK_TICK:
+          case LP_EVENT_MASK_KEY:
+          case LP_EVENT_MASK_POINTER_CLICK:
+          case LP_EVENT_MASK_POINTER_MOVE:
+          case LP_EVENT_MASK_ERROR:
+          case LP_EVENT_MASK_START:
+          case LP_EVENT_MASK_STOP:
+            break;
+          default:
+            g_assert_not_reached ();
+          }
+        break;
+      }
     case PROP_SOURCE:
       {                         /* don't take ownership */
         GObject *obj = (GObject *) g_value_dup_object (value);
@@ -86,6 +114,19 @@ lp_event_set_property (GObject *object, guint prop_id,
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
+}
+
+static void
+lp_event_constructed (GObject *object)
+{
+  lp_Event *event;
+  GObject *source;
+  lp_EventMask mask;
+
+  event = LP_EVENT (object);
+  g_object_get (event, "source", &source, "mask", &mask, NULL);
+  g_assert (G_IS_OBJECT (source));
+  g_assert (mask > LP_EVENT_MASK_NONE && mask <= LP_EVENT_MASK_STOP);
 }
 
 static void
@@ -110,7 +151,14 @@ lp_event_class_init (lp_EventClass *cls)
   gobject_class = G_OBJECT_CLASS (cls);
   gobject_class->get_property = lp_event_get_property;
   gobject_class->set_property = lp_event_set_property;
+  gobject_class->constructed = lp_event_constructed;
   gobject_class->finalize = lp_event_finalize;
+
+  g_object_class_install_property
+    (gobject_class, PROP_MASK, g_param_spec_int
+      ("mask", "mask", "event mask",
+       0, G_MAXINT, DEFAULT_MASK,
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_SOURCE, g_param_spec_object
@@ -121,6 +169,25 @@ lp_event_class_init (lp_EventClass *cls)
 
 
 /* public */
+
+/**
+ * lp_event_get_mask:
+ * @evnet: an #lp_Event
+ *
+ * Gets the simplest mask that matches @event.
+ *
+ * Returns: the event mask
+ */
+lp_EventMask
+lp_event_get_mask (lp_Event *event)
+{
+  lp_EventMask mask;
+
+  g_object_get (event, "mask", &mask, NULL);
+  g_assert (mask > LP_EVENT_MASK_NONE && mask <= LP_EVENT_MASK_STOP);
+
+  return mask;
+}
 
 /**
  * lp_event_get_source:

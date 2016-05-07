@@ -67,7 +67,7 @@ GX_INCLUDE_EPILOGUE
   {                                                                     \
     const gchar *__missing;                                             \
     if (unlikely (!gstx_eltmap_alloc ((obj), (map), &__missing)))       \
-      g_error (G_STRLOC ": missing GStreamer plugin: %s", __missing);   \
+      _lp_error ("missing GStreamer plugin: %s", __missing);            \
   }                                                                     \
   STMT_END
 

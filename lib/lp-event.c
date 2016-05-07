@@ -214,11 +214,8 @@ lp_event_finalize (GObject *object)
   lp_Event *event;
 
   event = LP_EVENT (object);
-
   g_assert_nonnull (event->priv->source);
   g_object_unref (event->priv->source);
-
-  _lp_debug ("finalizing event %p", event);
   G_OBJECT_CLASS (lp_event_parent_class)->finalize (object);
 }
 

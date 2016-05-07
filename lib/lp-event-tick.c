@@ -102,11 +102,6 @@ lp_event_tick_constructed (GObject *object)
 static void
 lp_event_tick_finalize (GObject *object)
 {
-  lp_EventTick *event;
-
-  event = LP_EVENT_TICK (object);
-
-  _lp_debug ("finalizing tick event %p", event);
   G_OBJECT_CLASS (lp_event_tick_parent_class)->finalize (object);
 }
 

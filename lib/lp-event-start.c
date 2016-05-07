@@ -102,11 +102,6 @@ lp_event_start_constructed (GObject *object)
 static void
 lp_event_start_finalize (GObject *object)
 {
-  lp_EventStart *event;
-
-  event = LP_EVENT_START (object);
-
-  _lp_debug ("finalizing start event %p", event);
   G_OBJECT_CLASS (lp_event_start_parent_class)->finalize (object);
 }
 

@@ -116,9 +116,8 @@ lp_event_key_finalize (GObject *object)
   lp_EventKey *event;
 
   event = LP_EVENT_KEY (object);
+  g_assert_nonnull (event->prop.key);
   g_free (event->prop.key);
-
-  _lp_debug ("finalizing key event %p", event);
   G_OBJECT_CLASS (lp_event_key_parent_class)->finalize (object);
 }
 

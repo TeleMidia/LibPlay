@@ -128,8 +128,6 @@ lp_clock_finalize (GObject *object)
   clock = LP_CLOCK (object);
   g_mutex_clear (&clock->mutex);
   g_object_unref (clock->sysclock);
-
-  _lp_debug ("finalizing clock %p", clock);
   G_OBJECT_CLASS (lp_clock_parent_class)->finalize (object);
 }
 

@@ -132,11 +132,6 @@ lp_event_pointer_click_constructed (GObject *object)
 static void
 lp_event_pointer_click_finalize (GObject *object)
 {
-  lp_EventPointerClick *event;
-
-  event = LP_EVENT_POINTER_CLICK (object);
-
-  _lp_debug ("finalizing pointer click event %p", event);
   G_OBJECT_CLASS (lp_event_pointer_click_parent_class)->finalize (object);
 }
 

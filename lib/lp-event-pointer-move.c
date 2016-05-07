@@ -112,11 +112,6 @@ lp_event_pointer_move_constructed (GObject *object)
 static void
 lp_event_pointer_move_finalize (GObject *object)
 {
-  lp_EventPointerMove *event;
-
-  event = LP_EVENT_POINTER_MOVE (object);
-
-  _lp_debug ("finalizing pointer move event %p", event);
   G_OBJECT_CLASS (lp_event_pointer_move_parent_class)->finalize (object);
 }
 
@@ -128,7 +123,6 @@ lp_event_pointer_move_to_string (lp_Event *event)
   y: %g\n\
 ",                            LP_EVENT_POINTER_MOVE (event)->prop.x,
                               LP_EVENT_POINTER_MOVE (event)->prop.y);
-
 }
 
 static void

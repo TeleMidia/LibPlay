@@ -102,11 +102,6 @@ lp_event_stop_constructed (GObject *object)
 static void
 lp_event_stop_finalize (GObject *object)
 {
-  lp_EventStop *event;
-
-  event = LP_EVENT_STOP (object);
-
-  _lp_debug ("finalizing stop event %p", event);
   G_OBJECT_CLASS (lp_event_stop_parent_class)->finalize (object);
 }
 

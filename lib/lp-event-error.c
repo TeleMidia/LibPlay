@@ -107,11 +107,8 @@ lp_event_error_finalize (GObject *object)
   lp_EventError *event;
 
   event = LP_EVENT_ERROR (object);
-
   g_assert_nonnull (event->prop.error);
   g_error_free (event->prop.error);
-
-  _lp_debug ("finalizing error event %p", event);
   G_OBJECT_CLASS (lp_event_error_parent_class)->finalize (object);
 }
 

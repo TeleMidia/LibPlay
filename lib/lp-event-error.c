@@ -115,9 +115,12 @@ lp_event_error_finalize (GObject *object)
 static gchar *
 lp_event_error_to_string (lp_Event *event)
 {
+  lp_EventError *error;
+
+  error = LP_EVENT_ERROR (event);
   return _lp_event_to_string (event, "\
   error: %s\n\
-",                            LP_EVENT_ERROR (event)->prop.error->message);
+",                            error->prop.error->message);
 }
 
 static void

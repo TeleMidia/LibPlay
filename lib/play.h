@@ -93,7 +93,7 @@ typedef struct _lp_EventPrivate lp_EventPrivate;
 struct _lp_EventClass
 {
   GObjectClass parent_class;
-  gchar * (*to_string) (lp_Event *);
+  gchar *(*to_string) (lp_Event *);
 };
 
 struct _lp_Event
@@ -156,14 +156,14 @@ LP_API G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
 
 /* event */
 
-LP_API gchar *
-lp_event_to_string (lp_Event *);
+LP_API lp_EventMask
+lp_event_get_mask (lp_Event *);
 
 LP_API GObject *
 lp_event_get_source (lp_Event *);
 
-LP_API lp_EventMask
-lp_event_get_mask (lp_Event *);
+LP_API gchar *
+lp_event_to_string (lp_Event *);
 
 /* scene */
 

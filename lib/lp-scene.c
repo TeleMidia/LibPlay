@@ -823,7 +823,6 @@ lp_Event *
 lp_scene_receive (lp_Scene *scene, gboolean block)
 {
   lp_Event *event;
-  lp_EventMask mask;
 
  retry:
   if (block)
@@ -842,8 +841,7 @@ lp_scene_receive (lp_Scene *scene, gboolean block)
   event = LP_EVENT (scene->events->data);
   scene->events = g_list_delete_link (scene->events, scene->events);
 
-  mask = lp_event_get_mask (event);
-  if ((mask & scene->prop.mask) == 0)
+  if ((lp_event_get_mask (event) & scene->prop.mask) == 0)
     {
       g_object_unref (event);   /* consume event */
       goto retry;

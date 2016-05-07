@@ -116,7 +116,7 @@ _lp_media_finish_stop (lp_Media *);
 /* event */
 
 gchar *
-_lp_event_to_string (lp_Event *, const gchar *fmt, ...) G_GNUC_PRINTF (2,3);
+_lp_event_to_string (lp_Event *, const gchar *fmt, ...);
 
 lp_EventTick *
 _lp_event_tick_new (lp_Scene *, guint64);

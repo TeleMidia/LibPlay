@@ -108,10 +108,12 @@ lp_event_start_finalize (GObject *object)
 static gchar *
 lp_event_start_to_string (lp_Event *event)
 {
+  lp_EventStart *start;
+
+  start = LP_EVENT_START (event);
   return _lp_event_to_string (event, "\
   resume: %s\n\
-",                            LP_EVENT_START (event)->prop.resume
-                              ? "true" : "false");
+",                            strbool (start));
 }
 
 static void

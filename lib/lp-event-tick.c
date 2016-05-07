@@ -108,9 +108,12 @@ lp_event_tick_finalize (GObject *object)
 static gchar *
 lp_event_tick_to_string (lp_Event *event)
 {
+  lp_EventTick *tick;
+
+  tick = LP_EVENT_TICK (event);
   return _lp_event_to_string (event, "\
   serial: %"G_GUINT64_FORMAT"\n\
-",                                 LP_EVENT_TICK (event)->prop.serial);
+",                                 tick->prop.serial);
 }
 
 static void

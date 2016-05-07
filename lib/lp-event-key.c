@@ -124,12 +124,14 @@ lp_event_key_finalize (GObject *object)
 static gchar *
 lp_event_key_to_string (lp_Event *event)
 {
+  lp_EventKey *key;
+
+  key = LP_EVENT_KEY (event);
   return _lp_event_to_string (event, "\
   key: %s\n\
   press: %s\n\
-",                            LP_EVENT_KEY (event)->prop.key,
-                              LP_EVENT_KEY (event)->prop.press
-                              ? "true" : "false");
+",                            key->prop.key,
+                              strbool (key->prop.press));
 }
 
 static void

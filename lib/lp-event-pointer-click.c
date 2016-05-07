@@ -138,16 +138,18 @@ lp_event_pointer_click_finalize (GObject *object)
 static gchar *
 lp_event_pointer_click_to_string (lp_Event *event)
 {
+  lp_EventPointerClick *click;
+
+  click = LP_EVENT_POINTER_CLICK (event);
   return _lp_event_to_string (event, "\
   x: %g\n\
   y: %g\n\
   button: %d\n\
   press: %s\n\
-",                            LP_EVENT_POINTER_CLICK (event)->prop.x,
-                              LP_EVENT_POINTER_CLICK (event)->prop.y,
-                              LP_EVENT_POINTER_CLICK (event)->prop.button,
-                              LP_EVENT_POINTER_CLICK (event)->prop.press
-                              ? "true" : "false");
+",                            click->prop.x,
+                              click->prop.y,
+                              click->prop.button,
+                              strbool (click->prop.press));
 }
 
 static void

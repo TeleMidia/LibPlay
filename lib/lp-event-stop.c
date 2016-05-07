@@ -108,10 +108,12 @@ lp_event_stop_finalize (GObject *object)
 static gchar *
 lp_event_stop_to_string (lp_Event *event)
 {
+  lp_EventStop *stop;
+
+  stop = LP_EVENT_STOP (event);
   return _lp_event_to_string (event, "\
   eos: %s\n\
-",                            LP_EVENT_STOP (event)->prop.eos
-                              ? "true" : "false");
+",                            strbool (stop->prop.eos));
 }
 
 static void

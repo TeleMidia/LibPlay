@@ -118,11 +118,14 @@ lp_event_pointer_move_finalize (GObject *object)
 static gchar *
 lp_event_pointer_move_to_string (lp_Event *event)
 {
+  lp_EventPointerMove *move;
+
+  move = LP_EVENT_POINTER_MOVE (event);
   return _lp_event_to_string (event, "\
   x: %g\n\
   y: %g\n\
-",                            LP_EVENT_POINTER_MOVE (event)->prop.x,
-                              LP_EVENT_POINTER_MOVE (event)->prop.y);
+",                            move->prop.x,
+                              move->prop.y);
 }
 
 static void

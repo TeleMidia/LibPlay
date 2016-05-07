@@ -45,56 +45,13 @@ GX_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (lp_Event, lp_event, G_TYPE_OBJECT)
 
 /* internal */
 
-gchar *
+ATTR_PRINTF_FORMAT (2,3) gchar *
 _lp_event_to_string (lp_Event *event, const gchar *fmt, ...)
 {
   va_list args;
   gchar *suffix = NULL;
   gchar *str;
   gint n;
-
-  const gchar *type;
-  gpointer addr;
-
-  if (LP_IS_EVENT_TICK (event))
-    {
-      type = "lp_EventTick";
-      addr = LP_EVENT_TICK (event);
-    }
-  else if (LP_IS_EVENT_KEY (event))
-    {
-      type = "lp_EventKey";
-      addr = LP_EVENT_KEY (event);
-    }
-  else if (LP_IS_EVENT_POINTER_CLICK (event))
-    {
-      type = "lp_EventPointerClick";
-      addr = LP_EVENT_POINTER_CLICK (event);
-    }
-  else if (LP_IS_EVENT_POINTER_MOVE (event))
-    {
-      type = "lp_EventPointerMove";
-      addr = LP_EVENT_POINTER_MOVE (event);
-    }
-  else if (LP_IS_EVENT_ERROR (event))
-    {
-      type = "lp_EventError";
-      addr = LP_EVENT_ERROR (event);
-    }
-  else if (LP_IS_EVENT_START (event))
-    {
-      type = "lp_EventStart";
-      addr = LP_EVENT_START (event);
-    }
-  else if (LP_IS_EVENT_STOP (event))
-    {
-      type = "lp_EventStop";
-      addr = LP_EVENT_STOP (event);
-    }
-  else
-    {
-      g_assert_not_reached ();
-    }
 
   va_start (args, fmt);
   n = g_vasprintf (&suffix, fmt, args);
@@ -107,8 +64,10 @@ _lp_event_to_string (lp_Event *event, const gchar *fmt, ...)
   source: %s at %p\n\
   mask: 0x%x\n\
 %s\
-",                       type,
-                         addr,
+",                       G_OBJECT_TYPE_NAME (event),
+                         G_TYPE_CHECK_INSTANCE_CAST (event,
+                                                     G_OBJECT_TYPE (event),
+                                                     gpointer),
                          LP_IS_SCENE (event->priv->source) ? "lp_Scene"
                          : LP_IS_MEDIA (event->priv->source) ? "lp_Media"
                          : "unknown",
@@ -247,22 +206,22 @@ lp_event_class_init (lp_EventClass *cls)
 /* public */
 
 /**
- * lp_event_to_string:
- * @event: an #lp_Event
+ * lp_event_get_mask:
+ * @evnet: an #lp_Event
  *
- * Gets a string representation of @event.
+ * Gets the simplest mask that matches @event.
  *
- * Returns: (transfer full): a string representing the event
+ * Returns: the event mask
  */
-gchar *
-lp_event_to_string (lp_Event *event)
+lp_EventMask
+lp_event_get_mask (lp_Event *event)
 {
-  lp_EventClass *cls;
+  lp_EventMask mask;
 
-  cls = LP_EVENT_GET_CLASS (event);
-  g_assert (cls->to_string != NULL);
+  g_object_get (event, "mask", &mask, NULL);
+  g_assert (mask > LP_EVENT_MASK_NONE && mask <= LP_EVENT_MASK_STOP);
 
-  return cls->to_string (event);
+  return mask;
 }
 
 /**
@@ -285,20 +244,20 @@ lp_event_get_source (lp_Event *event)
 }
 
 /**
- * lp_event_get_mask:
- * @evnet: an #lp_Event
+ * lp_event_to_string:
+ * @event: an #lp_Event
  *
- * Gets the simplest mask that matches @event.
+ * Gets a string representation of @event.
  *
- * Returns: the event mask
+ * Returns: (transfer full): a string representing the event
  */
-lp_EventMask
-lp_event_get_mask (lp_Event *event)
+gchar *
+lp_event_to_string (lp_Event *event)
 {
-  lp_EventMask mask;
+  lp_EventClass *cls;
 
-  g_object_get (event, "mask", &mask, NULL);
-  g_assert (mask > LP_EVENT_MASK_NONE && mask <= LP_EVENT_MASK_STOP);
+  cls = LP_EVENT_GET_CLASS (event);
+  g_assert (cls->to_string != NULL);
 
-  return mask;
+  return cls->to_string (event);
 }

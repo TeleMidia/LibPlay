@@ -33,7 +33,7 @@ GX_INCLUDE_EPILOGUE
 /* Property descriptor.  */
 typedef struct Property
 {
-  const char *name;
+  const gchar *name;
   GType type;
 } Property;
 
@@ -178,7 +178,7 @@ static int
 l_scene_get (lua_State *L)
 {
   Scene *scene;
-  const char *name;
+  const gchar *name;
 
   GType type;
   GValue value = G_VALUE_INIT;

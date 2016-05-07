@@ -54,8 +54,8 @@ main (int argc, char **argv)
       g_assert (type != LP_TYPE_EVENT_ERROR);
       if (type == LP_TYPE_EVENT_POINTER_CLICK)
         {
-          double x, y;
-          int button;
+          gdouble x, y;
+          gint button;
           gboolean press;
           lp_EventPointerClick *click = LP_EVENT_POINTER_CLICK (event);
 

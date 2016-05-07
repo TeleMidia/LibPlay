@@ -20,7 +20,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  const char *version;
+  const gchar *version;
 
   version = lp_version_string ();
   g_assert_true (g_str_equal (version, LP_VERSION_STRING));

@@ -269,8 +269,8 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           case GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS:
           case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE:
             {
-              int button;
-              double x, y;
+              gint button;
+              gdouble x, y;
               gboolean press;
               g_assert (gst_navigation_event_parse_mouse_button_event
                         (from, &button, &x, &y));

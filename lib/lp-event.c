@@ -46,14 +46,14 @@ GX_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (lp_Event, lp_event, G_TYPE_OBJECT)
 /* internal */
 
 gchar *
-_lp_event_to_string (lp_Event *event, const char *fmt, ...)
+_lp_event_to_string (lp_Event *event, const gchar *fmt, ...)
 {
   va_list args;
   gchar *suffix = NULL;
   gchar *str;
   gint n;
 
-  const char *type;
+  const gchar *type;
   gpointer addr;
 
   if (LP_IS_EVENT_TICK (event))

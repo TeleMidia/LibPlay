@@ -35,7 +35,7 @@ main (void)
   while (!quit)
     {
       lp_Event *event;
-      char *str;
+      gchar *str;
 
       event = lp_scene_receive (scene, TRUE);
       g_assert_nonnull (event);
@@ -52,7 +52,7 @@ main (void)
         }
       else if (LP_IS_EVENT_KEY (event))
         {
-          char *key;
+          gchar *key;
 
           g_object_get (LP_EVENT_KEY (event), "key", &key, NULL);
           if (g_str_equal (key, "q"))

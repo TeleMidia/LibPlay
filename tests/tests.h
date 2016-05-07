@@ -40,7 +40,7 @@ PRAGMA_DIAG_IGNORE (-Wfloat-equal)
 #define AWAIT(scene, n)                                         \
   STMT_BEGIN                                                    \
   {                                                             \
-    int __total = (n);                                          \
+    gint __total = (n);                                         \
     while (__total > 0)                                         \
       {                                                         \
         lp_Event *__evt;                                        \

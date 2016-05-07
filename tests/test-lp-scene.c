@@ -35,8 +35,8 @@ main (void)
   STMT_BEGIN
     {
       lp_Scene *scene;
-      int width = -1;
-      int height = -1;
+      gint width = -1;
+      gint height = -1;
 
       scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, NULL));
       g_assert_nonnull (scene);
@@ -100,7 +100,7 @@ main (void)
   STMT_BEGIN
     {
       lp_Scene *scene;
-      int pattern = -1;
+      gint pattern = -1;
 
       scene = lp_scene_new (800, 600);
       g_assert_nonnull (scene);
@@ -124,7 +124,7 @@ main (void)
   STMT_BEGIN
     {
       lp_Scene *scene;
-      int wave = -1;
+      gint wave = -1;
 
       scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, NULL));
       g_assert_nonnull (scene);
@@ -158,9 +158,9 @@ main (void)
 
       for (i = 0; i < nelementsof (v); i++)
         {
-          int pattern = 0;
-          int wave = 0;
-          int n;
+          gint pattern = 0;
+          gint wave = 0;
+          gint n;
 
           g_object_set (scene, "interval", v[i] * GST_MSECOND, NULL);
           g_object_get (scene, "interval", &interval, NULL);

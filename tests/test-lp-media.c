@@ -26,7 +26,7 @@ main (void)
       lp_Scene *scene;
       lp_Media *media;
       lp_Scene *sc = NULL;
-      const char *uri = NULL;
+      const gchar *uri = NULL;
 
       scene = lp_scene_new (0, 0);
       g_assert_nonnull (scene);
@@ -61,7 +61,7 @@ main (void)
     {
       lp_Scene *scene;
       lp_Media *m1, *m2, *m3;
-      int n = 3;
+      gint n = 3;
 
       scene = lp_scene_new (1024, 768);
       g_assert_nonnull (scene);
@@ -84,7 +84,7 @@ main (void)
       while (n-- > 0)
         {
           gboolean done = FALSE;
-          int x, y;
+          gint x, y;
           do
             {
               lp_Event *event;
@@ -143,8 +143,8 @@ main (void)
   STMT_BEGIN
     {
       lp_Media *media;
-      int width = -1;
-      int height = -1;
+      gint width = -1;
+      gint height = -1;
 
       media = g_object_new (LP_TYPE_MEDIA, NULL);
       g_assert_nonnull (media);
@@ -177,7 +177,7 @@ main (void)
   STMT_BEGIN
     {
       lp_Media *media;
-      int zorder = -1;
+      gint zorder = -1;
 
       media = g_object_new (LP_TYPE_MEDIA, NULL);
       g_assert_nonnull (media);
@@ -197,8 +197,8 @@ main (void)
   STMT_BEGIN
     {
       lp_Media *media;
-      double alpha = -1.0;
-      double volume = -1.0;
+      gdouble alpha = -1.0;
+      gdouble volume = -1.0;
 
       media = g_object_new (LP_TYPE_MEDIA, NULL);
       g_assert_nonnull (media);
@@ -240,8 +240,8 @@ main (void)
   STMT_BEGIN
     {
       lp_Media *media;
-      const char *uri = "file:///dev/null";
-      char *tmp;
+      const gchar *uri = "file:///dev/null";
+      gchar *tmp;
 
       media = g_object_new (LP_TYPE_MEDIA, NULL);
       g_assert_nonnull (media);

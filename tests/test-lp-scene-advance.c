@@ -27,7 +27,7 @@ main (void)
       gboolean lockstep;
       guint64 time;
       guint64 last;
-      int i, j;
+      gint i, j;
 
       scene = lp_scene_new (800, 600);
       g_assert_nonnull (scene);

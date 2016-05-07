@@ -25,9 +25,9 @@ struct _lp_EventPointerClick
   lp_Event parent;              /* parent object */
   struct
   {
-    double x;                   /* x coordinate */
-    double y;                   /* y coordinate */
-    int button;                 /* button number */
+    gdouble x;                  /* x coordinate */
+    gdouble y;                  /* y coordinate */
+    gint button;                /* button number */
     gboolean press;             /* true if button was pressed */
   } prop;
 };
@@ -196,8 +196,8 @@ lp_event_pointer_click_class_init (lp_EventPointerClickClass *cls)
 /* Creates a new pointer click event.  */
 
 lp_EventPointerClick *
-_lp_event_pointer_click_new (lp_Scene *source, double x, double y,
-                             int button, gboolean press)
+_lp_event_pointer_click_new (lp_Scene *source, gdouble x, gdouble y,
+                             gint button, gboolean press)
 {
   return LP_EVENT_POINTER_CLICK
     (g_object_new (LP_TYPE_EVENT_POINTER_CLICK,

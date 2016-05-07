@@ -25,8 +25,8 @@ struct _lp_EventPointerMove
   lp_Event parent;              /* parent object */
   struct
   {
-    double x;                   /* x coordinate */
-    double y;                   /* y coordinate */
+    gdouble x;                  /* x coordinate */
+    gdouble y;                  /* y coordinate */
   } prop;
 };
 
@@ -159,7 +159,7 @@ lp_event_pointer_move_class_init (lp_EventPointerMoveClass *cls)
 /* Creates a new pointer move event.  */
 
 lp_EventPointerMove *
-_lp_event_pointer_move_new (lp_Scene *source, double x, double y)
+_lp_event_pointer_move_new (lp_Scene *source, gdouble x, gdouble y)
 {
   return LP_EVENT_POINTER_MOVE
     (g_object_new (LP_TYPE_EVENT_POINTER_MOVE,

@@ -116,7 +116,7 @@ _lp_media_finish_stop (lp_Media *);
 /* event */
 
 gchar *
-_lp_event_to_string (lp_Event *, const char *fmt, ...) G_GNUC_PRINTF (2,3);
+_lp_event_to_string (lp_Event *, const gchar *fmt, ...) G_GNUC_PRINTF (2,3);
 
 lp_EventTick *
 _lp_event_tick_new (lp_Scene *, guint64);
@@ -125,7 +125,7 @@ lp_EventError *
 _lp_event_error_new (lp_Media *, GError *);
 
 lp_EventKey *
-_lp_event_key_new (lp_Scene *, const char *, gboolean);
+_lp_event_key_new (lp_Scene *, const gchar *, gboolean);
 
 lp_EventPointerClick *
 _lp_event_pointer_click_new (lp_Scene *, double, double, int, gboolean);

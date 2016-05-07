@@ -44,6 +44,7 @@ struct _lp_Scene
     GstElement *blank;          /* blank video source */
     GstElement *filter;         /* video filter */
     GstElement *mixer;          /* video mixer */
+    GstElement *convert;        /* video convert */
     GstElement *sink;           /* video sink */
   } video;
   struct
@@ -73,6 +74,7 @@ static const gstx_eltmap_t lp_scene_eltmap_video[] = {
   {"videotestsrc",  offsetof (lp_Scene, video.blank)},
   {"capsfilter",    offsetof (lp_Scene, video.filter)},
   {"compositor",    offsetof (lp_Scene, video.mixer)},
+  {"videoconvert",  offsetof (lp_Scene, video.convert)},
   {"ximagesink",    offsetof (lp_Scene, video.sink)},
   {NULL, 0},
 };
@@ -134,7 +136,7 @@ scene_update_clock_id (lp_Scene *scene)
   if (scene->clock_id != NULL)
     {
       gst_clock_id_unschedule (scene->clock_id);
-      gst_clock_id_unref (scene->clock_id);
+      g_clear_pointer (&scene->clock_id, gst_clock_id_unref);
     }
   scene->clock_id = id;
 }
@@ -202,17 +204,21 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
             }
           case LP_EVENT_MASK_ERROR:
             {
+              lp_Media *media = LP_MEDIA (lp_event_get_source (event));
+              _lp_media_finish_abort (media);
               break;
             }
           case LP_EVENT_MASK_START:
             {
               lp_Media *media = LP_MEDIA (lp_event_get_source (event));
               _lp_media_finish_start (media);
+              break;
             }
           case LP_EVENT_MASK_STOP:
             {
               lp_Media *media = LP_MEDIA (lp_event_get_source (event));
               _lp_media_finish_stop (media);
+              break;
             }
           default:
             g_assert_not_reached ();
@@ -303,10 +309,10 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
       break;
     case GST_MESSAGE_ERROR:
       {
-        GError *err;
-        gst_message_parse_error (msg, &err, NULL);
-        _lp_error ("%s", err->message);
-        g_error_free (err);
+        GError *error;
+        gst_message_parse_error (msg, &error, NULL);
+        _lp_error ("%s", error->message);
+        g_error_free (error);
         break;
       }
     case GST_MESSAGE_EXTENDED:
@@ -341,6 +347,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
         GstObject *obj;
         gpointer data;
         GstState newstate;
+        lp_Media *media;
         lp_Event *event;
 
         obj = GST_MESSAGE_SRC (msg);
@@ -355,7 +362,22 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
         if (newstate != GST_STATE_PLAYING)
           break;                /* nothing to do */
 
-        event = LP_EVENT (_lp_event_start_new (LP_MEDIA (data), FALSE));
+        media = LP_MEDIA (data);
+        if (unlikely (_lp_media_get_active_pads (media) == 0))
+          {
+            GError *error;
+
+            error = g_error_new_literal (LP_ERROR, LP_ERROR_START,
+                                         "media has no active pads");
+            g_assert_nonnull (error);
+            event = LP_EVENT (_lp_event_error_new (media, error));
+            g_error_free (error);
+          }
+        else                    /* success */
+          {
+            event = LP_EVENT (_lp_event_start_new (media, FALSE));
+          }
+
         g_assert_nonnull (event);
         _lp_scene_dispatch (scene, event);
         break;
@@ -378,10 +400,10 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
       break;
     case GST_MESSAGE_WARNING:
       {
-        GError *err;
-        gst_message_parse_warning (msg, &err, NULL);
-        _lp_error ("%s", err->message);
-        g_error_free (err);
+        GError *error;
+        gst_message_parse_warning (msg, &error, NULL);
+        _lp_error ("%s", error->message);
+        g_error_free (error);
         break;
       }
     case GST_MESSAGE_UNKNOWN:
@@ -558,10 +580,12 @@ lp_scene_constructed (GObject *object)
       gstx_bin_add (scene->pipeline, scene->video.blank);
       gstx_bin_add (scene->pipeline, scene->video.filter);
       gstx_bin_add (scene->pipeline, scene->video.mixer);
+      gstx_bin_add (scene->pipeline, scene->video.convert);
       gstx_bin_add (scene->pipeline, scene->video.sink);
       gstx_element_link (scene->video.blank, scene->video.filter);
       gstx_element_link (scene->video.filter, scene->video.mixer);
-      gstx_element_link (scene->video.mixer, scene->video.sink);
+      gstx_element_link (scene->video.mixer, scene->video.convert);
+      gstx_element_link (scene->video.convert, scene->video.sink);
 
       caps = gst_caps_new_empty_simple ("video/x-raw");
       g_assert_nonnull (caps);
@@ -678,11 +702,11 @@ lp_scene_class_init (lp_SceneClass *cls)
 
   if (!gst_is_initialized ())
     {
-      GError *err = NULL;
-      if (unlikely (!gst_init_check (NULL, NULL, &err)))
+      GError *error = NULL;
+      if (unlikely (!gst_init_check (NULL, NULL, &error)))
         {
-          _lp_error ("%s", err->message);
-          g_error_free (err);
+          _lp_error ("%s", error->message);
+          g_error_free (error);
         }
     }
 }

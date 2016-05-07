@@ -107,6 +107,12 @@ _lp_scene_dispatch (lp_Scene *, lp_Event *);
 
 /* media */
 
+guint
+_lp_media_get_active_pads (lp_Media *);
+
+void
+_lp_media_finish_abort (lp_Media *);
+
 void
 _lp_media_finish_start (lp_Media *);
 

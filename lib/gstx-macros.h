@@ -86,6 +86,14 @@ gstx_eltmap_alloc (const void *obj, const gstx_eltmap_t map[],
   }                                                     \
   STMT_END
 
+/* Asserted version of gst_bin_remove().  */
+#define gstx_bin_remove(bin, elt)                       \
+  STMT_BEGIN                                            \
+  {                                                     \
+    g_assert (gst_bin_remove (GST_BIN ((bin)), (elt))); \
+  }                                                     \
+  STMT_END
+
 /* Asserted version of gst_element_link().  */
 #define gstx_element_link(elt1, elt2)                   \
   STMT_BEGIN                                            \

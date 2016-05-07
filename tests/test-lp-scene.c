@@ -67,7 +67,7 @@ main (void)
       g_object_get (scene, "width", &width, "height", &height, NULL);
       g_assert (width == 100 && height == 100);
 
-      AWAIT (scene, 1);
+      await_ticks (scene, 1);
       g_object_get (scene, "width", &width, "height", &height, NULL);
       g_assert (width == 100 && height == 100);
       g_object_unref (scene);
@@ -85,11 +85,11 @@ main (void)
       g_object_get (scene, "ticks", &ticks, NULL);
       g_assert (ticks == 0);
 
-      AWAIT (scene, 1);
+      await_ticks (scene, 1);
       g_object_get (scene, "ticks", &ticks, NULL);
       g_assert (ticks == 1);
 
-      AWAIT (scene, 1);
+      await_ticks (scene, 1);
       g_object_get (scene, "ticks", &ticks, NULL);
       g_assert (ticks == 2);
       g_object_unref (scene);
@@ -108,12 +108,12 @@ main (void)
       g_object_get (scene, "pattern", &pattern, NULL);
       g_assert (pattern == 2);
 
-      AWAIT (scene, 1);
+      await_ticks (scene, 1);
       g_object_set (scene, "pattern", 8, NULL);
       g_object_get (scene, "pattern", &pattern, NULL);
       g_assert (pattern == 8);
 
-      AWAIT (scene, 1);
+      await_ticks (scene, 1);
       g_object_get (scene, "pattern", &pattern, NULL);
       g_assert (pattern == 8);
       g_object_unref (scene);
@@ -131,12 +131,12 @@ main (void)
       g_object_get (scene, "wave", &wave, NULL);
       g_assert (wave == 4);
 
-      AWAIT (scene, 1);
+      await_ticks (scene, 1);
       g_object_set (scene, "wave", 0, NULL);
       g_object_get (scene, "wave", &wave, NULL);
       g_assert (wave == 0);
 
-      AWAIT (scene, 1);
+      await_ticks (scene, 1);
       g_object_get (scene, "wave", &wave, NULL);
       g_assert (wave == 0);
       g_object_unref (scene);
@@ -167,7 +167,7 @@ main (void)
           g_assert (interval == v[i] * GST_MSECOND);
           for (n = 0; n < 10; n++)
             {
-              AWAIT (scene, 1);
+              await_ticks (scene, 1);
               g_object_set (scene,
                             "pattern", pattern++ % 25,
                             "wave", wave++ % 13, NULL);

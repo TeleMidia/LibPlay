@@ -45,6 +45,7 @@ libplay_la_SOURCES=\
   gstx-macros.h\
   gx-macros.h\
   lp-clock.c\
+  lp-error.c\
   lp-event-error.c\
   lp-event-key.c\
   lp-event-pointer-click.c\

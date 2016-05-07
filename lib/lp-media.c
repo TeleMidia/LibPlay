@@ -50,12 +50,9 @@ struct _lp_Media
   } audio;
   struct
   {
-    GstElement *convert;        /* video convert (optional) */
     GstElement *freeze;         /* image freeze (optional) */
-    GstElement *scale;          /* video scale */
-    GstElement *filter;         /* video filter */
-    gchar *mixerpad;            /* name of video sink pad in mixer */
     gboolean frozen;            /* true if image freeze is present */
+    gchar *mixerpad;            /* name of video sink pad in mixer */
   } video;
   struct
   {
@@ -86,10 +83,9 @@ static const gstx_eltmap_t media_eltmap_audio[] = {
   {NULL, 0}
 };
 
-static const gstx_eltmap_t media_eltmap_video[] = {
-  {"videoscale",    offsetof (lp_Media, video.scale)},
-  {"capsfilter",    offsetof (lp_Media, video.filter)},
-  {NULL, 0},
+static const gstx_eltmap_t media_eltmap_video_freeze[] = {
+  {"imagefreeze",  offsetof (lp_Media, video.freeze)},
+  {NULL, 0}
 };
 
 /* Media properties. */
@@ -245,50 +241,29 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
           goto done;
         }
 
-      _lp_eltmap_alloc_check (media, media_eltmap_video);
-
-      g_object_set (media->video.scale, "add-borders", 0, NULL);
-      caps = gst_caps_new_simple ("video/x-raw", "pixel-aspect-ratio",
-                                  GST_TYPE_FRACTION, 1, 1, NULL);
-      g_assert_nonnull (caps);
-      g_object_set (media->video.filter, "caps", caps, NULL);
-      gst_caps_unref (caps);
-
-      gstx_bin_add (media->bin, media->video.scale);
-      gstx_bin_add (media->bin, media->video.filter);
-      gstx_element_link (media->video.scale, media->video.filter);
-
       if (media->video.frozen)
         {
-          media->video.convert = gst_element_factory_make ("videoconvert",
-                                                           NULL);
-          g_assert_nonnull (media->video.convert);
-          media->video.freeze = gst_element_factory_make ("imagefreeze",
-                                                          NULL);
-          g_assert_nonnull (media->video.freeze);
-          gstx_bin_add (media->bin, media->video.convert);
+          _lp_eltmap_alloc_check (media, media_eltmap_video_freeze);
           gstx_bin_add (media->bin, media->video.freeze);
-          gstx_element_link (media->video.convert, media->video.freeze);
-          gstx_element_link (media->video.freeze, media->video.scale);
 
-          sink = gst_element_get_static_pad (media->video.convert, "sink");
+          sink = gst_element_get_static_pad (media->video.freeze, "sink");
           g_assert_nonnull (sink);
+
+          g_assert (gst_pad_link (pad, sink) == GST_PAD_LINK_OK);
+          gst_object_unref (sink);
+
+          pad = gst_element_get_static_pad (media->video.freeze, "src");
+          g_assert_nonnull (pad);
+
+          ghost = gst_ghost_pad_new (NULL, pad);
+          g_assert_nonnull (ghost);
+          gst_object_unref (pad);
         }
       else
         {
-          sink = gst_element_get_static_pad (media->video.scale, "sink");
-          g_assert_nonnull (sink);
+          ghost = gst_ghost_pad_new (NULL, pad);
+          g_assert_nonnull (ghost);
         }
-
-      g_assert (gst_pad_link (pad, sink) == GST_PAD_LINK_OK);
-      gst_object_unref (sink);
-
-      pad = gst_element_get_static_pad (media->video.filter, "src");
-      g_assert_nonnull (pad);
-
-      ghost = gst_ghost_pad_new (NULL, pad);
-      g_assert_nonnull (ghost);
-      gst_object_unref (pad);
 
       g_assert_true (gst_pad_set_active (ghost, TRUE));
       g_assert_true (gst_element_add_pad (media->bin, ghost));
@@ -320,13 +295,10 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
 
       if (media->video.frozen)
         {
-          gstx_element_set_state_sync (media->video.convert,
-                                       GST_STATE_PLAYING);
           gstx_element_set_state_sync (media->video.freeze,
                                        GST_STATE_PLAYING);
         }
-      gstx_element_set_state_sync (media->video.scale, GST_STATE_PLAYING);
-      gstx_element_set_state_sync (media->video.filter, GST_STATE_PLAYING);
+
       media->active_pads++;
     }
   else if (g_str_equal (name, "audio/x-raw"))
@@ -677,9 +649,6 @@ lp_media_dispose (GObject *object)
   media = LP_MEDIA (object);
   media_lock (media);
 
-  if (media->bin != NULL)
-    g_object_set_data (G_OBJECT (media->bin), "lp_Media", NULL);
-
   while (!media_has_stopped (media))
     {
       lp_media_stop (media);
@@ -786,6 +755,34 @@ lp_media_class_init (lp_MediaClass *cls)
 
 /* internal */
 
+/* Returns the number of active ghost pads in media bin.  */
+
+guint
+_lp_media_get_active_pads (lp_Media *media)
+{
+  guint n;
+
+  media_lock (media);
+  n = media->active_pads;
+  media_unlock (media);
+
+  return n;
+}
+
+/* Finishes async abort.  */
+
+void
+_lp_media_finish_abort (lp_Media *media)
+{
+  media_lock (media);
+
+  media->starting = FALSE;
+  media->stopping = TRUE;
+  _lp_media_finish_stop (media);
+
+  media_unlock (media);
+}
+
 /* Finishes async start.  */
 
 void
@@ -819,11 +816,10 @@ _lp_media_finish_stop (lp_Media *media)
   pipeline = _lp_scene_get_pipeline (media->prop.scene);
   g_assert_true (gst_bin_remove (GST_BIN (pipeline), media->bin));
   gstx_element_set_state_sync (media->bin, GST_STATE_NULL);
-  gst_object_unref (media->bin);
 
-  media->bin = NULL;            /* indicates has_started and has_stopped */
-  media->drained = FALSE;       /* indicates has_drained */
-  media->video.frozen = FALSE;  /* indicates static image */
+  g_clear_pointer (&media->bin, gst_object_unref);
+  media->drained = FALSE;
+  media->video.frozen = FALSE;
 
   g_clear_pointer (&media->final_uri, g_free);
   g_clear_pointer (&media->audio.mixerpad, g_free);
@@ -880,12 +876,12 @@ lp_media_start (lp_Media *media)
     }
   else
     {
-      GError *err = NULL;
-      gchar *final_uri = gst_filename_to_uri (media->prop.uri, &err);
+      GError *error = NULL;
+      gchar *final_uri = gst_filename_to_uri (media->prop.uri, &error);
       if (unlikely (final_uri == NULL))
         {
           _lp_warn ("bad URI: %s", media->prop.uri);
-          g_error_free (err);
+          g_error_free (error);
           goto fail;
         }
       media->final_uri = final_uri;
@@ -918,7 +914,16 @@ lp_media_start (lp_Media *media)
 
   ret = gst_element_set_state (media->bin, GST_STATE_PLAYING);
   if (unlikely (ret == GST_STATE_CHANGE_FAILURE))
-    goto fail;
+    {
+      g_clear_pointer (&media->final_uri, g_free);
+      media->callback.autoplug = 0;
+      media->callback.drain = 0;
+      media->callback.pad_added = 0;
+      gstx_element_set_state_sync (media->bin, GST_STATE_NULL);
+      gstx_bin_remove (pipeline, media->bin);
+      g_clear_pointer (&media->bin, g_object_unref);
+      goto fail;
+    }
 
   media->offset = _lp_scene_get_clock_time (media->prop.scene);
   media->starting = TRUE;
@@ -952,6 +957,7 @@ lp_media_stop (lp_Media *media)
     goto fail;
 
   media->stopping = TRUE;
+  g_object_set_data (G_OBJECT (media->bin), "lp_Media", NULL);
 
   it = gst_element_iterate_src_pads (media->bin);
   g_assert_nonnull (it);

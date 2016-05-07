@@ -148,11 +148,22 @@ LP_API G_DECLARE_FINAL_TYPE (lp_EventStart, lp_event_start,
 LP_API G_DECLARE_FINAL_TYPE (lp_EventStop, lp_event_stop,
                              LP, EVENT_STOP, lp_Event)
 
-#define LP_TYPE_SCENE (lp_scene_get_type ())
-LP_API G_DECLARE_FINAL_TYPE (lp_Scene, lp_scene, LP, SCENE, GObject)
+typedef enum
+{
+  LP_ERROR_START,               /* error while starting */
+  LP_ERROR_STOP,                /* error while stopping */
+  LP_ERROR_RUN                  /* error while running */
+} lp_Error;
+
+#define LP_ERROR lp_error_quark ()
+LP_API
+GQuark lp_error_quark (void);
 
 #define LP_TYPE_MEDIA (lp_media_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_Media, lp_media, LP, MEDIA, GObject)
+
+#define LP_TYPE_SCENE (lp_scene_get_type ())
+LP_API G_DECLARE_FINAL_TYPE (lp_Scene, lp_scene, LP, SCENE, GObject)
 
 /* event */
 
@@ -165,17 +176,6 @@ lp_event_get_source (lp_Event *);
 LP_API gchar *
 lp_event_to_string (lp_Event *);
 
-/* scene */
-
-LP_API lp_Scene *
-lp_scene_new (gint, gint);
-
-LP_API gboolean
-lp_scene_advance (lp_Scene *, guint64);
-
-LP_API lp_Event *
-lp_scene_receive (lp_Scene *, gboolean);
-
 /* media */
 
 LP_API lp_Media *
@@ -186,6 +186,17 @@ lp_media_start (lp_Media *);
 
 LP_API gboolean
 lp_media_stop (lp_Media *);
+
+/* scene */
+
+LP_API lp_Scene *
+lp_scene_new (gint, gint);
+
+LP_API gboolean
+lp_scene_advance (lp_Scene *, guint64);
+
+LP_API lp_Event *
+lp_scene_receive (lp_Scene *, gboolean);
 
 LP_END_DECLS
 

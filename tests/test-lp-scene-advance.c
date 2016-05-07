@@ -36,7 +36,7 @@ main (void)
       g_assert_false (lockstep);
 
       g_object_set (scene, "pattern", 18, "wave", 0, NULL);
-      AWAIT (scene, 2);
+      await_ticks (scene, 2);
 
       g_assert_false (lp_scene_advance (scene, GST_SECOND));
 

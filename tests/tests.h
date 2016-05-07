@@ -36,21 +36,45 @@ PRAGMA_DIAG_IGNORE (-Wfloat-equal)
 /* Sleeps for @n seconds.  */
 #define SLEEP(n) g_usleep ((n) * 1000000)
 
+/* Waits for @n events that matches @mask in @scene.
+   Returns the last matched event.  */
+
+static ATTR_UNUSED lp_Event *
+await_filtered (lp_Scene *scene, guint n, guint mask)
+{
+  lp_Event *event;
+
+  if (unlikely (n == 0))
+    return NULL;
+
+  for (;;)
+    {
+      event = lp_scene_receive (scene, TRUE);
+      g_assert_nonnull (event);
+
+      if (lp_event_get_mask (event) & mask && --n == 0)
+        break;
+
+      g_object_unref (event);
+    }
+  return event;
+}
+
 /* Waits for @n ticks in @scene.  */
-#define AWAIT(scene, n)                                         \
-  STMT_BEGIN                                                    \
-  {                                                             \
-    gint __total = (n);                                         \
-    while (__total > 0)                                         \
-      {                                                         \
-        lp_Event *__evt;                                        \
-        __evt = lp_scene_receive ((scene), TRUE);               \
-        g_assert_nonnull (__evt);                               \
-        if (G_OBJECT_TYPE (__evt) == LP_TYPE_EVENT_TICK)        \
-          __total--;                                            \
-        g_object_unref (__evt);                                 \
-      }                                                         \
-  }                                                             \
-  STMT_END
+
+static ATTR_UNUSED void
+await_ticks (lp_Scene *scene, guint n)
+{
+  lp_Event *event;
+
+  if (n == 0)
+    return;
+
+  event = await_filtered (scene, n, LP_EVENT_MASK_TICK
+                          | LP_EVENT_MASK_ERROR);
+  g_assert_nonnull (event);
+  g_assert (LP_IS_EVENT_TICK (event));
+  g_object_unref (event);
+}
 
 #endif /* TESTS_H */

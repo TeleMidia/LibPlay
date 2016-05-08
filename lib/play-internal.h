@@ -79,46 +79,6 @@ GX_DECLARE_FINAL_TYPE (lp_Clock, lp_clock, LP, CLOCK, GstSystemClock)
 gboolean
 _lp_clock_advance (lp_Clock *, GstClockTime);
 
-/* scene */
-
-GstElement *
-_lp_scene_get_pipeline (const lp_Scene *);
-
-GstElement *
-_lp_scene_get_audio_mixer (const lp_Scene *);
-
-GstElement *
-_lp_scene_get_video_mixer (const lp_Scene *);
-
-GstClockTime
-_lp_scene_get_clock_time (const lp_Scene *);
-
-gboolean
-_lp_scene_has_video (const lp_Scene *);
-
-void
-_lp_scene_add_media (lp_Scene *, lp_Media *);
-
-void
-_lp_scene_step (lp_Scene *, gboolean);
-
-void
-_lp_scene_dispatch (lp_Scene *, lp_Event *);
-
-/* media */
-
-guint
-_lp_media_get_active_pads (lp_Media *);
-
-void
-_lp_media_finish_abort (lp_Media *);
-
-void
-_lp_media_finish_start (lp_Media *);
-
-void
-_lp_media_finish_stop (lp_Media *);
-
 /* event */
 
 gchar *
@@ -144,5 +104,51 @@ _lp_event_start_new (lp_Media *, gboolean);
 
 lp_EventStop *
 _lp_event_stop_new (lp_Media *, gboolean);
+
+/* media */
+
+guint
+_lp_media_get_active_pads (lp_Media *);
+
+void
+_lp_media_finish_abort (lp_Media *);
+
+void
+_lp_media_finish_start (lp_Media *);
+
+void
+_lp_media_finish_stop (lp_Media *);
+
+/* scene */
+
+GstElement *
+_lp_scene_get_pipeline (const lp_Scene *);
+
+GstElement *
+_lp_scene_get_audio_mixer (const lp_Scene *);
+
+GstElement *
+_lp_scene_get_video_mixer (const lp_Scene *);
+
+GstElement *
+_lp_scene_get_real_audio_sink (lp_Scene *); /* transfer-full */
+
+GstElement *
+_lp_scene_get_real_video_sink (lp_Scene *); /* transfer-full */
+
+GstClockTime
+_lp_scene_get_clock_time (const lp_Scene *);
+
+gboolean
+_lp_scene_has_video (const lp_Scene *);
+
+void
+_lp_scene_add_media (lp_Scene *, lp_Media *);
+
+void
+_lp_scene_step (lp_Scene *, gboolean);
+
+void
+_lp_scene_dispatch (lp_Scene *, lp_Event *);
 
 #endif /* PLAY_INTERNAL_H */

@@ -71,6 +71,7 @@
 /tests/gdb.cfg
 /tests/lua
 /tests/suppfile
+/tests/test-lp-clock
 /tests/test-lp-event-error
 /tests/test-lp-event-key
 /tests/test-lp-event-pointer-click
@@ -81,8 +82,16 @@
 /tests/test-lp-event-xfail
 /tests/test-lp-media
 /tests/test-lp-media-image
-/tests/test-lp-scene
 /tests/test-lp-scene-advance
+/tests/test-lp-scene-new
+/tests/test-lp-scene-prop-interval
+/tests/test-lp-scene-prop-lockstep
+/tests/test-lp-scene-prop-mask
+/tests/test-lp-scene-prop-pattern
+/tests/test-lp-scene-prop-ticks
+/tests/test-lp-scene-prop-time
+/tests/test-lp-scene-prop-wave
+/tests/test-lp-scene-prop-width-height
 /tests/test-lp-version
 /tests/test-lp-version-string
 Makefile

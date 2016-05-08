@@ -20,7 +20,6 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "play-internal.h"
 
 #include <gst/audio/gstaudiobasesink.h>
-#include <gst/video/navigation.h>
 
 /* Scene object.  */
 struct _lp_Scene
@@ -49,15 +48,15 @@ struct _lp_Scene
   } video;
   struct
   {
-    lp_EventMask mask;          /* cached event mask */
+    gint mask;                  /* event mask */
     gint width;                 /* cached width */
     gint height;                /* cached height */
     gint pattern;               /* cached pattern */
     gint wave;                  /* cached wave */
-    guint64 ticks;              /* cached ticks */
-    guint64 interval;           /* cached interval */
-    guint64 time;               /* cached time */
-    gboolean lockstep;          /* cached lockstep */
+    guint64 ticks;              /* ticks */
+    guint64 interval;           /* interval */
+    guint64 time;               /* time */
+    gboolean lockstep;          /* lockstep */
   } prop;
 };
 
@@ -75,7 +74,7 @@ static const gstx_eltmap_t lp_scene_eltmap_video[] = {
   {"capsfilter",    offsetof (lp_Scene, video.filter)},
   {"compositor",    offsetof (lp_Scene, video.mixer)},
   {"videoconvert",  offsetof (lp_Scene, video.convert)},
-  {"ximagesink",    offsetof (lp_Scene, video.sink)},
+  {"autovideosink", offsetof (lp_Scene, video.sink)},
   {NULL, 0},
 };
 
@@ -111,7 +110,43 @@ GX_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
 
 static gint lp_scene_tick_callback (GstClock *, GstClockTime, GstClockID,
                                     lp_Scene *);
+
 
+static void
+scene_enslave_audio_clock (lp_Scene *scene)
+{
+  GstElement *sink;
+  GstClock *clock;
+
+  sink = _lp_scene_get_real_audio_sink (scene);
+  GST_OBJECT_FLAG_SET (G_OBJECT (sink), GST_CLOCK_FLAG_CAN_SET_MASTER);
+
+  g_assert (GST_IS_AUDIO_BASE_SINK (sink));
+  clock = GST_AUDIO_BASE_SINK (sink)->provided_clock;
+  if (unlikely (!gst_clock_set_master (clock, scene->clock)))
+    _lp_warn ("cannot enslave audio clock to scene clock");
+
+  gst_object_unref (sink);
+}
+
+static GstElement *
+scene_get_real_sink (lp_Scene *scene, ptrdiff_t offset)
+{
+  GstElement **elt;
+  GObject *sink;
+
+  elt = (GstElement **)(((ptrdiff_t) scene) + offset);
+  g_assert_nonnull (*elt);
+
+  if (!GST_IS_CHILD_PROXY (*elt))
+    return GST_ELEMENT (gst_object_ref (*elt));
+
+  sink = gst_child_proxy_get_child_by_index (GST_CHILD_PROXY (*elt), 0);
+  g_assert_nonnull (sink);
+
+  return GST_ELEMENT (sink);
+}
+
 static void
 scene_update_clock_id (lp_Scene *scene)
 {
@@ -190,17 +225,11 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
               scene->prop.ticks++;
               break;
             }
-          case LP_EVENT_MASK_KEY:
-            {
-              break;
-            }
-          case LP_EVENT_MASK_POINTER_CLICK:
-            {
-              break;
-            }
+          case LP_EVENT_MASK_KEY:           /* fall-through */
+          case LP_EVENT_MASK_POINTER_CLICK: /* fall-through */
           case LP_EVENT_MASK_POINTER_MOVE:
             {
-              break;
+              break;            /* nothing to do */
             }
           case LP_EVENT_MASK_ERROR:
             {
@@ -492,12 +521,8 @@ lp_scene_set_property (GObject *object, guint prop_id,
   switch (prop_id)
     {
     case PROP_MASK:
-      {
-        gint mask;
-        mask = g_value_get_int (value);
-        scene->prop.mask = (lp_EventMask) mask;
-        break;
-      }
+      scene->prop.mask = g_value_get_int (value);
+      break;
     case PROP_WIDTH:
       scene->prop.width = g_value_get_int (value);
       break;
@@ -516,15 +541,15 @@ lp_scene_set_property (GObject *object, guint prop_id,
       scene->prop.wave = g_value_get_int (value);
       g_object_set (scene->audio.blank, "wave", scene->prop.wave, NULL);
       break;
-    case PROP_TICKS:
-      scene->prop.ticks = g_value_get_uint64 (value);
+    case PROP_TICKS:            /* read-only */
+      g_assert_not_reached ();
       break;
     case PROP_INTERVAL:
       scene->prop.interval = g_value_get_uint64 (value);
       scene_update_clock_id (scene);
       break;
-    case PROP_TIME:
-      scene->prop.time = g_value_get_uint64 (value);
+    case PROP_TIME:             /* read-only */
+      g_assert_not_reached ();
       break;
     case PROP_LOCKSTEP:
       scene->prop.lockstep = g_value_get_boolean (value);
@@ -547,18 +572,6 @@ lp_scene_constructed (GObject *object)
   scene->clock = GST_CLOCK (g_object_new (LP_TYPE_CLOCK, NULL));
   g_assert_nonnull (scene->clock);
   gst_pipeline_use_clock (GST_PIPELINE (scene->pipeline), scene->clock);
-
-  if (scene->prop.lockstep)
-    {
-      GstClock *audio;
-
-      GST_OBJECT_FLAG_SET (G_OBJECT (scene->audio.sink),
-                           GST_CLOCK_FLAG_CAN_SET_MASTER);
-
-      audio = GST_AUDIO_BASE_SINK (scene->audio.sink)->provided_clock;
-      if (unlikely (!gst_clock_set_master (audio, scene->clock)))
-        _lp_warn ("cannot enslave audio clock to scene clock");
-    }
 
   bus = gst_pipeline_get_bus (GST_PIPELINE (scene->pipeline));
   g_assert_nonnull (bus);
@@ -601,6 +614,7 @@ lp_scene_constructed (GObject *object)
                 "wave", scene->prop.wave, NULL);
 
   gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
+  scene_enslave_audio_clock (scene);
   scene->offset = gstx_element_get_clock_time (scene->pipeline);
 }
 
@@ -747,12 +761,30 @@ _lp_scene_get_audio_mixer (const lp_Scene *scene)
   return scene->audio.mixer;
 }
 
+/* Returns @scene (real) audio sink.
+   Transfer-full; unref after usage.  */
+
+GstElement *
+_lp_scene_get_real_audio_sink (lp_Scene *scene)
+{
+  return scene_get_real_sink (scene, offsetof (lp_Scene, audio.sink));
+}
+
 /* Returns @scene video mixer.  */
 
 ATTR_PURE GstElement *
 _lp_scene_get_video_mixer (const lp_Scene *scene)
 {
   return scene->video.mixer;
+}
+
+/* Returns @scene (real) video sink.
+   Transfer-full; unref after usage.  */
+
+GstElement *
+_lp_scene_get_real_video_sink (lp_Scene *scene)
+{
+  return scene_get_real_sink (scene, offsetof (lp_Scene, video.sink));
 }
 
 /* Returns true if scene has video output.  */

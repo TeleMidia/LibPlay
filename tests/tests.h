@@ -32,6 +32,7 @@ GX_INCLUDE_PROLOGUE
 GX_INCLUDE_EPILOGUE
 
 PRAGMA_DIAG_IGNORE (-Wfloat-equal)
+PRAGMA_DIAG_IGNORE (-Winline)
 
 /* Sleeps for @n seconds.  */
 #define SLEEP(n) g_usleep ((n) * 1000000)
@@ -75,6 +76,47 @@ await_ticks (lp_Scene *scene, guint n)
   g_assert_nonnull (event);
   g_assert (LP_IS_EVENT_TICK (event));
   g_object_unref (event);
+}
+
+/* Sends a key to @scene.  */
+
+static ATTR_UNUSED void
+send_key (lp_Scene *scene, const gchar *key, gboolean press)
+{
+  GstElement *sink;
+  sink = _lp_scene_get_real_video_sink (scene);
+  g_assert_nonnull (sink);
+  gst_navigation_send_key_event (GST_NAVIGATION (sink),
+                                 press ? "key-press" : "key-release", key);
+  gst_object_unref (sink);
+}
+
+/* Send a pointer click to @scene.  */
+
+static ATTR_UNUSED void
+send_pointer_click (lp_Scene *scene, gint button, gdouble x, gdouble y,
+                    gboolean press)
+{
+  GstElement *sink = _lp_scene_get_real_video_sink (scene);
+  g_assert_nonnull (sink);
+  gst_navigation_send_mouse_event (GST_NAVIGATION (sink),
+                                   press
+                                   ? "mouse-button-press"
+                                   : "mouse-button-release",
+                                   button, x, y);
+  gst_object_unref (sink);
+}
+
+/* Send a pointer move to @scene.  */
+
+static ATTR_UNUSED void
+send_pointer_move (lp_Scene *scene, gdouble x, gdouble y)
+{
+  GstElement *sink = _lp_scene_get_real_video_sink (scene);
+  g_assert_nonnull (sink);
+  gst_navigation_send_mouse_event (GST_NAVIGATION (sink),
+                                   "mouse-move", 0, x, y);
+  gst_object_unref (sink);
 }
 
 #endif /* TESTS_H */

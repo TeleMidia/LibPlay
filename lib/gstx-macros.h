@@ -36,6 +36,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 GSTX_INCLUDE_PROLOGUE
 #include <gst/gst.h>
+#include <gst/video/navigation.h>
 GSTX_INCLUDE_EPILOGUE
 
 
@@ -54,7 +55,7 @@ static ATTR_UNUSED gboolean
 gstx_eltmap_alloc (const void *obj, const gstx_eltmap_t map[],
                    const gchar **err)
 {
-  size_t i;
+  gsize i;
   for (i = 0; map[i].name != NULL; i++)
     {
       GstElement **elt;
@@ -62,7 +63,7 @@ gstx_eltmap_alloc (const void *obj, const gstx_eltmap_t map[],
       *elt = gst_element_factory_make (map[i].name, NULL);
       if (unlikely (*elt == NULL))
         {
-          size_t j;
+          gsize j;
           set_if_nonnull (err, map[i].name);
           for (j = 0; j < i; j++)
             {

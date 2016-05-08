@@ -97,6 +97,8 @@ lp_event_stop_constructed (GObject *object)
   g_object_get (event, "source", &source, "mask", &mask, NULL);
   g_assert (LP_IS_MEDIA (source));
   g_assert (mask == LP_EVENT_MASK_STOP);
+
+  G_OBJECT_CLASS (lp_event_stop_parent_class)->constructed (object);
 }
 
 static void

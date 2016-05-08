@@ -127,6 +127,9 @@ lp_event_pointer_click_constructed (GObject *object)
   g_object_get (event, "source", &source, "mask", &mask, NULL);
   g_assert (LP_IS_SCENE (source));
   g_assert (mask == LP_EVENT_MASK_POINTER_CLICK);
+
+  G_OBJECT_CLASS (lp_event_pointer_click_parent_class)
+    ->constructed (object);
 }
 
 static void

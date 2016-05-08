@@ -123,8 +123,10 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 
 #define media_lock(media)         g_rec_mutex_lock (&((media)->mutex))
 #define media_unlock(media)       g_rec_mutex_unlock (&((media)->mutex))
+
 #define media_is_starting(media)  ((media)->starting)
 #define media_is_stopping(media)  ((media)->stopping)
+
 #define media_has_drained(media)  ((media)->drained)
 #define media_has_audio(media)    ((media)->audio.mixerpad != NULL)
 #define media_has_video(media)    ((media)->video.mixerpad != NULL)
@@ -139,12 +141,31 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
    && !media_is_stopping ((media))              \
    && (media)->bin == NULL)
 
+#define MEDIA_LOCKED(media, stmt)               \
+  STMT_BEGIN                                    \
+  {                                             \
+    media_lock ((media));                       \
+    stmt;                                       \
+    media_unlock ((media));                     \
+  }                                             \
+  STMT_END
+
+#define MEDIA_UNLOCKED(media, stmt)             \
+  STMT_BEGIN                                    \
+  {                                             \
+    media_unlock ((media));                     \
+    stmt;                                       \
+    media_lock ((media));                       \
+  }                                             \
+  STMT_END
+
 
 /* callbacks */
 
 /* Called asynchronously whenever media decoder finds a new stream.
    This callback is triggered immediately before the decoder starts looking
-   for elements to handle given the stream.  */
+   for elements to handle given the stream.
+   WARNING: Any access to media members must be locked.  */
 
   static gboolean
 lp_media_autoplug_continue_callback (arg_unused (GstElement *elt),
@@ -153,20 +174,17 @@ lp_media_autoplug_continue_callback (arg_unused (GstElement *elt),
 {
   const gchar *name;
 
-  media_lock (media);
-
   name = gst_structure_get_name (gst_caps_get_structure (caps, 0));
   g_assert_nonnull (name);
 
   if (g_str_has_prefix (name, "image"))
-    media->video.frozen = TRUE;
-
-  media_unlock (media);
+    MEDIA_LOCKED (media, media->video.frozen = TRUE);
 
   return TRUE;
 }
 
-/* Called asynchronously whenever media decoder drains its source.  */
+/* Called asynchronously whenever media decoder drains its source.
+   WARNING: Any access to media members must be locked.  */
 
 static void
 lp_media_drained_callback (arg_unused (GstElement *dec),
@@ -193,7 +211,8 @@ lp_media_drained_callback (arg_unused (GstElement *dec),
 }
 
 /* Called asynchronously whenever media decoder creates a pad.
-   Builds and starts the media processing graph.  */
+   Builds and starts the media processing graph.
+   WARNING: Any access to media members must be locked.  */
 
 static void
 lp_media_pad_added_callback (arg_unused (GstElement *dec),
@@ -368,7 +387,8 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
 }
 
 /* Called whenever pad state matches BLOCK_DOWNSTREAM.
-   This callback is triggered by lp_media_stop().  */
+   This callback is triggered by lp_media_stop().
+   WARNING: Any access to media members must be locked.  */
 
 static GstPadProbeReturn
 lp_media_pad_probe_callback (GstPad *pad,
@@ -634,16 +654,16 @@ lp_media_set_property (GObject *object, guint prop_id,
 static void
 lp_media_constructed (GObject *object)
 {
+  lp_Scene *scene;
   lp_Media *media;
 
   media = LP_MEDIA (object);
-  media_lock (media);
+  MEDIA_LOCKED (media, scene = media->prop.scene);
+  g_assert_true (LP_IS_SCENE (scene));
 
   /* FIXME: Users cannot unref media objects directly.  */
 
-  _lp_scene_add_media (media->prop.scene, media);
-
-  media_unlock (media);
+  _lp_scene_add_media (scene, media);
 }
 
 static void
@@ -656,11 +676,14 @@ lp_media_dispose (GObject *object)
 
   while (!media_has_stopped (media))
     {
+      lp_Scene *scene;
+
       lp_media_stop (media);
 
-      media_unlock (media);
-      _lp_scene_step (media->prop.scene, TRUE);
-      media_lock (media);
+      scene = media->prop.scene;
+      g_assert_true (LP_IS_SCENE (scene));
+
+      MEDIA_UNLOCKED (media, _lp_scene_step (scene, TRUE));
     }
 
   media_unlock (media);
@@ -767,12 +790,7 @@ _lp_media_get_active_pads (lp_Media *media)
 {
   guint n;
 
-  media_lock (media);
-
-  n = media->active_pads;
-
-  media_unlock (media);
-
+  MEDIA_LOCKED (media, n = media->active_pads);
   return n;
 }
 

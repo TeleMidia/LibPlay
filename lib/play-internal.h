@@ -128,13 +128,13 @@ _lp_media_finish_stop (lp_Media *);
 /* scene */
 
 GstElement *
-_lp_scene_get_pipeline (const lp_Scene *);
+_lp_scene_get_pipeline (lp_Scene *);
 
 GstElement *
-_lp_scene_get_audio_mixer (const lp_Scene *);
+_lp_scene_get_audio_mixer (lp_Scene *);
 
 GstElement *
-_lp_scene_get_video_mixer (const lp_Scene *);
+_lp_scene_get_video_mixer (lp_Scene *);
 
 GstElement *
 _lp_scene_get_real_audio_sink (lp_Scene *); /* transfer-full */
@@ -143,10 +143,10 @@ GstElement *
 _lp_scene_get_real_video_sink (lp_Scene *); /* transfer-full */
 
 GstClockTime
-_lp_scene_get_clock_time (const lp_Scene *);
+_lp_scene_get_clock_time (lp_Scene *);
 
 gboolean
-_lp_scene_has_video (const lp_Scene *);
+_lp_scene_has_video (lp_Scene *);
 
 void
 _lp_scene_add_media (lp_Scene *, lp_Media *);

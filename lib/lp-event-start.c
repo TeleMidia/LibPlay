@@ -115,7 +115,7 @@ lp_event_start_to_string (lp_Event *event)
   start = LP_EVENT_START (event);
   return _lp_event_to_string (event, "\
   resume: %s\n\
-",                            strbool (start));
+",                            strbool (start->prop.resume));
 }
 
 static void

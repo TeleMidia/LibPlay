@@ -25,7 +25,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 struct _lp_Media
 {
   GObject parent;               /* parent object */
-  GRecMutex mutex;              /* sync access to media object */
+  GRecMutex mutex;              /* sync access to media */
   GstElement *bin;              /* container */
   GstElement *decoder;          /* content decoder */
   GstClockTime offset;          /* start time offset */
@@ -446,6 +446,7 @@ lp_media_get_property (GObject *object, guint prop_id,
 
   media = LP_MEDIA (object);
   media_lock (media);
+
   switch (prop_id)
     {
     case PROP_SCENE:
@@ -492,6 +493,7 @@ lp_media_set_property (GObject *object, guint prop_id,
 
   media = LP_MEDIA (object);
   media_lock (media);
+
   switch (prop_id)
     {
     case PROP_SCENE:            /* don't take ownership */
@@ -635,10 +637,13 @@ lp_media_constructed (GObject *object)
   lp_Media *media;
 
   media = LP_MEDIA (object);
+  media_lock (media);
 
   /* FIXME: Users cannot unref media objects directly.  */
 
   _lp_scene_add_media (media->prop.scene, media);
+
+  media_unlock (media);
 }
 
 static void
@@ -707,49 +712,49 @@ lp_media_class_init (lp_MediaClass *cls)
     (gobject_class, PROP_X, g_param_spec_int
      ("x", "x", "horizontal position",
       G_MININT, G_MAXINT, DEFAULT_X,
-      G_PARAM_READWRITE));
+      (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_Y, g_param_spec_int
      ("y", "y", "vertical position",
       G_MININT, G_MAXINT, DEFAULT_Y,
-      G_PARAM_READWRITE));
+      (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_Z, g_param_spec_int
      ("z", "z", "z-order",
       0, G_MAXINT, DEFAULT_Z,
-      G_PARAM_READWRITE));
+      (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_WIDTH, g_param_spec_int
      ("width", "width", "width in pixels",
       0, G_MAXINT, DEFAULT_WIDTH,
-      G_PARAM_READWRITE));
+      (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_HEIGHT, g_param_spec_int
      ("height", "height", "height in pixels",
       0, G_MAXINT, DEFAULT_HEIGHT,
-      G_PARAM_READWRITE));
+      (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_ALPHA, g_param_spec_double
      ("alpha", "alpha", "transparency factor",
       0.0, 1.0, DEFAULT_ALPHA,
-      G_PARAM_READWRITE));
+      (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_MUTE, g_param_spec_boolean
      ("mute", "mute", "mute flag",
       DEFAULT_MUTE,
-      G_PARAM_READWRITE));
+      (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_VOLUME, g_param_spec_double
      ("volume", "volume", "volume factor",
       0.0, 10.0, DEFAULT_VOLUME,
-      G_PARAM_READWRITE));
+      (GParamFlags)(G_PARAM_READWRITE)));
 }
 
 

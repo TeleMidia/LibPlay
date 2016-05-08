@@ -101,7 +101,7 @@ main (void)
     }
   STMT_END;
 
-  /* success: start samples at random positions */
+  /* success: start random samples */
   STMT_BEGIN
     {
       lp_Scene *scene;
@@ -123,7 +123,7 @@ main (void)
                            "uri", random_sample (),
                            "x", g_random_int_range (0, w),
                            "y", g_random_int_range (0, h),
-                           "z", g_random_int_range (1, nelementsof (media)),
+                           "z", g_random_int_range (1, 10),
                            "width", g_random_int_range (0, w),
                            "height", g_random_int_range (0, h),
                            "alpha", g_random_double_range (0., 1.),

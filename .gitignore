@@ -84,6 +84,7 @@
 /tests/test-lp-media-new-xfail-1
 /tests/test-lp-media-new-xfail-2
 /tests/test-lp-media-start
+/tests/test-lp-media-stop
 /tests/test-lp-scene-advance
 /tests/test-lp-scene-new
 /tests/test-lp-scene-prop-interval

@@ -58,7 +58,7 @@ LD_PRELOAD+= play0$(SOEXT)
 endif
 
 AM_TESTS_ENVIRONMENT=\
-  export GST_DEBUG="*:WARN";\
+  export GST_DEBUG="*:ERROR";\
   export G_DEBUG="all";\
   export G_SLICE="always-malloc";\
   export LD_LIBRARY_PATH="$(top_builddir)/lib/.libs:$(top_builddir)/play:$$LD_LIBRARY_PATH";\
@@ -102,6 +102,7 @@ programs+= test-lp-media-new
 programs+= test-lp-media-new-xfail-1
 programs+= test-lp-media-new-xfail-2
 programs+= test-lp-media-start
+programs+= test-lp-media-stop
 check_PROGRAMS= $(programs)
 
 TESTS=\

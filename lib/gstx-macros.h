@@ -36,6 +36,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 GSTX_INCLUDE_PROLOGUE
 #include <gst/gst.h>
+#include <gst/audio/gstaudiobasesink.h>
 #include <gst/video/navigation.h>
 GSTX_INCLUDE_EPILOGUE
 

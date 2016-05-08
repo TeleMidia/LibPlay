@@ -68,7 +68,7 @@ static ATTR_UNUSED const char *samples_all[] =
 
 /* Random sample.  */
 #define random_sample()\
-  samples_all[g_random_int_range (0, nelementsof (samples_all) - 1)]
+  samples_all[g_random_int_range (0, nelementsof (samples_all))]
 
 /* Sleeps for @n seconds.  */
 #define SLEEP(n) g_usleep ((n) * 1000000)
@@ -89,7 +89,7 @@ await_filtered (lp_Scene *scene, guint n, guint mask)
       event = lp_scene_receive (scene, TRUE);
       g_assert_nonnull (event);
 
-      if (lp_event_get_mask (event) & mask && --n == 0)
+      if ((lp_event_get_mask (event) & mask) && --n == 0)
         break;
 
       g_object_unref (event);

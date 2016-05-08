@@ -56,6 +56,9 @@ GX_INCLUDE_EPILOGUE
 
 /* checks */
 
+#define _lp_critical(fmt, ...)\
+  g_critical (G_STRLOC ": " fmt, ## __VA_ARGS__)
+
 #define _lp_error(fmt, ...)\
   g_error (G_STRLOC ": " fmt, ## __VA_ARGS__)
 
@@ -109,6 +112,9 @@ _lp_event_stop_new (lp_Media *, gboolean);
 
 guint
 _lp_media_get_active_pads (lp_Media *);
+
+lp_Media *
+_lp_media_find_media (GstObject *);
 
 void
 _lp_media_finish_abort (lp_Media *);

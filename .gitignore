@@ -80,8 +80,10 @@
 /tests/test-lp-event-stop
 /tests/test-lp-event-tick
 /tests/test-lp-event-xfail
-/tests/test-lp-media
-/tests/test-lp-media-image
+/tests/test-lp-media-new
+/tests/test-lp-media-new-xfail-1
+/tests/test-lp-media-new-xfail-2
+/tests/test-lp-media-start
 /tests/test-lp-scene-advance
 /tests/test-lp-scene-new
 /tests/test-lp-scene-prop-interval

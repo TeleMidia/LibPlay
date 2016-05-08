@@ -225,8 +225,8 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
               scene->prop.ticks++;
               break;
             }
-          case LP_EVENT_MASK_KEY:           /* fall-through */
-          case LP_EVENT_MASK_POINTER_CLICK: /* fall-through */
+          case LP_EVENT_MASK_KEY:           /* fall through */
+          case LP_EVENT_MASK_POINTER_CLICK: /* fall through */
           case LP_EVENT_MASK_POINTER_MOVE:
             {
               break;            /* nothing to do */
@@ -291,7 +291,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
 
         switch (type)
           {
-          case GST_NAVIGATION_EVENT_KEY_PRESS:
+          case GST_NAVIGATION_EVENT_KEY_PRESS: /* fall through */
           case GST_NAVIGATION_EVENT_KEY_RELEASE:
             {
               const gchar *key;
@@ -301,7 +301,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
               to = LP_EVENT (_lp_event_key_new (scene, key, press));
               break;
             }
-          case GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS:
+          case GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS: /* fall through */
           case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE:
             {
               gint button;
@@ -339,8 +339,53 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     case GST_MESSAGE_ERROR:
       {
         GError *error;
+        gchar *debug;
+
         gst_message_parse_error (msg, &error, NULL);
-        _lp_error ("%s", error->message);
+        debug = gst_error_get_message (error->domain, error->code);
+        g_assert_nonnull (debug);
+
+        if (error->domain == GST_LIBRARY_ERROR
+            || error->domain == GST_RESOURCE_ERROR
+            || error->domain == GST_CORE_ERROR)
+          {
+            _lp_critical ("%s: %s", debug, error->message);
+          }
+        else if (error->domain ==  GST_STREAM_ERROR)
+          {
+            GstObject *obj;
+            lp_Media *media;
+
+            obj = GST_MESSAGE_SRC (msg);
+            g_assert_nonnull (obj);
+
+            media = _lp_media_find_media (obj);
+            if (media != NULL && _lp_media_get_active_pads (media) == 0)
+              {
+                GError *errnew;
+                lp_Event *event;
+
+                /* FIXME: Currently we only handle async start errors.  */
+
+                errnew = g_error_new_literal (LP_ERROR, LP_ERROR_START,
+                                              error->message);
+                g_assert_nonnull (errnew);
+                event = LP_EVENT (_lp_event_error_new (media, errnew));
+                g_error_free (errnew);
+
+                _lp_scene_dispatch (scene, event);
+              }
+            else
+              {
+                _lp_error ("STREAM ERROR: %s: %s", error->message, debug);
+              }
+          }
+        else
+          {
+            g_assert_not_reached ();
+          }
+
+        g_free (debug);
         g_error_free (error);
         break;
       }
@@ -541,15 +586,15 @@ lp_scene_set_property (GObject *object, guint prop_id,
       scene->prop.wave = g_value_get_int (value);
       g_object_set (scene->audio.blank, "wave", scene->prop.wave, NULL);
       break;
-    case PROP_TICKS:            /* read-only */
-      g_assert_not_reached ();
+    case PROP_TICKS:
+      g_assert_not_reached ();  /* read-only */
       break;
     case PROP_INTERVAL:
       scene->prop.interval = g_value_get_uint64 (value);
       scene_update_clock_id (scene);
       break;
-    case PROP_TIME:             /* read-only */
-      g_assert_not_reached ();
+    case PROP_TIME:
+      g_assert_not_reached ();  /* read-only */
       break;
     case PROP_LOCKSTEP:
       scene->prop.lockstep = g_value_get_boolean (value);

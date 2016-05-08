@@ -34,6 +34,42 @@ GX_INCLUDE_EPILOGUE
 PRAGMA_DIAG_IGNORE (-Wfloat-equal)
 PRAGMA_DIAG_IGNORE (-Winline)
 
+/* Expands to the path of the given sample file.  */
+#define SAMPLES_DIR(file) TOP_SRCDIR"/tests/samples/"G_STRINGIFY (file)
+
+/* Audio samples. */
+#define SAMPLE_ARCADE     SAMPLES_DIR (arcade.mp3)
+#define SAMPLE_EVILEYE    SAMPLES_DIR (evileye.mp3)
+
+/* Image samples.  */
+#define SAMPLE_EARTH      SAMPLES_DIR (earth.gif)
+#define SAMPLE_FELIS      SAMPLES_DIR (felis.jpg)
+#define SAMPLE_GNU        SAMPLES_DIR (gnu.png)
+
+/* Video samples.  */
+#define SAMPLE_DIODE      SAMPLES_DIR (diode.mp4)
+#define SAMPLE_NIGHT      SAMPLES_DIR (night.avi)
+#define SAMPLE_ROAD       SAMPLES_DIR (road.ogv)
+#define SAMPLE_SYNC       SAMPLES_DIR (sync.m4v)
+
+/* All samples.  */
+static ATTR_UNUSED const char *samples_all[] =
+{
+  SAMPLE_ARCADE,
+  SAMPLE_EVILEYE,
+  SAMPLE_EARTH,
+  SAMPLE_FELIS,
+  SAMPLE_GNU,
+  SAMPLE_DIODE,
+  SAMPLE_NIGHT,
+  SAMPLE_ROAD,
+  SAMPLE_SYNC
+};
+
+/* Random sample.  */
+#define random_sample()\
+  samples_all[g_random_int_range (0, nelementsof (samples_all) - 1)]
+
 /* Sleeps for @n seconds.  */
 #define SLEEP(n) g_usleep ((n) * 1000000)
 

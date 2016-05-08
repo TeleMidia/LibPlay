@@ -494,17 +494,15 @@ lp_media_set_property (GObject *object, guint prop_id,
   media_lock (media);
   switch (prop_id)
     {
-    case PROP_SCENE:
-      {                         /* don't take ownership */
-        GObject *obj = (GObject *) g_value_get_object (value);
-        g_assert (LP_IS_SCENE (obj));
-        g_assert (media->prop.scene == DEFAULT_SCENE);
-        media->prop.scene = LP_SCENE (obj);
-        break;
-      }
+    case PROP_SCENE:            /* don't take ownership */
+      g_assert (media->prop.scene == DEFAULT_SCENE);
+      media->prop.scene = (lp_Scene *) g_value_get_object (value);
+      g_assert (LP_IS_SCENE (media->prop.scene));
+      break;
     case PROP_URI:
       g_assert (media->prop.uri == DEFAULT_URI);
       media->prop.uri = g_value_dup_string (value);
+      g_assert_nonnull (media->prop.uri);
       break;
     case PROP_X:
       media->prop.x = g_value_get_int (value);
@@ -535,18 +533,20 @@ lp_media_set_property (GObject *object, guint prop_id,
     }
 
   if (!media_has_started (media))
-    goto done;                  /* nothing else to do */
+    goto done;                  /* nothing to do */
 
   switch (prop_id)
     {
-    case PROP_SCENE:
+    case PROP_SCENE:            /* fall through */
     case PROP_URI:
-      break;
-    case PROP_X:
-    case PROP_Y:
-    case PROP_Z:
-    case PROP_WIDTH:
-    case PROP_HEIGHT:
+      {
+        break;                  /* nothing to do */
+      }
+    case PROP_X:                /* fall through */
+    case PROP_Y:                /* fall through */
+    case PROP_Z:                /* fall through */
+    case PROP_WIDTH:            /* fall through */
+    case PROP_HEIGHT:           /* fall through */
     case PROP_ALPHA:
       {
         GstElement *mixer;
@@ -591,7 +591,7 @@ lp_media_set_property (GObject *object, guint prop_id,
         g_object_unref (sink);
         break;
       }
-    case PROP_MUTE:
+    case PROP_MUTE:             /* fall through */
     case PROP_VOLUME:
       {
         GstElement *mixer;
@@ -763,10 +763,45 @@ _lp_media_get_active_pads (lp_Media *media)
   guint n;
 
   media_lock (media);
+
   n = media->active_pads;
+
   media_unlock (media);
 
   return n;
+}
+
+/* Searches up in the hierarchy of @obj for a media bin.
+   Returns the associated media if successful, or NULL otherwise.  */
+
+lp_Media *
+_lp_media_find_media (GstObject *obj)
+{
+  GstObject *parent;
+  lp_Media *media;
+  gpointer data;
+
+  if (unlikely (obj == NULL))
+    {
+      return NULL;
+    }
+
+  if (GST_IS_BIN (obj) &&
+      (data = g_object_get_data (G_OBJECT (obj), "lp_Media")) != NULL)
+    {
+      return LP_MEDIA (data);
+    }
+
+  parent = gst_object_get_parent (obj);
+  if (unlikely (parent == NULL))
+    {
+      return NULL;
+    }
+
+  media = _lp_media_find_media (parent);
+  gst_object_unref (parent);
+
+  return media;
 }
 
 /* Finishes async abort.  */

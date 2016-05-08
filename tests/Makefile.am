@@ -98,8 +98,10 @@ programs+= test-lp-scene-prop-interval
 programs+= test-lp-scene-prop-time
 programs+= test-lp-scene-prop-lockstep
 programs+= test-lp-scene-advance
-programs+= test-lp-media
-programs+= test-lp-media-image
+programs+= test-lp-media-new
+programs+= test-lp-media-new-xfail-1
+programs+= test-lp-media-new-xfail-2
+programs+= test-lp-media-start
 check_PROGRAMS= $(programs)
 
 TESTS=\
@@ -110,6 +112,8 @@ TESTS=\
 # Tests that should fail.
 XFAIL_TESTS=\
   test-lp-event-xfail\
+  test-lp-media-new-xfail-1\
+  test-lp-media-new-xfail-2\
   $(NULL)
 
 EXTRA_DIST=\

@@ -47,7 +47,7 @@ main (void)
 
   str = lp_event_to_string (LP_EVENT (event));
   g_assert_nonnull (str);
-  g_print ("%s", str);
+  g_print ("%s\n", str);
   g_free (str);
 
   g_assert (source == scene);

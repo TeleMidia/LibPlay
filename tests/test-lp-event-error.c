@@ -32,7 +32,7 @@ main (void)
   scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "lockstep", TRUE, NULL));
   g_assert_nonnull (scene);
 
-  media = lp_media_new (scene, NULL);
+  media = lp_media_new (scene, SAMPLE_GNU);
   g_assert_nonnull (media);
 
   error = g_error_new_literal (G_MARKUP_ERROR, G_MARKUP_ERROR_EMPTY, "e1");
@@ -50,7 +50,7 @@ main (void)
 
   str = lp_event_to_string (LP_EVENT (event));
   g_assert_nonnull (str);
-  g_print ("%s", str);
+  g_print ("%s\n", str);
   g_free (str);
 
   g_assert (source == media);

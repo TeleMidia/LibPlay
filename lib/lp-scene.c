@@ -1081,7 +1081,7 @@ lp_scene_new (gint width, gint height)
 gboolean
 lp_scene_advance (lp_Scene *scene, guint64 time)
 {
-  gboolean status;
+  gboolean status = FALSE;
 
   scene_lock (scene);
   if (unlikely (scene_is_quitting (scene)))

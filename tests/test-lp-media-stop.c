@@ -32,10 +32,10 @@ main (void)
       media = lp_media_new (scene, SAMPLE_GNU);
       g_assert_nonnull (media);
 
-      g_assert_false (lp_media_stop (media));
-      g_assert_true (lp_media_start (media));
-      g_assert_false (lp_media_stop (media));
-      g_assert_false (lp_media_stop (media));
+      g_assert (!lp_media_stop (media));
+      g_assert (lp_media_start (media));
+      g_assert (!lp_media_stop (media));
+      g_assert (!lp_media_stop (media));
 
       g_object_unref (scene);
     }
@@ -60,14 +60,14 @@ main (void)
 
       for (i = 0; i < 3; i++)
         {
-          g_assert_true (lp_media_start (media));
+          g_assert (lp_media_start (media));
           event = await_filtered (scene, 1, LP_EVENT_MASK_STOP);
           g_assert_nonnull (event);
 
           eos = FALSE;
-          g_assert_true (LP_IS_EVENT_STOP (event));
+          g_assert (LP_IS_EVENT_STOP (event));
           g_object_get (event, "eos", &eos, NULL);
-          g_assert_true (eos);
+          g_assert (eos);
 
           str = lp_event_to_string (event);
           g_print ("%s\n", str);

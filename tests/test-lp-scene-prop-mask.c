@@ -57,7 +57,7 @@ main (void)
   g_assert (LP_IS_EVENT_KEY (event));
   g_object_get (event, "key", &key, "press", &press, NULL);
   g_assert (g_str_equal (key, "q"));
-  g_assert_true (press);
+  g_assert (press);
   g_object_unref (event);
 
   /* click */
@@ -73,7 +73,7 @@ main (void)
   g_assert (button == 3);
   g_assert (x == 10.);
   g_assert (y == 10.);
-  g_assert_true (press);
+  g_assert (press);
   g_object_unref (event);
 
   /* move */

@@ -27,11 +27,11 @@ main (void)
   g_assert_nonnull (scene);
 
   g_object_get (scene, "lockstep", &lockstep, NULL);
-  g_assert_false (lockstep);    /* default */
+  g_assert (!lockstep);    /* default */
 
   g_object_set (scene, "lockstep", TRUE, NULL);
   g_object_get (scene, "lockstep", &lockstep, NULL);
-  g_assert_true (lockstep);
+  g_assert (lockstep);
   g_object_unref (scene);
 
   lockstep = FALSE;
@@ -39,11 +39,11 @@ main (void)
   g_assert_nonnull (scene);
 
   g_object_get (scene, "lockstep", &lockstep, NULL);
-  g_assert_true (lockstep);
+  g_assert (lockstep);
 
   g_object_set (scene, "lockstep", FALSE, NULL);
   g_object_get (scene, "lockstep", &lockstep, NULL);
-  g_assert_false (lockstep);
+  g_assert (!lockstep);
   g_object_unref (scene);
 
   exit (EXIT_SUCCESS);

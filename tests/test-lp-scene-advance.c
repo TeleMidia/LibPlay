@@ -33,25 +33,25 @@ main (void)
       g_assert_nonnull (scene);
 
       g_object_get (scene, "lockstep", &lockstep, NULL);
-      g_assert_false (lockstep);
+      g_assert (!lockstep);
 
       g_object_set (scene, "pattern", 18, "wave", 0, NULL);
       await_ticks (scene, 2);
 
-      g_assert_false (lp_scene_advance (scene, GST_SECOND));
+      g_assert (!lp_scene_advance (scene, GST_SECOND));
 
       for (i = 0; i < 3; i++)
         {
           g_object_set (scene, "lockstep", TRUE, NULL);
           g_object_get (scene, "lockstep", &lockstep, NULL);
-          g_assert_true (lockstep);
+          g_assert (lockstep);
 
           g_object_get (scene, "time", &time, NULL);
           last = time;
 
           for (j = 0; j < 2000; j++) /* 2s */
             {
-              g_assert_true (lp_scene_advance (scene, 1 * GST_MSECOND));
+              g_assert (lp_scene_advance (scene, 1 * GST_MSECOND));
               g_object_get (scene, "time", &time, NULL);
               g_assert (((time - last) / GST_MSECOND) == 1);
               last = time;
@@ -60,7 +60,7 @@ main (void)
 
           for (j = 0; j < 4; j++) /* 2s */
             {
-              g_assert_true (lp_scene_advance (scene, 500 * GST_MSECOND));
+              g_assert (lp_scene_advance (scene, 500 * GST_MSECOND));
               g_object_get (scene, "time", &time, NULL);
               g_assert (((time - last) / GST_MSECOND) == 500);
               last = time;
@@ -69,8 +69,8 @@ main (void)
 
           g_object_set (scene, "lockstep", FALSE, NULL);
           g_object_get (scene, "lockstep", &lockstep, NULL);
-          g_assert_false (lockstep);
-          g_assert_false (lp_scene_advance (scene, GST_SECOND));
+          g_assert (!lockstep);
+          g_assert (!lp_scene_advance (scene, GST_SECOND));
 
           SLEEP (2);            /* 2s */
         }

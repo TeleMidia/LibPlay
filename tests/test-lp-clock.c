@@ -27,16 +27,16 @@ main (void)
   g_assert_nonnull (clock);
 
   g_object_get (clock, "lockstep", &lockstep, NULL);
-  g_assert_false (lockstep);
+  g_assert (!lockstep);
 
   g_object_set (clock, "lockstep", TRUE, NULL);
   g_object_get (clock, "lockstep", &lockstep, NULL);
-  g_assert_true (lockstep);
+  g_assert (lockstep);
 
   lockstep = FALSE;
   g_object_set (clock, "lockstep", TRUE, NULL); /* vacuous set */
   g_object_get (clock, "lockstep", &lockstep, NULL);
-  g_assert_true (lockstep);
+  g_assert (lockstep);
 
   g_object_unref (clock);
 

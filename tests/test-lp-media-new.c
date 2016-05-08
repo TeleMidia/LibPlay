@@ -52,7 +52,7 @@ main (void)
   g_assert (sc == scene);
 
   g_object_get (media, "uri", &uri, NULL);
-  g_assert_true (g_str_equal (uri, "test"));
+  g_assert (g_str_equal (uri, "test"));
   g_free (uri);
   g_object_unref (scene);
 

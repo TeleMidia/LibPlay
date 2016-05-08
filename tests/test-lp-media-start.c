@@ -32,7 +32,7 @@ main (void)
       media = lp_media_new (scene, "nonexistent");
       g_assert_nonnull (media);
 
-      g_assert_false (lp_media_start (media));
+      g_assert (!lp_media_start (media));
       g_object_unref (scene);
     }
   STMT_END;
@@ -61,7 +61,7 @@ main (void)
       g_object_unref (event);
 
       g_assert_nonnull (error);
-      g_assert_true (g_error_matches (error, LP_ERROR, LP_ERROR_START));
+      g_assert (g_error_matches (error, LP_ERROR, LP_ERROR_START));
       g_print ("%s\n", error->message);
       g_error_free (error);
 
@@ -93,7 +93,7 @@ main (void)
       g_object_unref (event);
 
       g_assert_nonnull (error);
-      g_assert_true (g_error_matches (error, LP_ERROR, LP_ERROR_START));
+      g_assert (g_error_matches (error, LP_ERROR, LP_ERROR_START));
       g_print ("%s\n", error->message);
       g_error_free (error);
 

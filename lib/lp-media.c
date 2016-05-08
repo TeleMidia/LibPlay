@@ -198,7 +198,7 @@ lp_media_drained_callback (arg_unused (GstElement *dec),
   if (unlikely (media->video.frozen))
     goto done;                  /* static image, nothing to do */
 
-  g_assert_false (media->drained);
+  g_assert (!media->drained);
   media->drained = TRUE;
 
   /* FIXME: We shouldn't call lp_media_stop() here, but postponing it to the
@@ -224,8 +224,8 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
 
   media_lock (media);
 
-  g_assert_true (media_is_starting (media));
-  g_assert_false (media_is_stopping (media));
+  g_assert (media_is_starting (media));
+  g_assert (!media_is_stopping (media));
 
   scene = media->prop.scene;
   g_assert_nonnull (scene);
@@ -284,8 +284,8 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
           g_assert_nonnull (ghost);
         }
 
-      g_assert_true (gst_pad_set_active (ghost, TRUE));
-      g_assert_true (gst_element_add_pad (media->bin, ghost));
+      g_assert (gst_pad_set_active (ghost, TRUE));
+      g_assert (gst_element_add_pad (media->bin, ghost));
 
       mixer = _lp_scene_get_video_mixer (scene);
       g_assert_nonnull (mixer);
@@ -352,8 +352,8 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
       g_assert_nonnull (ghost);
       gst_object_unref (pad);
 
-      g_assert_true (gst_pad_set_active (ghost, TRUE));
-      g_assert_true (gst_element_add_pad (media->bin, ghost));
+      g_assert (gst_pad_set_active (ghost, TRUE));
+      g_assert (gst_element_add_pad (media->bin, ghost));
 
       mixer = _lp_scene_get_audio_mixer (scene);
       g_assert_nonnull (mixer);
@@ -399,15 +399,15 @@ lp_media_pad_probe_callback (GstPad *pad,
 
   media_lock (media);
 
-  g_assert_false (media_is_starting (media));
-  g_assert_true (media_is_stopping (media));
+  g_assert (!media_is_starting (media));
+  g_assert (media_is_stopping (media));
 
   peer = gst_pad_get_peer (pad);
   g_assert_nonnull (peer);
   g_assert (gst_pad_send_event (peer, gst_event_new_eos ()));
   gst_object_unref (peer);
 
-  g_assert_true (gst_pad_set_active (pad, FALSE));
+  g_assert (gst_pad_set_active (pad, FALSE));
   g_assert (media->active_pads > 0);
   media->active_pads--;
 
@@ -659,7 +659,7 @@ lp_media_constructed (GObject *object)
 
   media = LP_MEDIA (object);
   MEDIA_LOCKED (media, scene = media->prop.scene);
-  g_assert_true (LP_IS_SCENE (scene));
+  g_assert (LP_IS_SCENE (scene));
 
   /* FIXME: Users cannot unref media objects directly.  */
 
@@ -681,7 +681,7 @@ lp_media_dispose (GObject *object)
       lp_media_stop (media);
 
       scene = media->prop.scene;
-      g_assert_true (LP_IS_SCENE (scene));
+      g_assert (LP_IS_SCENE (scene));
 
       MEDIA_UNLOCKED (media, _lp_scene_step (scene, TRUE));
     }
@@ -848,9 +848,9 @@ _lp_media_finish_start (lp_Media *media)
 {
   media_lock (media);
 
-  g_assert_true (media_is_starting (media));
+  g_assert (media_is_starting (media));
   media->starting = FALSE;
-  g_assert_true (media_has_started (media));
+  g_assert (media_has_started (media));
 
   media_unlock (media);
 }
@@ -864,7 +864,7 @@ _lp_media_finish_stop (lp_Media *media)
 
   media_lock (media);
 
-  g_assert_true (media_is_stopping (media));
+  g_assert (media_is_stopping (media));
   g_assert (media->active_pads == 0);
 
   g_signal_handler_disconnect (media->decoder, media->callback.autoplug);
@@ -872,7 +872,7 @@ _lp_media_finish_stop (lp_Media *media)
   g_signal_handler_disconnect (media->decoder, media->callback.pad_added);
 
   pipeline = _lp_scene_get_pipeline (media->prop.scene);
-  g_assert_true (gst_bin_remove (GST_BIN (pipeline), media->bin));
+  g_assert (gst_bin_remove (GST_BIN (pipeline), media->bin));
   gstx_element_set_state_sync (media->bin, GST_STATE_NULL);
 
   g_clear_pointer (&media->bin, gst_object_unref);
@@ -884,7 +884,7 @@ _lp_media_finish_stop (lp_Media *media)
   g_clear_pointer (&media->video.mixerpad, g_free);
 
   media->stopping = FALSE;
-  g_assert_true (media_has_stopped (media));
+  g_assert (media_has_stopped (media));
 
   media_unlock (media);
 }

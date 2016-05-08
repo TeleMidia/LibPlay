@@ -50,7 +50,7 @@ main (void)
 
   g_assert (source == media);
   g_assert (mask == LP_EVENT_MASK_STOP);
-  g_assert_false (eos);
+  g_assert (!eos);
 
   g_object_unref (event);
   g_object_unref (scene);

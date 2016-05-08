@@ -185,7 +185,7 @@ scene_step_unlocked (lp_Scene *scene, gboolean block)
 {
   GMainContext *ctx;
 
-  g_assert_false (scene_is_quitting (scene));
+  g_assert (!scene_is_quitting (scene));
   ctx = g_main_loop_get_context (scene->loop);
   g_assert_nonnull (ctx);
   g_main_context_iteration (ctx, block);
@@ -692,7 +692,7 @@ lp_scene_constructed (GObject *object)
   gulong ret;
 
   scene = LP_SCENE (object);
-  g_assert_false (scene_is_quitting (scene));
+  g_assert (!scene_is_quitting (scene));
 
   _lp_eltmap_alloc_check (scene, lp_scene_eltmap);
 
@@ -781,7 +781,7 @@ lp_scene_dispose (GObject *object)
 
   bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
   g_assert_nonnull (bus);
-  g_assert_true (gst_bus_remove_watch (bus));
+  g_assert (gst_bus_remove_watch (bus));
   gst_object_unref (bus);
 
   SCENE_UNLOCKED

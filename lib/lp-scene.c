@@ -151,7 +151,8 @@ scene_enslave_audio_clock (lp_Scene *scene)
 
   g_assert (GST_IS_AUDIO_BASE_SINK (sink));
   clock = GST_AUDIO_BASE_SINK (sink)->provided_clock;
-  if (unlikely (!gst_clock_set_master (clock, scene->clock.clock)))
+  if (unlikely (!gst_clock_set_master (clock, scene->prop.slave_audio ? 
+          scene->clock.clock : NULL)))
     _lp_warn ("cannot enslave audio clock to scene clock");
 
   gst_object_unref (sink);
@@ -675,6 +676,7 @@ lp_scene_set_property (GObject *object, guint prop_id,
       break;
     case PROP_SLAVE_AUDIO:
       scene->prop.slave_audio = g_value_get_boolean (value);
+      scene_enslave_audio_clock (scene);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -884,7 +886,7 @@ lp_scene_class_init (lp_SceneClass *cls)
     (gobject_class, PROP_SLAVE_AUDIO, g_param_spec_boolean
      ("slave-audio", "slave-audio ", "enslave audio clock to scene clock",
       DEFAULT_SLAVE_AUDIO,
-      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+      (GParamFlags)(G_PARAM_READWRITE)));
 
   if (!gst_is_initialized ())
     {

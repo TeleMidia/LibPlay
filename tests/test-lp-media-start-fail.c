@@ -101,43 +101,5 @@ main (void)
     }
   STMT_END;
 
-  /* success: start random samples */
-  STMT_BEGIN
-    {
-      lp_Scene *scene;
-      lp_Media *media[10];
-      gint w, h;
-      gsize i;
-
-      w = 800;
-      h = 600;
-      scene = lp_scene_new (w, h);
-      g_assert_nonnull (scene);
-      g_object_set (scene, "pattern", 0, NULL);
-
-      for (i = 0; i < nelementsof (media); i++)
-        {
-          media[i] = LP_MEDIA
-            (g_object_new (LP_TYPE_MEDIA,
-                           "scene", scene,
-                           "uri", random_sample (),
-                           "x", g_random_int_range (0, w),
-                           "y", g_random_int_range (0, h),
-                           "z", g_random_int_range (1, 10),
-                           "width", g_random_int_range (0, w),
-                           "height", g_random_int_range (0, h),
-                           "alpha", g_random_double_range (0., 1.),
-                           "mute", g_random_boolean (),
-                           "volume", g_random_double_range (0., 2.),
-                           NULL));
-          g_assert_nonnull (media[i]);
-          g_assert (lp_media_start (media[i]));
-        }
-
-      await_ticks (scene, 8);
-      g_object_unref (scene);
-    }
-  STMT_END;
-
   exit (EXIT_SUCCESS);
 }

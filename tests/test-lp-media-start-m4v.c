@@ -15,32 +15,11 @@ License for more details.
 You should have received a copy of the GNU General Public License
 along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#include "tests.h"
+#include "test-templates.h"
 
 int
 main (void)
 {
-  lp_Scene *scene;
-
-  guint64 time = G_MAXUINT64;
-  guint64 interval = G_MAXUINT64;
-  gdouble dt;
-
-  scene = lp_scene_new (0, 0);
-  g_assert_nonnull (scene);
-  g_object_get (scene, "interval", &interval, "time", &time, NULL);
-
-  await_ticks (scene, 1);
-  g_object_get (scene, "time", &time, NULL);
-  dt = (double) time / (double) interval;
-  g_assert (dt < 1.);
-
-  await_ticks (scene, 1);
-  g_object_get (scene, "time", &time, NULL);
-  dt = (double) time / (double) interval;
-  g_assert (dt >= 1.);
-
-  g_object_unref (scene);
-
+  TEST_TEMPLATE_START_FORMAT (SAMPLE_M4V);
   exit (EXIT_SUCCESS);
 }

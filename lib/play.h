@@ -181,9 +181,6 @@ lp_event_to_string (lp_Event *);
 LP_API lp_Media *
 lp_media_new (lp_Scene *, const gchar *);
 
-LP_API lp_Media *
-lp_media_text_new (lp_Scene *, const gchar *);
-
 LP_API gboolean
 lp_media_start (lp_Media *);
 

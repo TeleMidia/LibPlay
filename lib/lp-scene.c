@@ -151,9 +151,11 @@ scene_enslave_audio_clock (lp_Scene *scene)
 
   g_assert (GST_IS_AUDIO_BASE_SINK (sink));
   clock = GST_AUDIO_BASE_SINK (sink)->provided_clock;
-  if (unlikely (!gst_clock_set_master (clock, scene->prop.slave_audio ? 
-          scene->clock.clock : NULL)))
-    _lp_warn ("cannot enslave audio clock to scene clock");
+  if (unlikely (!gst_clock_set_master (clock, scene->prop.slave_audio
+                                       ? scene->clock.clock : NULL)))
+    {
+      _lp_warn ("cannot enslave audio clock to scene clock");
+    }
 
   gst_object_unref (sink);
 }

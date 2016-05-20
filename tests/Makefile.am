@@ -58,7 +58,7 @@ LD_PRELOAD+= play0$(SOEXT)
 endif
 
 AM_TESTS_ENVIRONMENT=\
-  export GST_DEBUG="*:ERROR";\
+  export GST_DEBUG="*:WARN";\
   export G_DEBUG="all";\
   export G_SLICE="always-malloc";\
   export LD_LIBRARY_PATH="$(top_builddir)/lib/.libs:$(top_builddir)/play:$$LD_LIBRARY_PATH";\
@@ -101,8 +101,27 @@ programs+= test-lp-scene-advance
 programs+= test-lp-media-new
 programs+= test-lp-media-new-xfail-1
 programs+= test-lp-media-new-xfail-2
-programs+= test-lp-media-start
+programs+= test-lp-media-start-fail
+programs+= test-lp-media-start-avi
+programs+= test-lp-media-start-gif
+programs+= test-lp-media-start-jpg
+programs+= test-lp-media-start-m4v
+programs+= test-lp-media-start-mp3
+programs+= test-lp-media-start-mp4
+programs+= test-lp-media-start-ogv
+programs+= test-lp-media-start-png
+programs+= test-lp-media-start-mix
+programs+= test-lp-media-start-random
 programs+= test-lp-media-stop
+programs+= test-lp-media-prop-x-y
+programs+= test-lp-media-prop-z
+programs+= test-lp-media-prop-width-height
+programs+= test-lp-media-prop-alpha
+programs+= test-lp-media-prop-mute
+programs+= test-lp-media-prop-volume
+programs+= test-lp-media-prop-text
+programs+= test-lp-media-prop-text-font
+programs+= test-lp-media-prop-text-color
 check_PROGRAMS= $(programs)
 
 TESTS=\
@@ -121,6 +140,7 @@ EXTRA_DIST=\
   $(check_SCRIPTS)\
   gst.supp\
   suppfile.m4\
+  test-templates.h\
   tests.h\
   $(NULL)
 

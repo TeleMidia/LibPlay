@@ -20,8 +20,6 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #define TESTS_H
 
 #include <config.h>
-#include <assert.h>
-
 #include "macros.h"
 #include "gx-macros.h"
 #include "gstx-macros.h"
@@ -53,7 +51,7 @@ PRAGMA_DIAG_IGNORE (-Winline)
 #define SAMPLE_SYNC       SAMPLES_DIR (sync.m4v)
 
 /* All samples.  */
-static ATTR_UNUSED const char *samples_all[] =
+static ATTR_UNUSED const gchar *samples_all[] =
 {
   SAMPLE_ARCADE,
   SAMPLE_EVILEYE,
@@ -65,6 +63,16 @@ static ATTR_UNUSED const char *samples_all[] =
   SAMPLE_ROAD,
   SAMPLE_SYNC
 };
+
+/* By format.  */
+#define SAMPLE_AVI SAMPLE_NIGHT
+#define SAMPLE_GIF SAMPLE_EARTH
+#define SAMPLE_JPG SAMPLE_FELIS
+#define SAMPLE_M4V SAMPLE_SYNC
+#define SAMPLE_MP3 SAMPLE_ARCADE
+#define SAMPLE_MP4 SAMPLE_DIODE
+#define SAMPLE_OGV SAMPLE_ROAD
+#define SAMPLE_PNG SAMPLE_GNU
 
 /* Random sample.  */
 #define random_sample()\

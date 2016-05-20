@@ -51,16 +51,10 @@ struct _lp_Media
   struct
   {
     GstElement *freeze;         /* image freeze (optional) */
+    GstElement *text;           /* text overlay */
     gboolean frozen;            /* true if image freeze is present */
     gchar *mixerpad;            /* name of video sink pad in mixer */
   } video;
-  struct
-  {
-    GstElement *filter;         /* capsfilter */
-    GstElement *alpha;          /* add alpha channel to background video */
-    GstElement *textoverlay;    /* text overlay */
-    gchar *mixerpad;            /* name of video sink pad in mixer */
-  } text;
   struct
   {
     lp_Scene *scene;            /* parent scene */
@@ -73,10 +67,9 @@ struct _lp_Media
     gdouble alpha;              /* cached alpha */
     gboolean mute;              /* cached mute */
     gdouble volume;             /* cached volume */
-    gboolean is_text;           /* is text media? */
     gchar *text;                /* cached text */
-    gchar *font_desc;           /* cached font description (pango) */
     guint text_color;           /* cached text color */
+    gchar *text_font;           /* cached text font */
   } prop;
 };
 
@@ -87,12 +80,6 @@ static const gstx_eltmap_t lp_media_eltmap[] = {
   {NULL, 0},
 };
 
-/* Maps GStreamer elements to text lp_Media.  */
-static const gstx_eltmap_t lp_media_text_eltmap[] = {
-  {"bin",           offsetof (lp_Media, bin)},
-  {NULL, 0},
-};
-
 static const gstx_eltmap_t media_eltmap_audio[] = {
   {"volume",        offsetof (lp_Media, audio.volume)},
   {"audioconvert",  offsetof (lp_Media, audio.convert)},
@@ -100,16 +87,13 @@ static const gstx_eltmap_t media_eltmap_audio[] = {
   {NULL, 0}
 };
 
-static const gstx_eltmap_t media_eltmap_video_freeze[] = {
-  {"imagefreeze",   offsetof (lp_Media, video.freeze)},
+static const gstx_eltmap_t media_eltmap_video[] = {
+  {"textoverlay",   offsetof (lp_Media, video.text)},
   {NULL, 0}
 };
 
-static const gstx_eltmap_t media_eltmap_text[] = {
-  {"videotestsrc", offsetof (lp_Media, decoder)},
-  {"capsfilter",   offsetof (lp_Media, text.filter)},
-  {"alpha",        offsetof (lp_Media, text.alpha)},
-  {"textoverlay",  offsetof (lp_Media, text.textoverlay)},
+static const gstx_eltmap_t media_eltmap_video_freeze[] = {
+  {"imagefreeze",   offsetof (lp_Media, video.freeze)},
   {NULL, 0}
 };
 
@@ -127,28 +111,26 @@ enum
   PROP_ALPHA,
   PROP_MUTE,
   PROP_VOLUME,
-  PROP_IS_TEXT,
   PROP_TEXT,
-  PROP_FONT_DESC,
-  PROP_TEXT_COLOR, 
+  PROP_TEXT_COLOR,
+  PROP_TEXT_FONT,
   PROP_LAST
 };
 
 /* Property defaults.  */
-#define DEFAULT_SCENE       NULL          /* not initialized */
-#define DEFAULT_URI         NULL          /* not initialized */
-#define DEFAULT_X           0             /* origin */
-#define DEFAULT_Y           0             /* origin */
-#define DEFAULT_Z           1             /* lowest order */
-#define DEFAULT_WIDTH       0             /* natural width */
-#define DEFAULT_HEIGHT      0             /* natural height */
-#define DEFAULT_ALPHA       1.0           /* natural alpha */
-#define DEFAULT_MUTE        FALSE         /* not muted */
-#define DEFAULT_VOLUME      1.0           /* natural volume */
-#define DEFAULT_IS_TEXT     FALSE         /* not text */
-#define DEFAULT_TEXT        NULL          /* not initialized */
-#define DEFAULT_FONT_DESC   NULL          /* not initialized */
-#define DEFAULT_TEXT_COLOR  0xffffffff    /* empty string */
+#define DEFAULT_SCENE       NULL       /* not initialized */
+#define DEFAULT_URI         NULL       /* not initialized */
+#define DEFAULT_X           0          /* origin */
+#define DEFAULT_Y           0          /* origin */
+#define DEFAULT_Z           1          /* lowest order */
+#define DEFAULT_WIDTH       0          /* natural width */
+#define DEFAULT_HEIGHT      0          /* natural height */
+#define DEFAULT_ALPHA       1.0        /* natural alpha */
+#define DEFAULT_MUTE        FALSE      /* not muted */
+#define DEFAULT_VOLUME      1.0        /* natural volume */
+#define DEFAULT_TEXT        NULL       /* not initialized */
+#define DEFAULT_TEXT_COLOR  0xffffffff /* white */
+#define DEFAULT_TEXT_FONT   NULL       /* not initialized */
 
 /* Define the lp_Media type.  */
 GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
@@ -306,16 +288,26 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
 
           pad = gst_element_get_static_pad (media->video.freeze, "src");
           g_assert_nonnull (pad);
+        }
 
-          ghost = gst_ghost_pad_new (NULL, pad);
-          g_assert_nonnull (ghost);
-          gst_object_unref (pad);
-        }
-      else
-        {
-          ghost = gst_ghost_pad_new (NULL, pad);
-          g_assert_nonnull (ghost);
-        }
+      _lp_eltmap_alloc_check (media, media_eltmap_video);
+      gstx_bin_add (media->bin, media->video.text);
+
+      sink = gst_element_get_static_pad (media->video.text, "video_sink");
+      g_assert_nonnull (sink);
+
+      g_assert (gst_pad_link (pad, sink) == GST_PAD_LINK_OK);
+      gst_object_unref (sink);
+
+      if (media->video.frozen)
+        gst_object_unref (pad);
+
+      pad = gst_element_get_static_pad (media->video.text, "src");
+      g_assert_nonnull (pad);
+
+      ghost = gst_ghost_pad_new (NULL, pad);
+      g_assert_nonnull (ghost);
+      gst_object_unref (pad);
 
       g_assert (gst_pad_set_active (ghost, TRUE));
       g_assert (gst_element_add_pad (media->bin, ghost));
@@ -345,11 +337,25 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
         g_object_set (sink, "height", media->prop.height, NULL);
       gst_object_unref (sink);
 
+      if (media->prop.text != NULL)
+        {
+          g_object_set (media->video.text,
+                        "text", media->prop.text,
+                        "color", media->prop.text_color, NULL);
+        }
+
+      if (media->prop.text_font != NULL)
+        {
+          g_object_set (media->video.text, "font-desc",
+                        media->prop.text_font, NULL);
+        }
+
       if (media->video.frozen)
         {
           gstx_element_set_state_sync (media->video.freeze,
                                        GST_STATE_PLAYING);
         }
+      gstx_element_set_state_sync (media->video.text, GST_STATE_PLAYING);
 
       media->active_pads++;
     }
@@ -478,7 +484,6 @@ lp_media_init (lp_Media *media)
   media->audio.mixerpad = NULL;
   media->video.mixerpad = NULL;
   media->video.frozen = FALSE;
-  media->text.mixerpad = NULL;
 
   media->prop.scene = DEFAULT_SCENE;
   media->prop.uri = DEFAULT_URI;
@@ -490,10 +495,9 @@ lp_media_init (lp_Media *media)
   media->prop.alpha = DEFAULT_ALPHA;
   media->prop.mute = DEFAULT_MUTE;
   media->prop.volume = DEFAULT_VOLUME;
-  media->prop.is_text = DEFAULT_IS_TEXT;
   media->prop.text = DEFAULT_TEXT;
-  media->prop.font_desc = DEFAULT_FONT_DESC;
   media->prop.text_color = DEFAULT_TEXT_COLOR;
+  media->prop.text_font = DEFAULT_TEXT_FONT;
 }
 
 static void
@@ -537,14 +541,14 @@ lp_media_get_property (GObject *object, guint prop_id,
     case PROP_VOLUME:
       g_value_set_double (value, media->prop.volume);
       break;
-    case PROP_IS_TEXT:
-      g_value_set_boolean (value, media->prop.is_text);
-      break;
     case PROP_TEXT:
       g_value_set_string (value, media->prop.text);
       break;
-    case PROP_FONT_DESC:
-      g_value_set_string (value, media->prop.font_desc);
+    case PROP_TEXT_COLOR:
+      g_value_set_uint (value, media->prop.text_color);
+      break;
+    case PROP_TEXT_FONT:
+      g_value_set_string (value, media->prop.text_font);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -597,19 +601,16 @@ lp_media_set_property (GObject *object, guint prop_id,
     case PROP_VOLUME:
       media->prop.volume = g_value_get_double (value);
       break;
-    case PROP_IS_TEXT:
-      media->prop.is_text = g_value_get_boolean (value);
-      break;
     case PROP_TEXT:
       g_free (media->prop.text);
-      media->prop.text = g_strdup (g_value_get_string (value));
-      break;
-    case PROP_FONT_DESC:
-      g_free (media->prop.font_desc);
-      media->prop.font_desc = g_strdup (g_value_get_string (value));
+      media->prop.text = g_value_dup_string (value);
       break;
     case PROP_TEXT_COLOR:
       media->prop.text_color = g_value_get_uint (value);
+      break;
+    case PROP_TEXT_FONT:
+      g_free (media->prop.text_font);
+      media->prop.text_font = g_value_dup_string (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -625,23 +626,11 @@ lp_media_set_property (GObject *object, guint prop_id,
       {
         break;                  /* nothing to do */
       }
-    case PROP_WIDTH:            /* fall through */
-    case PROP_HEIGHT:           /* fall through */
-      if (media->prop.is_text)
-      {
-        GstCaps *caps;
-        caps = gst_caps_new_simple ("video/x-raw",
-             "height", G_TYPE_INT, media->prop.height,
-             "width", G_TYPE_INT, media->prop.width,
-             NULL);
-        g_assert (media->text.filter != NULL);
-        g_object_set (G_OBJECT(media->text.filter), "caps", caps, NULL);
-        gst_object_unref (caps);
-        break;
-      }
     case PROP_X:                /* fall through */
     case PROP_Y:                /* fall through */
     case PROP_Z:                /* fall through */
+    case PROP_WIDTH:            /* fall through */
+    case PROP_HEIGHT:           /* fall through */
     case PROP_ALPHA:
       {
         GstElement *mixer;
@@ -656,9 +645,7 @@ lp_media_set_property (GObject *object, guint prop_id,
         mixer = _lp_scene_get_video_mixer (media->prop.scene);
         g_assert_nonnull (mixer);
 
-        sink = gst_element_get_static_pad (mixer, 
-            media->prop.is_text ? media->text.mixerpad :
-            media->video.mixerpad);
+        sink = gst_element_get_static_pad (mixer, media->video.mixerpad);
         g_assert_nonnull (sink);
 
         switch (prop_id)
@@ -686,6 +673,44 @@ lp_media_set_property (GObject *object, guint prop_id,
           }
 
         g_object_unref (sink);
+        break;
+      }
+    case PROP_TEXT:             /* fall through */
+    case PROP_TEXT_COLOR:       /* fall through */
+    case PROP_TEXT_FONT:
+      {
+        GstElement *text;
+
+        if (!_lp_scene_has_video (media->prop.scene))
+          break;                /* nothing to do */
+
+        if (!media_has_video (media))
+          break;                /* nothing to do */
+
+        text = media->video.text;
+        g_assert_nonnull (text);
+
+        switch (prop_id)
+          {
+          case PROP_TEXT:
+            {
+              g_object_set (text, "text", media->prop.text, NULL);
+              break;
+            }
+          case PROP_TEXT_COLOR:
+            {
+              g_object_set (text, "color", media->prop.text_color, NULL);
+              break;
+            }
+          case PROP_TEXT_FONT:
+            {
+              char *font = media->prop.text_font;
+              g_object_set (text, "font-desc", (font) ? font : "", NULL);
+              break;
+            }
+          default:
+            g_assert_not_reached ();
+          }
         break;
       }
     case PROP_MUTE:             /* fall through */
@@ -718,18 +743,6 @@ lp_media_set_property (GObject *object, guint prop_id,
         g_object_unref (sink);
         break;
       }
-    case PROP_TEXT:
-      g_object_set (media->text.textoverlay, "text", 
-          media->prop.text, NULL);
-      break;
-    case PROP_FONT_DESC:
-      g_object_set (media->text.textoverlay, "font-desc", 
-        media->prop.font_desc, NULL);
-      break;
-    case PROP_TEXT_COLOR:
-      g_object_set (media->text.textoverlay, "color", 
-          media->prop.text_color, NULL);
-      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -789,10 +802,9 @@ lp_media_finalize (GObject *object)
   g_free (media->final_uri);
   g_free (media->audio.mixerpad);
   g_free (media->video.mixerpad);
-  g_free (media->text.mixerpad);
   g_free (media->prop.uri);
   g_free (media->prop.text);
-  g_free (media->prop.font_desc);
+  g_free (media->prop.text_font);
 
   _lp_debug ("finalizing media %p", media);
   G_OBJECT_CLASS (lp_media_parent_class)->finalize (object);
@@ -870,25 +882,21 @@ lp_media_class_init (lp_MediaClass *cls)
       (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
-    (gobject_class, PROP_IS_TEXT, g_param_spec_boolean
-     ("is-text", "is text", "media is text",
-      DEFAULT_IS_TEXT,
-      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
-
-  g_object_class_install_property
     (gobject_class, PROP_TEXT, g_param_spec_string
-     ("text", "text", "text to be rendered",
-      DEFAULT_TEXT, (GParamFlags)(G_PARAM_READWRITE)));
-
-  g_object_class_install_property
-    (gobject_class, PROP_FONT_DESC, g_param_spec_string
-     ("font-desc", "font desc", "font description",
-      DEFAULT_FONT_DESC, (GParamFlags)(G_PARAM_READWRITE)));
+     ("text", "text", "overlay text",
+      DEFAULT_TEXT,
+      (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_TEXT_COLOR, g_param_spec_uint
-     ("text-color", "text color", "color to use for text (big-endian ARGB)",
-      0, DEFAULT_TEXT_COLOR, DEFAULT_TEXT_COLOR, 
+     ("text-color", "text color", "overlay text color",
+      0, G_MAXUINT, DEFAULT_TEXT_COLOR,
+      (GParamFlags)(G_PARAM_READWRITE)));
+
+  g_object_class_install_property
+    (gobject_class, PROP_TEXT_FONT, g_param_spec_string
+     ("text-font", "text font", "overlay text font",
+      DEFAULT_TEXT_FONT,
       (GParamFlags)(G_PARAM_READWRITE)));
 }
 
@@ -978,13 +986,10 @@ _lp_media_finish_stop (lp_Media *media)
 
   g_assert (media_is_stopping (media));
   g_assert (media->active_pads == 0);
-  
-  if (media->callback.autoplug > 0)
-    g_signal_handler_disconnect (media->decoder, media->callback.autoplug);
-  if (media->callback.drain > 0)
-    g_signal_handler_disconnect (media->decoder, media->callback.drain);
-  if (media->callback.pad_added > 0)
-    g_signal_handler_disconnect (media->decoder, media->callback.pad_added);
+
+  g_signal_handler_disconnect (media->decoder, media->callback.autoplug);
+  g_signal_handler_disconnect (media->decoder, media->callback.drain);
+  g_signal_handler_disconnect (media->decoder, media->callback.pad_added);
 
   pipeline = _lp_scene_get_pipeline (media->prop.scene);
   g_assert (gst_bin_remove (GST_BIN (pipeline), media->bin));
@@ -997,7 +1002,6 @@ _lp_media_finish_stop (lp_Media *media)
   g_clear_pointer (&media->final_uri, g_free);
   g_clear_pointer (&media->audio.mixerpad, g_free);
   g_clear_pointer (&media->video.mixerpad, g_free);
-  g_clear_pointer (&media->text.mixerpad, g_free);
 
   media->stopping = FALSE;
   g_assert (media_has_stopped (media));
@@ -1026,26 +1030,6 @@ lp_media_new (lp_Scene *scene, const gchar *uri)
 }
 
 /**
- * lp_media_text_new:
- * @scene: the parent #lp_Scene
- * @text: text to be presented
- *
- * Creates a new media text object.
- *
- * Returns: (transfer full): a new #lp_Media
- */
-lp_Media *
-lp_media_text_new (lp_Scene *scene, const gchar *text)
-{
-  return LP_MEDIA (g_object_new (LP_TYPE_MEDIA,
-                                 "scene", scene,
-                                 "uri", "",
-                                 "is-text", TRUE, 
-                                 "text", text, NULL));
-}
-
-
-/**
  * lp_media_start:
  * @media: an #lp_Media
  *
@@ -1064,120 +1048,47 @@ lp_media_start (lp_Media *media)
   if (unlikely (!media_has_stopped (media)))
     goto fail;
 
-  if (media->prop.is_text)
-  {
-    GstCaps *caps;
-    _lp_eltmap_alloc_check (media, lp_media_text_eltmap);
-    _lp_eltmap_alloc_check (media, media_eltmap_text);
-
-    gstx_bin_add (media->bin, media->decoder);
-    gstx_bin_add (media->bin, media->text.filter);
-    gstx_bin_add (media->bin, media->text.alpha);
-    gstx_bin_add (media->bin, media->text.textoverlay);
-
-    caps = gst_caps_new_simple ("video/x-raw",
-         "height", G_TYPE_INT, media->prop.height,
-         "width", G_TYPE_INT, media->prop.width,
-         NULL);
-    
-    g_object_set (media->decoder, "pattern", 
-        5 /*green*/, NULL);
-    g_object_set (media->text.filter, "caps", 
-        caps, NULL);
-    g_object_set (media->text.alpha, "method", 
-        1 /*green*/, NULL);
-    g_object_set (media->text.textoverlay, "text", 
-        media->prop.text, NULL);
-    g_object_set (media->text.textoverlay, "color", 
-        media->prop.text_color, NULL);
-    g_object_set (media->text.textoverlay, "font-desc", 
-        media->prop.font_desc, NULL);
-    
-    gst_caps_unref (caps);
-
-    gst_element_link_many (media->decoder, media->text.filter, 
-        media->text.alpha, media->text.textoverlay, NULL);
-  }
-  else
-  {
-    if (gst_uri_is_valid (media->prop.uri))
+  if (gst_uri_is_valid (media->prop.uri))
     {
       media->final_uri = g_strdup (media->prop.uri);
     }
-    else
+  else
     {
       GError *error = NULL;
       gchar *final_uri = gst_filename_to_uri (media->prop.uri, &error);
       if (unlikely (final_uri == NULL))
-      {
-        _lp_warn ("bad URI: %s", media->prop.uri);
-        g_error_free (error);
-        goto fail;
-      }
+        {
+          _lp_warn ("bad URI: %s", media->prop.uri);
+          g_error_free (error);
+          goto fail;
+        }
       media->final_uri = final_uri;
     }
 
-    _lp_eltmap_alloc_check (media, lp_media_eltmap);
+  _lp_eltmap_alloc_check (media, lp_media_eltmap);
 
-    media->callback.autoplug = g_signal_connect
-      (G_OBJECT (media->decoder), "autoplug-continue",
-       G_CALLBACK (lp_media_autoplug_continue_callback), media);
-    g_assert (media->callback.autoplug > 0);
+  media->callback.autoplug = g_signal_connect
+    (G_OBJECT (media->decoder), "autoplug-continue",
+     G_CALLBACK (lp_media_autoplug_continue_callback), media);
+  g_assert (media->callback.autoplug > 0);
 
-    media->callback.drain = g_signal_connect
-      (media->decoder, "drained",
-       G_CALLBACK (lp_media_drained_callback), media);
-    g_assert (media->callback.drain > 0);
+  media->callback.drain = g_signal_connect
+    (media->decoder, "drained",
+     G_CALLBACK (lp_media_drained_callback), media);
+  g_assert (media->callback.drain > 0);
 
-    media->callback.pad_added = g_signal_connect
-      (media->decoder, "pad-added",
-       G_CALLBACK (lp_media_pad_added_callback), media);
-    g_assert (media->callback.pad_added > 0);
+  media->callback.pad_added = g_signal_connect
+    (media->decoder, "pad-added",
+     G_CALLBACK (lp_media_pad_added_callback), media);
+  g_assert (media->callback.pad_added > 0);
 
-    g_object_set (media->decoder, "uri", media->final_uri, NULL);
-    gstx_bin_add (media->bin, media->decoder);
-  }
   g_object_set_data (G_OBJECT (media->bin), "lp_Media", media);
+  g_object_set (media->decoder, "uri", media->final_uri, NULL);
+  gstx_bin_add (media->bin, media->decoder);
 
   pipeline = _lp_scene_get_pipeline (media->prop.scene);
   gstx_bin_add (pipeline, media->bin);
   g_assert (gst_object_ref (media->bin) == media->bin);
-
-  if (media->prop.is_text && likely (_lp_scene_has_video(media->prop.scene)))
-  {
-    GstPad *mixerpad;
-    GstPad *srcpad;
-    GstPad *ghostpad;
-    GstElement *mixer;
-
-    mixer = _lp_scene_get_video_mixer (media->prop.scene);
-
-    mixerpad = gst_element_get_request_pad (mixer, "sink_%u");
-    g_assert_nonnull (mixerpad);
-
-    srcpad = gst_element_get_static_pad (media->text.textoverlay, "src");
-    g_assert_nonnull (srcpad);
-
-    ghostpad = gst_ghost_pad_new (NULL, srcpad);
-    g_assert_nonnull (ghostpad);
-    gst_object_unref (srcpad);
-
-    g_assert (gst_pad_set_active (ghostpad, TRUE));
-    g_assert (gst_element_add_pad (media->bin, ghostpad));
-
-    g_assert_null (media->text.mixerpad);
-    media->text.mixerpad = gst_pad_get_name (mixerpad);
-    g_assert_nonnull (media->text.mixerpad);
-
-    g_assert (gst_pad_link (ghostpad, mixerpad) == GST_PAD_LINK_OK);
-    media->active_pads++;
-
-    g_object_set (mixerpad, "xpos", media->prop.x, NULL);
-    g_object_set (mixerpad, "ypos", media->prop.y, NULL);
-    g_object_set (mixerpad, "zorder", media->prop.z, NULL);
-
-    gst_object_unref (mixerpad);
-  }
 
   ret = gst_element_set_state (media->bin, GST_STATE_PLAYING);
   if (unlikely (ret == GST_STATE_CHANGE_FAILURE))
@@ -1189,11 +1100,6 @@ lp_media_start (lp_Media *media)
       gstx_element_set_state_sync (media->bin, GST_STATE_NULL);
       gstx_bin_remove (pipeline, media->bin);
       g_clear_pointer (&media->bin, g_object_unref);
-      if (media->prop.is_text)
-      {
-        g_clear_pointer (&media->text.mixerpad, g_free);
-        media->active_pads--;
-      }
       goto fail;
     }
 

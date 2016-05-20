@@ -43,14 +43,12 @@ main (void)
   g_assert (width == 0 && height == 600);
   g_object_unref (scene);
 
-  scene = lp_scene_new (0, 0);
-  g_assert_nonnull (scene);
+  scene = SCENE_NEW (0, 0, 0);
   g_object_get (scene, "width", &width, "height", &height, NULL);
   g_assert (width == 0 && height == 0);
   g_object_unref (scene);
 
-  scene = lp_scene_new (100, 100);
-  g_assert_nonnull (scene);
+  scene = SCENE_NEW (100, 100, 0);
   g_object_get (scene, "width", &width, "height", &height, NULL);
   g_assert (width == 100 && height == 100);
   g_object_unref (scene);

@@ -25,10 +25,7 @@ main (void)
   gint w = 800;
   gint h = 600;
 
-  scene = lp_scene_new (w, h);
-  g_assert_nonnull (scene);
-  g_object_set (scene, "pattern", 0, NULL);
-
+  scene = SCENE_NEW (w, h, 0);
   media[0] = LP_MEDIA
     (g_object_new (LP_TYPE_MEDIA,
                    "scene", scene,

@@ -26,10 +26,7 @@ main (void)
 
   gchar *font = NULL;
 
-  scene = lp_scene_new (800, 600);
-  g_assert_nonnull (scene);
-  g_object_set (scene, "pattern", 0, NULL);
-
+  scene = SCENE_NEW (800, 600, 0);
   media = lp_media_new (scene, SAMPLE_GNU);
   g_assert_nonnull (media);
 

@@ -26,8 +26,7 @@ main (void)
   guint64 interval = G_MAXUINT64;
   gdouble dt;
 
-  scene = lp_scene_new (0, 0);
-  g_assert_nonnull (scene);
+  scene = SCENE_NEW (0, 0, 0);
   g_object_get (scene, "interval", &interval, "time", &time, NULL);
 
   await_ticks (scene, 1);

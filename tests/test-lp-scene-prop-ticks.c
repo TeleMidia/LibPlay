@@ -23,8 +23,7 @@ main (void)
   lp_Scene *scene;
   guint64 ticks = G_MAXUINT64;
 
-  scene = lp_scene_new (0, 0);
-  g_assert_nonnull (scene);
+  scene = SCENE_NEW (0, 0, 0);
   g_object_get (scene, "ticks", &ticks, NULL);
   g_assert (ticks == 0);
 

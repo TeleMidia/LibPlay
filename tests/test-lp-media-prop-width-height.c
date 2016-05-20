@@ -27,9 +27,7 @@ main (void)
   gint width = G_MAXINT;
   gint height = G_MAXINT;
 
-  scene = lp_scene_new (800, 600);
-  g_assert_nonnull (scene);
-
+  scene = SCENE_NEW (800, 600, 0);
   media = lp_media_new (scene, SAMPLE_GNU);
   g_assert_nonnull (media);
 

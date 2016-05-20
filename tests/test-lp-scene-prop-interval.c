@@ -28,8 +28,7 @@ main (void)
   guint64 interval = G_MAXUINT64;
   guint64 ticks = G_MAXUINT64;
 
-  scene = lp_scene_new (200, 200);
-  g_assert_nonnull (scene);
+  scene = SCENE_NEW (640, 480, 4);
   g_object_get (scene, "interval", &interval, NULL);
   g_assert (interval == GST_SECOND);
 

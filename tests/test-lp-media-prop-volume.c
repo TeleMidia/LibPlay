@@ -26,10 +26,7 @@ main (void)
 
   gdouble volume = G_MAXDOUBLE;
 
-  scene = lp_scene_new (800, 600);
-  g_assert_nonnull (scene);
-  g_object_set (scene, "pattern", 0, NULL);
-
+  scene = SCENE_NEW (800, 600, 0);
   media = lp_media_new (scene, SAMPLE_NIGHT);
   g_assert_nonnull (media);
 

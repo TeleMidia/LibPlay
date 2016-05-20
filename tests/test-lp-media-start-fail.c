@@ -26,9 +26,7 @@ main (void)
       lp_Scene *scene;
       lp_Media *media;
 
-      scene = lp_scene_new (800, 600);
-      g_assert_nonnull (scene);
-
+      scene = SCENE_NEW (800, 600, 0);
       media = lp_media_new (scene, "nonexistent");
       g_assert_nonnull (media);
 
@@ -46,9 +44,7 @@ main (void)
       lp_Event *event;
       GError *error = NULL;
 
-      scene = lp_scene_new (0, 0); /* no video output */
-      g_assert_nonnull (scene);
-
+      scene = SCENE_NEW (0, 0, 0); /* no video output */
       media = lp_media_new (scene, SAMPLE_FELIS);
       g_assert_nonnull (media);
 
@@ -78,9 +74,7 @@ main (void)
       lp_Event *event;
       GError *error = NULL;
 
-      scene = lp_scene_new (0, 0);
-      g_assert_nonnull (scene);
-
+      scene = SCENE_NEW (0, 0, 0);
       media = lp_media_new (scene, __FILE__);
       g_assert_nonnull (media);
 

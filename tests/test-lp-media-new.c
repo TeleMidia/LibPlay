@@ -26,9 +26,7 @@ main (void)
   lp_Scene *sc = NULL;
   gchar *uri = NULL;
 
-  scene = lp_scene_new (0, 0);
-  g_assert_nonnull (scene);
-
+  scene = SCENE_NEW (0, 0, 0);
   media = LP_MEDIA (g_object_new (LP_TYPE_MEDIA,
                                   "scene", scene,
                                   "uri", SAMPLE_GNU));
@@ -42,9 +40,7 @@ main (void)
   g_free (uri);
   g_object_unref (scene);
 
-  scene = lp_scene_new (0, 0);
-  g_assert_nonnull (scene);
-
+  scene = SCENE_NEW (0, 0, 0);
   media = lp_media_new (scene, "test");
   g_assert_nonnull (media);
 

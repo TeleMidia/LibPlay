@@ -20,13 +20,24 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  lp_Scene *scene;
-  lp_Media *media;
+  /* sync error: not started */
+  STMT_BEGIN
+    {
+      lp_Scene *scene;
+      lp_Media *media;
 
-  scene = SCENE_NEW (0, 0, 0);
-  media = lp_media_new (scene, NULL); /* missing URI */
-  g_assert_nonnull (media);
-  g_object_unref (media);
+      scene = SCENE_NEW (800, 600, 0);
+      media = lp_media_new (scene, SAMPLE_GNU);
+      g_assert_nonnull (media);
+
+      g_assert (!lp_media_stop (media));
+      g_assert (lp_media_start (media));
+      g_assert (!lp_media_stop (media));
+      g_assert (!lp_media_stop (media));
+
+      g_object_unref (scene);
+    }
+  STMT_END;
 
   exit (EXIT_SUCCESS);
 }

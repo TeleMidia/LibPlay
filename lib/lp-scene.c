@@ -46,6 +46,7 @@ struct _lp_Scene
     GstElement *blank;          /* blank video source */
     GstElement *filter;         /* video filter */
     GstElement *mixer;          /* video mixer */
+    GstElement *text;           /* text overlay */
     GstElement *convert;        /* video convert */
     GstElement *sink;           /* video sink */
   } video;
@@ -61,6 +62,9 @@ struct _lp_Scene
     guint64 time;               /* total time (nanoseconds) */
     gboolean lockstep;          /* lockstep mode */
     gboolean slave_audio;       /* enslave audio clock */
+    gchar *text;                /* cached text */
+    guint text_color;           /* cached text color */
+    gchar *text_font;           /* cached text font */
   } prop;
 };
 
@@ -77,6 +81,7 @@ static const gstx_eltmap_t lp_scene_eltmap_video[] = {
   {"videotestsrc",  offsetof (lp_Scene, video.blank)},
   {"capsfilter",    offsetof (lp_Scene, video.filter)},
   {"compositor",    offsetof (lp_Scene, video.mixer)},
+  {"textoverlay",   offsetof (lp_Scene, video.text)},
   {"videoconvert",  offsetof (lp_Scene, video.convert)},
   {"autovideosink", offsetof (lp_Scene, video.sink)},
   {NULL, 0},
@@ -96,6 +101,9 @@ enum
   PROP_TIME,
   PROP_LOCKSTEP,
   PROP_SLAVE_AUDIO,
+  PROP_TEXT,
+  PROP_TEXT_COLOR,
+  PROP_TEXT_FONT,
   PROP_LAST
 };
 
@@ -110,6 +118,9 @@ enum
 #define DEFAULT_TIME         0                 /* zero nanoseconds */
 #define DEFAULT_LOCKSTEP     FALSE             /* real-time mode */
 #define DEFAULT_SLAVE_AUDIO  FALSE             /* don't enslave audio */
+#define DEFAULT_TEXT         NULL              /* not initialized */
+#define DEFAULT_TEXT_COLOR   0xffffffff        /* white */
+#define DEFAULT_TEXT_FONT    NULL              /* not initialized */
 
 /* Define the lp_Scene type.  */
 GX_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
@@ -573,6 +584,9 @@ lp_scene_init (lp_Scene *scene)
   scene->prop.interval= DEFAULT_INTERVAL;
   scene->prop.time= DEFAULT_TIME;
   scene->prop.lockstep = DEFAULT_LOCKSTEP;
+  scene->prop.text = DEFAULT_TEXT;
+  scene->prop.text_color = DEFAULT_TEXT_COLOR;
+  scene->prop.text_font = DEFAULT_TEXT_FONT;
 }
 
 static void
@@ -619,6 +633,15 @@ lp_scene_get_property (GObject *object, guint prop_id,
     case PROP_SLAVE_AUDIO:
       g_value_set_boolean (value, scene->prop.slave_audio);
       break;
+    case PROP_TEXT:
+      g_value_set_string (value, scene->prop.text);
+      break;
+    case PROP_TEXT_COLOR:
+      g_value_set_uint (value, scene->prop.text_color);
+      break;
+    case PROP_TEXT_FONT:
+      g_value_set_string (value, scene->prop.text_font);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -651,11 +674,6 @@ lp_scene_set_property (GObject *object, guint prop_id,
       break;
     case PROP_PATTERN:
       scene->prop.pattern = g_value_get_int (value);
-      if (_lp_scene_has_video (scene))
-        {
-          g_object_set (scene->video.blank, "pattern",
-                        scene->prop.pattern, NULL);
-        }
       break;
     case PROP_WAVE:
       scene->prop.wave = g_value_get_int (value);
@@ -680,8 +698,57 @@ lp_scene_set_property (GObject *object, guint prop_id,
       scene->prop.slave_audio = g_value_get_boolean (value);
       scene_enslave_audio_clock (scene);
       break;
+    case PROP_TEXT:
+      g_free (scene->prop.text);
+      scene->prop.text = g_value_dup_string (value);
+      break;
+    case PROP_TEXT_COLOR:
+      scene->prop.text_color = g_value_get_uint (value);
+      break;
+    case PROP_TEXT_FONT:
+      g_free (scene->prop.text_font);
+      scene->prop.text_font = g_value_dup_string (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
+
+  switch (prop_id)
+    {
+    case PROP_PATTERN:          /* fall through */
+    case PROP_TEXT:             /* fall through */
+    case PROP_TEXT_COLOR:       /* fall through */
+    case PROP_TEXT_FONT:
+      {
+        if (!_lp_scene_has_video (scene))
+          break;                /* nothing to do */
+
+        switch (prop_id)
+          {
+          case PROP_PATTERN:
+            g_object_set (scene->video.blank, "pattern",
+                          scene->prop.pattern, NULL);
+            break;
+          case PROP_TEXT:
+            g_object_set (scene->video.text, "text",
+                          scene->prop.text, NULL);
+            break;
+          case PROP_TEXT_COLOR:
+            g_object_set (scene->video.text,
+                          "color", scene->prop.text_color, NULL);
+            break;
+          case PROP_TEXT_FONT:
+            g_object_set (scene->video.text,
+                          "font-desc", scene->prop.text_font, NULL);
+            break;
+          default:
+            g_assert_not_reached ();
+          }
+
+        break;
+      }
+      default:
+        ;                       /* nothing to do */
     }
 
  done:
@@ -726,11 +793,13 @@ lp_scene_constructed (GObject *object)
       gstx_bin_add (scene->pipeline, scene->video.blank);
       gstx_bin_add (scene->pipeline, scene->video.filter);
       gstx_bin_add (scene->pipeline, scene->video.mixer);
+      gstx_bin_add (scene->pipeline, scene->video.text);
       gstx_bin_add (scene->pipeline, scene->video.convert);
       gstx_bin_add (scene->pipeline, scene->video.sink);
       gstx_element_link (scene->video.blank, scene->video.filter);
       gstx_element_link (scene->video.filter, scene->video.mixer);
-      gstx_element_link (scene->video.mixer, scene->video.convert);
+      gstx_element_link (scene->video.mixer, scene->video.text);
+      gstx_element_link (scene->video.text, scene->video.convert);
       gstx_element_link (scene->video.convert, scene->video.sink);
 
       caps = gst_caps_new_empty_simple ("video/x-raw");
@@ -811,8 +880,12 @@ lp_scene_finalize (GObject *object)
   scene = LP_SCENE (object);
   g_rec_mutex_clear (&scene->mutex);
   g_main_loop_unref (scene->loop);
+
   g_assert_null (scene->children);
   g_list_free_full (scene->events, (GDestroyNotify) g_object_unref);
+
+  g_free (scene->prop.text);
+  g_free (scene->prop.text_font);
 
   _lp_debug ("finalizing scene %p", scene);
   G_OBJECT_CLASS (lp_scene_parent_class)->finalize (object);
@@ -888,6 +961,24 @@ lp_scene_class_init (lp_SceneClass *cls)
     (gobject_class, PROP_SLAVE_AUDIO, g_param_spec_boolean
      ("slave-audio", "slave-audio ", "enslave audio clock to scene clock",
       DEFAULT_SLAVE_AUDIO,
+      (GParamFlags)(G_PARAM_READWRITE)));
+
+  g_object_class_install_property
+    (gobject_class, PROP_TEXT, g_param_spec_string
+     ("text", "text", "overlay text",
+      DEFAULT_TEXT,
+      (GParamFlags)(G_PARAM_READWRITE)));
+
+  g_object_class_install_property
+    (gobject_class, PROP_TEXT_COLOR, g_param_spec_uint
+     ("text-color", "text color", "overlay text color",
+      0, G_MAXUINT, DEFAULT_TEXT_COLOR,
+      (GParamFlags)(G_PARAM_READWRITE)));
+
+  g_object_class_install_property
+    (gobject_class, PROP_TEXT_FONT, g_param_spec_string
+     ("text-font", "text font", "overlay text font",
+      DEFAULT_TEXT_FONT,
       (GParamFlags)(G_PARAM_READWRITE)));
 
   if (!gst_is_initialized ())

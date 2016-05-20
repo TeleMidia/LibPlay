@@ -103,7 +103,9 @@
 /tests/test-lp-media-start-ogv
 /tests/test-lp-media-start-png
 /tests/test-lp-media-start-random
-/tests/test-lp-media-stop
+/tests/test-lp-media-stop-fail
+/tests/test-lp-media-stop-loop
+/tests/test-lp-media-stop-random
 /tests/test-lp-scene-advance
 /tests/test-lp-scene-new
 /tests/test-lp-scene-prop-interval

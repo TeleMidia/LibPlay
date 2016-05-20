@@ -26,12 +26,10 @@ main (void)
   g_assert_nonnull (scene);
   g_object_unref (scene);
 
-  scene = lp_scene_new (0, 0);
-  g_assert_nonnull (scene);
+  scene = SCENE_NEW (0, 0, 0);
   g_object_unref (scene);
 
-  scene = lp_scene_new (200, 200);
-  g_assert_nonnull (scene);
+  scene = SCENE_NEW (200, 200, 0);
   g_object_unref (scene);
 
   exit (EXIT_SUCCESS);

@@ -23,7 +23,9 @@ main (void)
   lp_Scene *scene;
   lp_Media *media[10];
   gint w, h;
-  gsize i;
+  gsize i, n;
+
+  lp_Event *event;
 
   w = 800;
   h = 600;
@@ -47,7 +49,55 @@ main (void)
       g_assert (lp_media_start (media[i]));
     }
 
-  await_ticks (scene, 8);
+  event = await_filtered (scene, nelementsof (media),
+                          LP_EVENT_MASK_START
+                          | LP_EVENT_MASK_ERROR
+                          | LP_EVENT_MASK_STOP);
+  g_assert_nonnull (event);
+  g_assert (LP_IS_EVENT_START (event));
+  g_object_unref (event);
+
+  n = nelementsof (media);
+  while (n > 0)
+    {
+      event = lp_scene_receive (scene, TRUE);
+      g_assert_nonnull (event);
+      switch (lp_event_get_mask (event))
+        {
+        case LP_EVENT_MASK_TICK:
+          {
+            for (i = 0; i < nelementsof (media); i++)
+              {
+                if (media[i] != NULL)
+                  {
+                    lp_media_stop (media[i]);
+                    break;
+                  }
+              }
+            break;
+          }
+        case LP_EVENT_MASK_STOP:
+          {
+            lp_Media *source;
+            source = LP_MEDIA (lp_event_get_source (event));
+            g_assert_nonnull (source);
+            for (i = 0; i < nelementsof (media); i++)
+              {
+                if (media[i] == source)
+                  {
+                    media[i] = NULL;
+                    n--;
+                    break;
+                  }
+              }
+            break;
+          }
+        default:
+          g_assert_not_reached ();
+        }
+      g_object_unref (event);
+    }
+
   g_object_unref (scene);
 
   exit (EXIT_SUCCESS);

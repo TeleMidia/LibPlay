@@ -78,6 +78,28 @@ static ATTR_UNUSED const gchar *samples_all[] =
 #define random_sample()\
   samples_all[g_random_int_range (0, nelementsof (samples_all))]
 
+
+/* Creates a test scene.   */
+#define SCENE_NEW(width, height, pattern)\
+  _SCENE_NEW (width, height, pattern, __FILE__)
+
+static ATTR_UNUSED lp_Scene *
+_SCENE_NEW (gint width, gint height, gint pattern, const gchar *text)
+{
+  lp_Scene *scene;
+
+  scene = LP_SCENE (g_object_new (LP_TYPE_SCENE,
+                                  "width", width,
+                                  "height", height,
+                                  "pattern", pattern,
+                                  "text", text,
+                                  "text-color", 0xffffff00,
+                                  "text-font", "sans italic bold 16",
+                                  NULL));
+  g_assert_nonnull (scene);
+  return scene;
+}
+
 /* Sleeps for @n seconds.  */
 #define SLEEP(n) g_usleep ((n) * 1000000)
 

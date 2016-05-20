@@ -33,9 +33,7 @@ main (void)
   gdouble x = 0.;
   gdouble y = 0.;
 
-  scene = lp_scene_new (800, 600);
-  g_assert_nonnull (scene);
-
+  scene = SCENE_NEW (800, 600, 0);
   g_object_get (scene, "mask", &mask, NULL);
   g_assert (mask == LP_EVENT_MASK_ANY);
 

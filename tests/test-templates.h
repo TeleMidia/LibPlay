@@ -28,10 +28,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
     lp_Scene *scene;                            \
     lp_Media *media;                            \
                                                 \
-    scene = lp_scene_new (800, 600);            \
-    g_assert_nonnull (scene);                   \
-    g_object_set (scene, "pattern", 0, NULL);   \
-                                                \
+    scene = SCENE_NEW (800, 600, 0);            \
     media = lp_media_new (scene, (uri));        \
     g_assert_nonnull (media);                   \
     g_assert (lp_media_start (media));          \

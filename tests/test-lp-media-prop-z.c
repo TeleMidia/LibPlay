@@ -28,8 +28,7 @@ main (void)
   gint z1 = G_MAXINT;
   gint z2 = G_MAXINT;
 
-  scene = lp_scene_new (800, 600);
-  g_assert_nonnull (scene);
+  scene = SCENE_NEW (800, 600, 0);
 
   m1 = lp_media_new (scene, SAMPLE_GNU);
   g_assert_nonnull (m1);

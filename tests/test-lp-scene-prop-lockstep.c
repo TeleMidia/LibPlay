@@ -23,9 +23,7 @@ main (void)
   lp_Scene *scene;
   gboolean lockstep = TRUE;
 
-  scene = lp_scene_new (800, 600);
-  g_assert_nonnull (scene);
-
+  scene = SCENE_NEW (800, 600, 2);
   g_object_get (scene, "lockstep", &lockstep, NULL);
   g_assert (!lockstep);    /* default */
 

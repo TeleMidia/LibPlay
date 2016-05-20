@@ -29,9 +29,7 @@ main (void)
       guint64 last;
       gint i, j;
 
-      scene = lp_scene_new (800, 600);
-      g_assert_nonnull (scene);
-
+      scene = SCENE_NEW (800, 600, 0);
       g_object_get (scene, "lockstep", &lockstep, NULL);
       g_assert (!lockstep);
 

@@ -22,11 +22,36 @@ main (void)
 {
   lp_Scene *scene;
   lp_Media *media;
+  gsize i;
 
-  scene = SCENE_NEW (0, 0, 0);
-  media = lp_media_new (scene, NULL); /* missing URI */
+  lp_Event *event;
+  gboolean eos;
+  gchar *str;
+
+  scene = SCENE_NEW (800, 600, 2);
+  media = lp_media_new (scene, SAMPLE_NIGHT);
   g_assert_nonnull (media);
-  g_object_unref (media);
 
+  for (i = 0; i < 3; i++)
+    {
+      g_assert (lp_media_start (media));
+      event = await_filtered (scene, 1, LP_EVENT_MASK_STOP);
+      g_assert_nonnull (event);
+
+      eos = FALSE;
+      g_assert (LP_IS_EVENT_STOP (event));
+      g_object_get (event, "eos", &eos, NULL);
+      g_assert (eos);
+
+      str = lp_event_to_string (event);
+      g_print ("%s\n", str);
+      g_free (str);
+
+      g_object_set (media,
+                    "x", g_random_int_range (0, 800/2),
+                    "y", g_random_int_range (0, 600/2), NULL);
+    }
+
+  g_object_unref (scene);
   exit (EXIT_SUCCESS);
 }

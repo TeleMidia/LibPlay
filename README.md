@@ -6,11 +6,11 @@ Dependencies
 ------------
 
 Required:
-GLib >= 2.44, https://developer.gnome.org/glib
-GStreamer >= 1.8, https://gstreamer.freedesktop.org/
+* GLib >= 2.44, https://developer.gnome.org/glib
+* GStreamer >= 1.8, https://gstreamer.freedesktop.org/
 
 Optional:
-Lua >= 5.2, http://www.lua.org
+* Lua >= 5.2, http://www.lua.org
 
 ---
 Copyright (C) 2015-2016 PUC-Rio/Laboratorio TeleMidia

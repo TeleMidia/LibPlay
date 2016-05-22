@@ -1,0 +1,63 @@
+LibPlay TODO -- Tasks that need implementing.
+
+* KNOWN BUGS
+
+  + lib/lp-scene.c: Handle window closing gracefully.
+
+    When the video sink window is closed the sink posts an error to
+    pipeline.  Currently, we're not handling this error---the application
+    simply crashes due to an unmet assertion.  We should handle this error
+    by destroying the scene.
+
+* FEATURES OR PROBLEMS
+
+  + lib/lp-scene.c: Use fakesrc to generate a blank video stream in scene.
+
+    Currently, we're using videotestsrc for this job, which is overkill.
+    Moreover, it cannot generate a transparent stream.  We should use the
+    fakesrc element, e.g.,
+
+      gst-launch-1.0 fakesrc filltype=2 format=3
+      ! capsfilter
+        caps="video/x-raw,format=ARGB,framerate=0/1,width=800,height=600"
+      ! videoconvert ! imagefreeze ! compositor name=comp sink_0::alpha=0
+      ! autovideosink videotestsrc ! comp.
+
+  + lib/lp-scene.c, lib/lp-media.c: Expose text properties
+
+    The textoverlay element has lots of properties to control the appearance
+    and position of the overlaid text.  We should expose these as
+    proprieties in the lp_Scene and lp_Media APIs.
+
+  + lib/lp-media.c: Add support to URIs pointing to text files.
+
+    We should use the textrender element to render text files, e.g.,
+
+      gst-launch-1.0 filesrc location=TEXT-FILE
+      ! capsfilter caps=text/x-raw,format=utf8 ! textrender ! imagefreeze
+      ! compositor ! videoconvert ! xvimagesink
+
+  + Generate API documentation using gtk-doc.
+
+    Cf. GLib sources.
+
+* OPTIMIZATION AND CLEAN UP
+
+  + tests/test-lp-media-start-fail.c: Check leaks reported by Valgrind.
+
+============================================================================
+
+Copyright (C) 2015-2016 PUC-Rio/Laboratorio TeleMidia
+
+Permission is granted to copy, distribute and/or modify this document under
+the terms of the GNU Free Documentation License, Version 1.3 or any later
+version published by the Free Software Foundation; with no Invariant
+Sections, with no Front-Cover Texts, and with no Back-Cover Texts.  A copy
+of the license is included in the "GNU Free Documentation License" file as
+part of this distribution.
+
+
+Local Variables:
+mode: outline
+outline-regexp: " *[-+*.] \\|"
+End:

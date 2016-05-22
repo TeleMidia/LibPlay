@@ -8,6 +8,8 @@ define([suppress],[dnl
     fun:$1
 }])dnl
 include(gst.supp)
+suppress(FcConfigParseAndLoad)
+suppress(FcFontRenderPrepare)
 suppress(_dl_init)
 suppress(gst_init_check)
 suppress(jack_client_open)

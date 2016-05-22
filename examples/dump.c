@@ -43,6 +43,7 @@ main (void)
       str = lp_event_to_string (event);
       g_assert_nonnull (str);
 
+      g_object_set (scene, "text", str, NULL);
       g_print ("%s\n", str);
       g_free (str);
 

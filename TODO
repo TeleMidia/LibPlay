@@ -27,7 +27,7 @@ LibPlay TODO -- Tasks that need implementing.
 
     The textoverlay element has lots of properties to control the appearance
     and position of the overlaid text.  We should expose these as
-    proprieties in the lp_Scene and lp_Media APIs.
+    properties in the lp_Scene and lp_Media APIs.
 
   + lib/lp-media.c: Add support to URIs pointing to text files.
 

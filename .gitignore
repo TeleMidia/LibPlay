@@ -60,6 +60,7 @@
 /coverage.info
 /dist-deb
 /examples/dump
+/examples/seek
 /lib/config.h
 /lib/config.h.in
 /lib/play.pc

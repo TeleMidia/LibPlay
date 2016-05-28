@@ -187,6 +187,9 @@ lp_media_start (lp_Media *);
 LP_API gboolean
 lp_media_stop (lp_Media *);
 
+LP_API gboolean
+lp_media_seek (lp_Media *, gint64);
+
 /* scene */
 
 LP_API lp_Scene *

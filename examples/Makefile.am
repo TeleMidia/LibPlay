@@ -25,4 +25,5 @@ LDADD= $(top_builddir)/lib/libplay.la
 
 noinst_PROGRAMS=\
   dump\
+  seek\
   $(NULL)

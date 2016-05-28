@@ -42,7 +42,7 @@ struct _lp_Media
   } callback;
   struct
   {
-    GstElement *volume;         /* audio volume */
+    GstElement *rate;           /* audio rate */
     GstElement *convert;        /* audio convert */
     GstElement *resample;       /* audio resample */
     GstElement *filter;         /* audio filter */
@@ -81,7 +81,7 @@ static const gstx_eltmap_t lp_media_eltmap[] = {
 };
 
 static const gstx_eltmap_t media_eltmap_audio[] = {
-  {"volume",        offsetof (lp_Media, audio.volume)},
+  {"audiorate",     offsetof (lp_Media, audio.rate)},
   {"audioconvert",  offsetof (lp_Media, audio.convert)},
   {"audioresample", offsetof (lp_Media, audio.resample)},
   {NULL, 0}
@@ -373,13 +373,13 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
 
       _lp_eltmap_alloc_check (media, media_eltmap_audio);
 
-      gstx_bin_add (GST_BIN (media->bin), media->audio.volume);
+      gstx_bin_add (GST_BIN (media->bin), media->audio.rate);
       gstx_bin_add (GST_BIN (media->bin), media->audio.convert);
       gstx_bin_add (GST_BIN (media->bin), media->audio.resample);
-      gstx_element_link (media->audio.volume, media->audio.convert);
+      gstx_element_link (media->audio.rate, media->audio.convert);
       gstx_element_link (media->audio.convert, media->audio.resample);
 
-      sink = gst_element_get_static_pad (media->audio.volume, "sink");
+      sink = gst_element_get_static_pad (media->audio.rate, "sink");
       g_assert_nonnull (sink);
       g_assert (gst_pad_link (pad, sink) == GST_PAD_LINK_OK);
       gst_object_unref (sink);
@@ -410,7 +410,7 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
                     "volume", media->prop.volume, NULL);
       gst_object_unref (sink);
 
-      gstx_element_set_state_sync (media->audio.volume, GST_STATE_PLAYING);
+      gstx_element_set_state_sync (media->audio.rate, GST_STATE_PLAYING);
       gstx_element_set_state_sync (media->audio.convert, GST_STATE_PLAYING);
       gstx_element_set_state_sync (media->audio.resample,
                                    GST_STATE_PLAYING);
@@ -1172,6 +1172,62 @@ lp_media_stop (lp_Media *media)
 
   g_value_unset (&item);
   gst_iterator_free (it);
+
+  media_unlock (media);
+  return TRUE;
+
+ fail:
+  media_unlock (media);
+  return FALSE;
+}
+
+/**
+ * lp_media_seek:
+ */
+gboolean
+lp_media_seek (lp_Media *media, gint64 offset)
+{
+  GstElement *pipeline;
+  GstQuery *query;
+  gboolean seekable;
+  GstSeekFlags flags;
+
+  media_lock (media);
+
+  if (unlikely (!media_has_started (media)))
+    goto fail;
+
+  query = gst_query_new_seeking (GST_FORMAT_TIME);
+  g_assert_nonnull (query);
+
+  if (!gst_element_query (media->decoder, query))
+    {
+      gst_query_unref (query);
+      goto fail;
+    }
+
+  seekable = FALSE;
+  gst_query_parse_seeking (query, NULL, &seekable, NULL, NULL);
+  gst_query_unref (query);
+
+  if (!seekable)
+    goto fail;
+
+  flags = (GstSeekFlags)
+    (
+     GST_SEEK_FLAG_FLUSH
+     | GST_SEEK_FLAG_ACCURATE
+     | GST_SEEK_FLAG_TRICKMODE
+     );
+
+  if (!media_has_audio (media))
+    flags = (GstSeekFlags)(flags | GST_SEEK_FLAG_TRICKMODE_NO_AUDIO);
+
+  pipeline = _lp_scene_get_pipeline (media->prop.scene);
+  g_assert_nonnull (pipeline);
+
+  if (!gst_element_seek_simple (pipeline, GST_FORMAT_TIME, flags, offset))
+    goto fail;
 
   media_unlock (media);
   return TRUE;

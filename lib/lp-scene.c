@@ -1213,9 +1213,7 @@ lp_scene_receive (lp_Scene *scene, gboolean block)
   if (block)
     {
       while (scene->events == NULL)
-        {
-          SCENE_UNLOCKED (scene, scene_step_unlocked (scene, TRUE));
-        }
+        SCENE_UNLOCKED (scene, scene_step_unlocked (scene, TRUE));
     }
   else
     {

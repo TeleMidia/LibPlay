@@ -22,6 +22,7 @@ main (void)
 {
   lp_Scene *scene;
   lp_Media *media;
+  gchar *str;
 
   lp_Scene *sc = NULL;
   gchar *uri = NULL;
@@ -31,6 +32,11 @@ main (void)
                                   "scene", scene,
                                   "uri", SAMPLE_GNU));
   g_assert_nonnull (media);
+
+  str = lp_media_to_string (media);
+  g_assert_nonnull (str);
+  g_print ("%s\n", str);
+  g_free (str);
 
   g_object_get (media, "scene", &sc, NULL);
   g_assert (sc == scene);
@@ -43,6 +49,11 @@ main (void)
   scene = SCENE_NEW (0, 0, 0);
   media = lp_media_new (scene, "test");
   g_assert_nonnull (media);
+
+  str = lp_media_to_string (media);
+  g_assert_nonnull (str);
+  g_print ("%s\n", str);
+  g_free (str);
 
   g_object_get (media, "scene", &sc, NULL);
   g_assert (sc == scene);

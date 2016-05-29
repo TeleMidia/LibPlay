@@ -1202,7 +1202,7 @@ lp_scene_to_string (lp_Scene *scene)
                          strbool (scene->prop.lockstep),
                          strbool (scene->prop.slave_audio),
                          scene->prop.text,
-                         (guint) scene->prop.text_color,
+                         scene->prop.text_color,
                          scene->prop.text_font);
   g_assert_nonnull (str);
 

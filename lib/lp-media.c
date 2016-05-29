@@ -1225,6 +1225,59 @@ lp_media_new (lp_Scene *scene, const gchar *uri)
 }
 
 /**
+ * lp_media_to_string:
+ * @media: an #lp_Media
+ *
+ * Gets a string representation of @media.
+ *
+ * Returns: (transfer full): a string representing the media
+ */
+gchar *
+lp_media_to_string (lp_Media *media)
+{
+  gchar *str;
+
+  media_lock (media);
+
+  str = g_strdup_printf ("\
+%s at %p\n\
+  scene: %p\n\
+  uri: %s\n\
+  x: %d\n\
+  y: %d\n\
+  z: %d\n\
+  width: %d\n\
+  height: %d\n\
+  alpha: %.2lg\n\
+  mute: %s\n\
+  volume: %.2lg\n\
+  text: %s\n\
+  text-color: 0x%x\n\
+  text-font: %s\n\
+",
+                         G_OBJECT_TYPE_NAME (media),
+                         media,
+                         media->prop.scene,
+                         media->prop.uri,
+                         media->prop.x,
+                         media->prop.y,
+                         media->prop.z,
+                         media->prop.width,
+                         media->prop.height,
+                         media->prop.alpha,
+                         strbool (media->prop.mute),
+                         media->prop.volume,
+                         media->prop.text,
+                         media->prop.text_color,
+                         media->prop.text_font);
+  g_assert_nonnull (str);
+
+  media_unlock (media);
+  return str;
+}
+
+
+/**
  * lp_media_start:
  * @media: an #lp_Media
  *

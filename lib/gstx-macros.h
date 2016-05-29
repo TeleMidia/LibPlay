@@ -29,7 +29,8 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #define GSTX_INCLUDE_PROLOGUE                   \
   PRAGMA_DIAG_PUSH ()                           \
   PRAGMA_DIAG_IGNORE (-Wcast-qual)              \
-  PRAGMA_DIAG_IGNORE (-Wconversion)
+  PRAGMA_DIAG_IGNORE (-Wconversion)             \
+  PRAGMA_DIAG_IGNORE (-Wshift-overflow=)
 
 #define GSTX_INCLUDE_EPILOGUE                   \
   PRAGMA_DIAG_POP ()

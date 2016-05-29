@@ -22,37 +22,38 @@ main (void)
 {
   lp_Scene *scene;
   lp_Media *media;
-  gsize i;
+  lp_EventSeek *event;
+  gchar *str = NULL;
 
-  lp_Event *event;
-  gboolean eos;
-  gchar *str;
+  lp_Media *source = NULL;
+  lp_EventMask mask = 0;
+  gint64 offset = G_MAXINT64;
 
-  scene = SCENE_NEW (800, 600, 2);
-  media = lp_media_new (scene, SAMPLE_NIGHT);
+  scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "lockstep", TRUE, NULL));
+  g_assert_nonnull (scene);
+
+  media = lp_media_new (scene, SAMPLE_GNU);
   g_assert_nonnull (media);
 
-  for (i = 0; i < 3; i++)
-    {
-      g_assert (lp_media_start (media));
-      event = await_filtered (scene, 1, LP_EVENT_MASK_STOP);
-      g_assert_nonnull (event);
+  event = _lp_event_seek_new (media, 0);
+  g_assert_nonnull (event);
 
-      eos = FALSE;
-      g_assert (LP_IS_EVENT_STOP (event));
-      g_object_get (event, "eos", &eos, NULL);
-      g_assert (eos);
+  g_object_get (event,
+                "source", &source,
+                "mask", &mask,
+                "offset", &offset, NULL);
 
-      str = lp_event_to_string (event);
-      g_print ("%s\n", str);
-      g_free (str);
-      g_object_unref (event);
+  str = lp_event_to_string (LP_EVENT (event));
+  g_assert_nonnull (str);
+  g_print ("%s\n", str);
+  g_free (str);
 
-      g_object_set (media,
-                    "x", g_random_int_range (0, 800/2),
-                    "y", g_random_int_range (0, 600/2), NULL);
-    }
+  g_assert (source == media);
+  g_assert (mask == LP_EVENT_MASK_SEEK);
+  g_assert (offset == 0);
 
+  g_object_unref (event);
   g_object_unref (scene);
+
   exit (EXIT_SUCCESS);
 }

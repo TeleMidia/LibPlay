@@ -77,6 +77,7 @@
 /tests/test-lp-event-key
 /tests/test-lp-event-pointer-click
 /tests/test-lp-event-pointer-move
+/tests/test-lp-event-seek
 /tests/test-lp-event-start
 /tests/test-lp-event-stop
 /tests/test-lp-event-tick
@@ -93,6 +94,9 @@
 /tests/test-lp-media-prop-width-height
 /tests/test-lp-media-prop-x-y
 /tests/test-lp-media-prop-z
+/tests/test-lp-media-seek-fail
+/tests/test-lp-media-seek-loop
+/tests/test-lp-media-seek-duo
 /tests/test-lp-media-start-avi
 /tests/test-lp-media-start-fail
 /tests/test-lp-media-start-gif
@@ -101,6 +105,7 @@
 /tests/test-lp-media-start-mix
 /tests/test-lp-media-start-mp3
 /tests/test-lp-media-start-mp4
+/tests/test-lp-media-start-oga
 /tests/test-lp-media-start-ogv
 /tests/test-lp-media-start-png
 /tests/test-lp-media-start-random

@@ -22,35 +22,25 @@ main (void)
 {
   lp_Scene *scene;
   lp_Media *media;
+  lp_Event *event;
+  guint64 interval;
   gsize i;
 
-  lp_Event *event;
-  gboolean eos;
-  gchar *str;
-
   scene = SCENE_NEW (800, 600, 2);
-  media = lp_media_new (scene, SAMPLE_NIGHT);
+  g_object_get (scene, "interval", &interval, NULL);
+
+  media = lp_media_new (scene, SAMPLE_LEGO);
   g_assert_nonnull (media);
+
+  g_assert (lp_media_start (media));
+  event = await_filtered (scene, 1, LP_EVENT_MASK_START);
+  g_assert_nonnull (event);
+  g_object_unref (event);
 
   for (i = 0; i < 3; i++)
     {
-      g_assert (lp_media_start (media));
-      event = await_filtered (scene, 1, LP_EVENT_MASK_STOP);
-      g_assert_nonnull (event);
-
-      eos = FALSE;
-      g_assert (LP_IS_EVENT_STOP (event));
-      g_object_get (event, "eos", &eos, NULL);
-      g_assert (eos);
-
-      str = lp_event_to_string (event);
-      g_print ("%s\n", str);
-      g_free (str);
-      g_object_unref (event);
-
-      g_object_set (media,
-                    "x", g_random_int_range (0, 800/2),
-                    "y", g_random_int_range (0, 600/2), NULL);
+      await_ticks (scene, 2);
+      g_assert (lp_media_seek (media, -2 * interval));
     }
 
   g_object_unref (scene);

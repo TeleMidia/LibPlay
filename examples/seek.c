@@ -27,7 +27,7 @@ int
 main (int argc, char *const *argv)
 {
   lp_Scene *scene;
-  lp_Media *media;
+  lp_Media *media[2];
   gboolean quit = FALSE;
 
   if (argc != 2)
@@ -38,12 +38,23 @@ main (int argc, char *const *argv)
       exit (EXIT_FAILURE);
     }
 
-  scene = lp_scene_new (800, 600);
+  scene = lp_scene_new (1024, 768);
   g_assert_nonnull (scene);
+  g_object_set (scene, "pattern", 18,
+                "text", "Press ← or → to seek 2s in media",
+                "text-color", 0xffffff00,
+                "text-font", "sans 16", NULL);
 
-  media = lp_media_new (scene, argv[1]);
-  g_assert_nonnull (media);
-  g_assert (lp_media_start (media));
+  media[0] = lp_media_new (scene, argv[1]);
+  g_assert_nonnull (media[0]);
+  g_object_set (media[0], "width", 200, "height", 200, "alpha", .5, NULL);
+  g_assert (lp_media_start (media[0]));
+
+  media[1] = lp_media_new (scene, argv[1]);
+  g_assert_nonnull (media[1]);
+  g_object_set (media[1], "y", 200, "width", 200, "height", 200,
+                "alpha", .5, NULL);
+  g_assert (lp_media_start (media[1]));
 
   while (!quit)
     {
@@ -56,6 +67,11 @@ main (int argc, char *const *argv)
       mask = lp_event_get_mask (event);
       switch (mask)
         {
+        case LP_EVENT_MASK_STOP:
+          {
+            quit = TRUE;
+            break;
+          }
         case LP_EVENT_MASK_ERROR:
           {
             gchar *str;
@@ -70,8 +86,14 @@ main (int argc, char *const *argv)
         case LP_EVENT_MASK_KEY:
           {
             gchar *key;
+            gboolean press;
 
-            g_object_get (LP_EVENT_KEY (event), "key", &key, NULL);
+            g_object_get (LP_EVENT_KEY (event),
+                          "key", &key, "press", &press, NULL);
+
+            if (!press)
+              break;
+
             if (g_str_equal (key, "q"))
               {
                 quit = TRUE;
@@ -79,7 +101,12 @@ main (int argc, char *const *argv)
             else if (g_str_equal (key, "Left")
                      || g_str_equal (key, "comma"))
               {
-                g_assert (lp_media_seek (media, 0));
+                lp_media_seek (media[0], -1000000000);
+              }
+            else if (g_str_equal (key, "Right")
+                     || g_str_equal (key, "period"))
+              {
+                lp_media_seek (media[0], 1000000000);
               }
             break;
           }

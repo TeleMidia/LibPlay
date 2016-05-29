@@ -135,6 +135,7 @@ lp_event_set_property (GObject *object, guint prop_id,
           case LP_EVENT_MASK_ERROR:
           case LP_EVENT_MASK_START:
           case LP_EVENT_MASK_STOP:
+          case LP_EVENT_MASK_SEEK:
             break;
           default:
             g_assert_not_reached ();
@@ -164,7 +165,7 @@ lp_event_constructed (GObject *object)
   event = LP_EVENT (object);
   g_object_get (event, "source", &source, "mask", &mask, NULL);
   g_assert (G_IS_OBJECT (source));
-  g_assert (mask > LP_EVENT_MASK_NONE && mask <= LP_EVENT_MASK_STOP);
+  g_assert (mask > LP_EVENT_MASK_NONE && mask <= LP_EVENT_MASK_SEEK);
 }
 
 static void
@@ -219,7 +220,7 @@ lp_event_get_mask (lp_Event *event)
   lp_EventMask mask;
 
   g_object_get (event, "mask", &mask, NULL);
-  g_assert (mask > LP_EVENT_MASK_NONE && mask <= LP_EVENT_MASK_STOP);
+  g_assert (mask > LP_EVENT_MASK_NONE && mask <= LP_EVENT_MASK_SEEK);
 
   return mask;
 }

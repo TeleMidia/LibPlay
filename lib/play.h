@@ -117,16 +117,13 @@ typedef enum
   LP_EVENT_MASK_ERROR         = (1 << 4),
   LP_EVENT_MASK_START         = (1 << 5),
   LP_EVENT_MASK_STOP          = (1 << 6),
+  LP_EVENT_MASK_SEEK          = (1 << 7),
   LP_EVENT_MASK_ANY           = (gint)(0xffffffff)
 } lp_EventMask;
 
 #define LP_TYPE_EVENT_TICK (lp_event_tick_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_EventTick, lp_event_tick,
                              LP, EVENT_TICK, lp_Event)
-
-#define LP_TYPE_EVENT_ERROR (lp_event_error_get_type ())
-LP_API G_DECLARE_FINAL_TYPE (lp_EventError, lp_event_error,
-                             LP, EVENT_ERROR, lp_Event)
 
 #define LP_TYPE_EVENT_KEY (lp_event_key_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_EventKey, lp_event_key,
@@ -140,6 +137,10 @@ LP_API G_DECLARE_FINAL_TYPE (lp_EventPointerClick, lp_event_pointer_click,
 LP_API G_DECLARE_FINAL_TYPE (lp_EventPointerMove, lp_event_pointer_move,
                              LP, EVENT_POINTER_MOVE, lp_Event)
 
+#define LP_TYPE_EVENT_ERROR (lp_event_error_get_type ())
+LP_API G_DECLARE_FINAL_TYPE (lp_EventError, lp_event_error,
+                             LP, EVENT_ERROR, lp_Event)
+
 #define LP_TYPE_EVENT_START (lp_event_start_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_EventStart, lp_event_start,
                              LP, EVENT_START, lp_Event)
@@ -148,6 +149,9 @@ LP_API G_DECLARE_FINAL_TYPE (lp_EventStart, lp_event_start,
 LP_API G_DECLARE_FINAL_TYPE (lp_EventStop, lp_event_stop,
                              LP, EVENT_STOP, lp_Event)
 
+#define LP_TYPE_EVENT_SEEK (lp_event_seek_get_type ())
+LP_API G_DECLARE_FINAL_TYPE (lp_EventSeek, lp_event_seek,
+                             LP, EVENT_SEEK, lp_Event)
 typedef enum
 {
   LP_ERROR_START,               /* error while starting */

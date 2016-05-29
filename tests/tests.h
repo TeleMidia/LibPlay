@@ -37,6 +37,7 @@ PRAGMA_DIAG_IGNORE (-Winline)
 
 /* Audio samples. */
 #define SAMPLE_ARCADE     SAMPLES_DIR (arcade.mp3)
+#define SAMPLE_COZY       SAMPLES_DIR (cozy.oga)
 #define SAMPLE_EVILEYE    SAMPLES_DIR (evileye.mp3)
 
 /* Image samples.  */
@@ -46,6 +47,7 @@ PRAGMA_DIAG_IGNORE (-Winline)
 
 /* Video samples.  */
 #define SAMPLE_DIODE      SAMPLES_DIR (diode.mp4)
+#define SAMPLE_LEGO       SAMPLES_DIR (lego.ogv)
 #define SAMPLE_NIGHT      SAMPLES_DIR (night.avi)
 #define SAMPLE_ROAD       SAMPLES_DIR (road.ogv)
 #define SAMPLE_SYNC       SAMPLES_DIR (sync.m4v)
@@ -54,14 +56,16 @@ PRAGMA_DIAG_IGNORE (-Winline)
 static ATTR_UNUSED const gchar *samples_all[] =
 {
   SAMPLE_ARCADE,
-  SAMPLE_EVILEYE,
+  SAMPLE_COZY,
+  SAMPLE_DIODE,
   SAMPLE_EARTH,
+  SAMPLE_EVILEYE,
   SAMPLE_FELIS,
   SAMPLE_GNU,
-  SAMPLE_DIODE,
+  SAMPLE_LEGO,
   SAMPLE_NIGHT,
   SAMPLE_ROAD,
-  SAMPLE_SYNC
+  SAMPLE_SYNC,
 };
 
 /* By format.  */
@@ -71,7 +75,8 @@ static ATTR_UNUSED const gchar *samples_all[] =
 #define SAMPLE_M4V SAMPLE_SYNC
 #define SAMPLE_MP3 SAMPLE_ARCADE
 #define SAMPLE_MP4 SAMPLE_DIODE
-#define SAMPLE_OGV SAMPLE_ROAD
+#define SAMPLE_OGA SAMPLE_COZY
+#define SAMPLE_OGV SAMPLE_LEGO
 #define SAMPLE_PNG SAMPLE_GNU
 
 /* Random sample.  */

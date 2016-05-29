@@ -158,6 +158,14 @@ gstx_element_get_clock_time (GstElement *elt)
   }                                                     \
   STMT_END
 
+/* Asserted version of gst_element_sync_state_with_parent().  */
+#define gstx_element_sync_state_with_parent(elt)                \
+  STMT_BEGIN                                                    \
+  {                                                             \
+    g_assert (gst_element_sync_state_with_parent ((elt)));      \
+  }                                                             \
+  STMT_END
+
 
 /* Returns the value of pointer @field in structure @st.
    Aborts if there is no such field of if it does not contain a pointer.  */

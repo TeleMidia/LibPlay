@@ -108,6 +108,9 @@ _lp_event_start_new (lp_Media *, gboolean);
 lp_EventStop *
 _lp_event_stop_new (lp_Media *, gboolean);
 
+lp_EventSeek *
+_lp_event_seek_new (lp_Media *, gint64);
+
 /* media */
 
 guint
@@ -117,13 +120,16 @@ lp_Media *
 _lp_media_find_media (GstObject *);
 
 void
-_lp_media_finish_abort (lp_Media *);
+_lp_media_finish_error (lp_Media *);
 
 void
 _lp_media_finish_start (lp_Media *);
 
 void
 _lp_media_finish_stop (lp_Media *);
+
+void
+_lp_media_finish_seek (lp_Media *);
 
 /* scene */
 
@@ -143,7 +149,7 @@ GstElement *
 _lp_scene_get_real_video_sink (lp_Scene *); /* transfer-full */
 
 GstClockTime
-_lp_scene_get_clock_time (lp_Scene *);
+_lp_scene_get_running_time (lp_Scene *);
 
 gboolean
 _lp_scene_has_video (lp_Scene *);

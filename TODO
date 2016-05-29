@@ -2,19 +2,28 @@ LibPlay TODO -- Tasks that need implementing.
 
 * KNOWN BUGS
 
+  + lib/lp-media.c: Fix seek
+
+    The seek operation is broken.  The current support is only tentative.
+
   + lib/lp-scene.c: Handle window closing gracefully.
 
     When the video sink window is closed the sink posts an error to
     pipeline.  Currently, we're not handling this error---the application
-    simply crashes due to an unmet assertion.  We should handle this error
+    simply crashes due to an unmet assertion.  We could handle this error
     by destroying the scene.
 
 * FEATURES OR PROBLEMS
 
+  + lib/lp-media.c: Handle more async errors.
+
+    Currently, we only handle a specific type of async start error.
+    We need to detect and handle other async errors.
+
   + lib/lp-scene.c: Use fakesrc to generate a blank video stream in scene.
 
     Currently, we're using videotestsrc for this job, which is overkill.
-    Moreover, it cannot generate a transparent stream.  We should use the
+    Moreover, it cannot generate a transparent stream.  We could use the
     fakesrc element, e.g.,
 
       gst-launch-1.0 fakesrc filltype=2 format=3
@@ -26,12 +35,12 @@ LibPlay TODO -- Tasks that need implementing.
   + lib/lp-scene.c, lib/lp-media.c: Expose text properties
 
     The textoverlay element has lots of properties to control the appearance
-    and position of the overlaid text.  We should expose these as
+    and position of the overlaid text.  We could expose these as
     properties in the lp_Scene and lp_Media APIs.
 
   + lib/lp-media.c: Add support to URIs pointing to text files.
 
-    We should use the textrender element to render text files, e.g.,
+    We could use the textrender element to render text files, e.g.,
 
       gst-launch-1.0 filesrc location=TEXT-FILE
       ! capsfilter caps=text/x-raw,format=utf8 ! textrender ! imagefreeze

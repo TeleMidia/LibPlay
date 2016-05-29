@@ -70,7 +70,7 @@ main (void)
               {
                 if (media[i] != NULL)
                   {
-                    lp_media_stop (media[i]);
+                    g_assert (lp_media_stop (media[i]));
                     break;
                   }
               }
@@ -93,7 +93,14 @@ main (void)
             break;
           }
         default:
-          g_assert_not_reached ();
+          {
+            gchar *str;
+            str = lp_event_to_string (event);
+            g_assert_nonnull (str);
+            g_print ("%s\n", str);
+            g_free (str);
+            g_assert_not_reached ();
+          }
         }
       g_object_unref (event);
     }

@@ -21,15 +21,25 @@ int
 main (void)
 {
   lp_Scene *scene;
+  char *str;
 
   scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, NULL));
   g_assert_nonnull (scene);
+  str = lp_scene_to_string (scene);
+  g_print ("%s\n", str);
+  g_free (str);
   g_object_unref (scene);
 
   scene = SCENE_NEW (0, 0, 0);
+  str = lp_scene_to_string (scene);
+  g_print ("%s\n", str);
+  g_free (str);
   g_object_unref (scene);
 
   scene = SCENE_NEW (200, 200, 0);
+  str = lp_scene_to_string (scene);
+  g_print ("%s\n", str);
+  g_free (str);
   g_object_unref (scene);
 
   exit (EXIT_SUCCESS);

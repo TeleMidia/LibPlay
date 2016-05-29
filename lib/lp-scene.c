@@ -59,7 +59,7 @@ struct _lp_Scene
     gint wave;                  /* cached wave */
     guint64 ticks;              /* total number of ticks */
     guint64 interval;           /* interval between ticks (nanoseconds) */
-    guint64 time;               /* total time (nanoseconds) */
+    guint64 time;               /* running time (nanoseconds) */
     gboolean lockstep;          /* lockstep mode */
     gboolean slave_audio;       /* enslave audio clock */
     gchar *text;                /* cached text */
@@ -1154,6 +1154,60 @@ lp_scene_new (gint width, gint height)
   return LP_SCENE (g_object_new (LP_TYPE_SCENE,
                                  "width", width,
                                  "height", height, NULL));
+}
+
+/**
+ * lp_scene_to_string:
+ * @scene: an #lp_Scene
+ *
+ * Gets a string representation of @scene.
+ *
+ * Returns: (transfer full): a string representing the scene
+ */
+gchar *
+lp_scene_to_string (lp_Scene *scene)
+{
+  gchar *str;
+  guint64 time;
+
+  scene_lock (scene);
+
+  g_object_get (scene, "time", &time, NULL);
+  str = g_strdup_printf ("\
+%s at %p\n\
+  mask: 0x%x\n\
+  width: %d\n\
+  height: %d\n\
+  pattern: %d\n\
+  wave: %d\n\
+  ticks: %" G_GUINT64_FORMAT "\n\
+  interval: %" GST_TIME_FORMAT "\n\
+  time: %" GST_TIME_FORMAT "\n\
+  lockstep: %s\n\
+  slave-audio: %s\n\
+  text: %s\n\
+  text-color: 0x%x\n\
+  text-font: %s\n\
+",
+                         G_OBJECT_TYPE_NAME (scene),
+                         scene,
+                         (guint) scene->prop.mask,
+                         scene->prop.width,
+                         scene->prop.height,
+                         scene->prop.pattern,
+                         scene->prop.wave,
+                         scene->prop.ticks,
+                         GST_TIME_ARGS (scene->prop.interval),
+                         GST_TIME_ARGS (time),
+                         strbool (scene->prop.lockstep),
+                         strbool (scene->prop.slave_audio),
+                         scene->prop.text,
+                         (guint) scene->prop.text_color,
+                         scene->prop.text_font);
+  g_assert_nonnull (str);
+
+  scene_unlock (scene);
+  return str;
 }
 
 /**

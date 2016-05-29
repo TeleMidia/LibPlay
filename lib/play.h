@@ -199,6 +199,9 @@ lp_media_seek (lp_Media *, gint64);
 LP_API lp_Scene *
 lp_scene_new (gint, gint);
 
+LP_API gchar *
+lp_scene_to_string (lp_Scene *);
+
 LP_API gboolean
 lp_scene_advance (lp_Scene *, guint64);
 

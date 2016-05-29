@@ -72,7 +72,7 @@ _lp_event_to_string (lp_Event *event, const gchar *fmt, ...)
                          : LP_IS_MEDIA (event->priv->source) ? "lp_Media"
                          : "unknown",
                          event->priv->source,
-                         (unsigned int) event->priv->mask,
+                         (guint) event->priv->mask,
                          suffix);
   g_assert_nonnull (str);
   g_free (suffix);

@@ -15,26 +15,34 @@ License for more details.
 You should have received a copy of the GNU General Public License
 along with LibPLay.  If not, see <http://www.gnu.org/licenses/>.  ]]--
 
-local type = type
 local assert = assert
-local print = print
+local pcall = pcall
 
-local scene = require ('play.play0')
+local play = require ('play.play0')
+local scene = play.scene
 _ENV = nil
 
--- check API
 do
-   assert (type (scene.new) == 'function')
-   assert (type (scene.__gc) == 'function')
-end
+   local sc = assert (scene.new ())
 
--- check constructor
-do
-   local sc = scene.new ()
-   print (sc)
+   assert (pcall (sc.get, nil) == false)
+   assert (pcall (sc.get, sc, nil) == false)
+   assert (pcall (sc.get, sc, 'unknown') == false)
+
    assert (sc:get ('width') == 0)
    assert (sc:get ('height') == 0)
    assert (sc:get ('pattern') == 2)
    assert (sc:get ('wave') == 4)
-   assert (sc:get ('ticks') == 0);
+   assert (sc:get ('ticks') == 0)
+   assert (sc:get ('interval') == 1000000000)
+   assert (sc:get ('time') > 0)
+   assert (sc:get ('lockstep') == false)
+   assert (sc:get ('slave-audio') == false)
+   assert (sc:get ('text') == nil)
+   assert (sc:get ('text-color') == 0xffffffff)
+   assert (sc:get ('text-font') == nil)
+
+   local sc = assert (scene.new (800, 600))
+   assert (sc:get ('width') == 800)
+   assert (sc:get ('height') == 600)
 end

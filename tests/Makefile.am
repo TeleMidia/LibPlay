@@ -71,9 +71,17 @@ AM_TESTS_ENVIRONMENT=\
 # Test scripts.
 scripts=
 if WITH_LUA
-scripts+= lua-play0-scene.lua
+scripts+= test-lua-play0-scene-api.lua
+scripts+= test-lua-play0-scene-new.lua
+scripts+= test-lua-play0-scene-get.lua
+scripts+= test-lua-play0-scene-set.lua
+scripts+= test-lua-play0-scene-receive.lua
 endif
 check_SCRIPTS= $(scripts)
+
+.PHONY: check-scripts
+check-scripts:
+	$(MAKE) $(AM_MAKEFLAGS) check TESTS='$(check_SCRIPTS)'
 
 # Test programs.
 programs=

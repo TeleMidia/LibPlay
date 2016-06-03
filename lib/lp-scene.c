@@ -432,11 +432,15 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     case GST_MESSAGE_EOS:
       break;
     case GST_MESSAGE_ERROR:
+    case GST_MESSAGE_WARNING:
       {
         GError *error = NULL;
         gchar *debug = NULL;
 
-        gst_message_parse_error (msg, &error, NULL);
+        if (GST_MESSAGE_TYPE (msg) == GST_MESSAGE_ERROR)
+          gst_message_parse_error (msg, &error, NULL);
+        else
+          gst_message_parse_warning (msg, &error, NULL);
         g_assert_nonnull (error);
 
         debug = gst_error_get_message (error->domain, error->code);
@@ -531,15 +535,6 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
       break;
     case GST_MESSAGE_TOC:
       break;
-    case GST_MESSAGE_WARNING:
-      {
-        GError *error = NULL;
-        gst_message_parse_warning (msg, &error, NULL);
-        g_assert_nonnull (error);
-        _lp_error ("%s", error->message);
-        g_error_free (error);
-        break;
-      }
     case GST_MESSAGE_UNKNOWN:
     default:
       break;                    /* ignore unknown messages */

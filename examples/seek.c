@@ -28,12 +28,12 @@ main (int argc, char *const *argv)
 {
   lp_Scene *scene;
   lp_Media *media[2];
-  gboolean quit = FALSE;
+  gboolean done = FALSE;
 
   if (argc != 2)
     {
       gchar *me = g_path_get_basename (argv[0]);
-      g_print ("usage: %s FILE\n", me);
+      g_printerr ("usage: %s FILE\n", me);
       g_free (me);
       exit (EXIT_FAILURE);
     }
@@ -56,31 +56,29 @@ main (int argc, char *const *argv)
                 "alpha", .5, NULL);
   g_assert (lp_media_start (media[1]));
 
-  while (!quit)
+  while (!done)
     {
       lp_Event *event;
-      lp_EventMask mask;
 
       event = lp_scene_receive (scene, TRUE);
       g_assert_nonnull (event);
 
-      mask = lp_event_get_mask (event);
-      switch (mask)
+      switch (lp_event_get_mask (event))
         {
         case LP_EVENT_MASK_STOP:
           {
-            quit = TRUE;
+            done = TRUE;
             break;
           }
         case LP_EVENT_MASK_ERROR:
           {
-            gchar *str;
+            GError *error = NULL;
 
-            str = lp_event_to_string (LP_EVENT (event));
-            g_assert_nonnull (str);
-            g_print ("error: %s\n", str);
-            g_free (str);
-            quit = TRUE;
+            g_object_get (LP_EVENT_ERROR (event), "error", &error, NULL);
+            g_assert_nonnull (error);
+            g_assert_no_error (error);
+            g_error_free (error);
+            done = TRUE;
             break;
           }
         case LP_EVENT_MASK_KEY:
@@ -92,11 +90,15 @@ main (int argc, char *const *argv)
                           "key", &key, "press", &press, NULL);
 
             if (!press)
-              break;
-
-            if (g_str_equal (key, "q"))
               {
-                quit = TRUE;
+                g_free (key);
+                break;
+              }
+
+            if (g_str_equal (key, "q")
+                || g_str_equal (key, "Escape"))
+              {
+                done = TRUE;
               }
             else if (g_str_equal (key, "Left")
                      || g_str_equal (key, "comma"))
@@ -108,6 +110,8 @@ main (int argc, char *const *argv)
               {
                 lp_media_seek (media[0], 1000000000);
               }
+
+            g_free (key);
             break;
           }
         default:

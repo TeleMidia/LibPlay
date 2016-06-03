@@ -27,12 +27,14 @@ int
 main (void)
 {
   lp_Scene *scene;
-  gboolean quit = FALSE;
+  gboolean done;
 
   scene = lp_scene_new (800, 600);
   g_assert_nonnull (scene);
+  g_object_set (scene, "text-font", "sans 16", NULL);
 
-  while (!quit)
+  done = FALSE;
+  do
     {
       lp_Event *event;
       gchar *str;
@@ -44,24 +46,38 @@ main (void)
       g_assert_nonnull (str);
 
       g_object_set (scene, "text", str, NULL);
-      g_print ("%s\n", str);
       g_free (str);
 
-      if (LP_IS_EVENT_ERROR (event))
+      switch (lp_event_get_mask (event))
         {
-          quit = TRUE;
-        }
-      else if (LP_IS_EVENT_KEY (event))
-        {
-          gchar *key;
+        case LP_EVENT_MASK_ERROR:
+          {
+            GError *error = NULL;
 
-          g_object_get (LP_EVENT_KEY (event), "key", &key, NULL);
-          if (g_str_equal (key, "q"))
-            quit = TRUE;
+            g_object_get (LP_EVENT_ERROR (event), "error", &error, NULL);
+            g_assert_nonnull (error);
+            g_assert_no_error (error);
+            g_error_free (error);
+            done = TRUE;
+            break;
+          }
+        case LP_EVENT_MASK_KEY:
+          {
+            gchar *key;
+
+            g_object_get (LP_EVENT_KEY (event), "key", &key, NULL);
+            if (g_str_equal (key, "q") || g_str_equal (key, "Escape"))
+              done = TRUE;
+            g_free (key);
+            break;
+          }
+        default:
+          break;
         }
 
       g_object_unref (event);
     }
+  while (!done);
 
   g_object_unref (scene);
   exit (EXIT_SUCCESS);

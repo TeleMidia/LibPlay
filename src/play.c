@@ -28,21 +28,32 @@ main (int argc, char **argv)
 {
   lp_Scene *scene;
   lp_Media *media;
-  GType type;
+  gboolean done;
+  int status;
 
-  if (unlikely (argc < 2))
+  if (unlikely (argc != 2))
   {
-    g_printerr ("usage: %s <uri>\n", argv[0]);
+    gchar *me = g_path_get_basename (argv[0]);
+    g_printerr ("usage: %s FILE\n", me);
+    g_free (me);
     exit (EXIT_FAILURE);
   }
 
-  scene = lp_scene_new (1080, 720);
+  scene = lp_scene_new (800, 600);
   g_assert_nonnull (scene);
 
   media = lp_media_new (scene, argv[1]);
   g_assert_nonnull (media);
 
-  g_assert (lp_media_start (media));
+  if (unlikely (!lp_media_start (media)))
+    {
+      g_printerr ("error: cannot start media at '%s'\n", argv[1]);
+      g_object_unref (scene);
+      exit (EXIT_FAILURE);
+    }
+
+  done = FALSE;
+  status = EXIT_SUCCESS;
   do
     {
       lp_Event *event;
@@ -50,29 +61,53 @@ main (int argc, char **argv)
       event = lp_scene_receive (scene, TRUE);
       g_assert_nonnull (event);
 
-      type = G_OBJECT_TYPE (event);
-      g_assert (type != LP_TYPE_EVENT_ERROR);
-      if (type == LP_TYPE_EVENT_POINTER_CLICK)
+      switch (lp_event_get_mask (event))
         {
-          gdouble x, y;
-          gint button;
-          gboolean press;
-          lp_EventPointerClick *click = LP_EVENT_POINTER_CLICK (event);
+        case LP_EVENT_MASK_TICK:
+          break;
+        case LP_EVENT_MASK_KEY:
+          {
+            gchar *key = NULL;
 
-          g_object_get (G_OBJECT (click),
-                        "x", &x,
-                        "y", &y,
-                        "button", &button,
-                        "press", &press, NULL);
+            g_object_get (LP_EVENT_KEY (event), "key", &key, NULL);
+            g_assert_nonnull (key);
+            if (g_str_equal (key, "q") || g_str_equal (key, "Escape"))
+              done = TRUE;
+            g_free (key);
+            break;
+          }
+        case LP_EVENT_MASK_POINTER_CLICK:
+          break;
+        case LP_EVENT_MASK_POINTER_MOVE:
+          break;
+        case LP_EVENT_MASK_ERROR:
+          {
+            GError *error = NULL;
 
-          g_print ("(x, y): %.0f, %.0f\n", x, y);
-          g_print ("button: %d\n", button);
-          g_print ("type: %s\n", press ? "press" : "release");
+            g_object_get (event, "error", &error, NULL);
+            g_assert_nonnull (error);
+            g_printerr ("error: %s\n", error->message);
+            g_error_free (error);
+            status = EXIT_FAILURE;
+            done = TRUE;
+            break;
+          }
+        case LP_EVENT_MASK_START:
+          break;
+        case LP_EVENT_MASK_STOP:
+          {
+            done = TRUE;
+            break;
+          }
+        case LP_EVENT_MASK_SEEK:
+          break;
+        default:
+          g_assert_not_reached ();
         }
       g_object_unref (event);
     }
-  while (type != LP_TYPE_EVENT_STOP);
+  while (!done);
 
   g_object_unref (scene);
-  exit (EXIT_SUCCESS);
+  exit (status);
 }

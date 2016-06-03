@@ -41,8 +41,12 @@ struct _lp_Media
   GstElement *decoder;          /* content decoder */
   GstClockTime offset;          /* start time offset */
   lp_MediaState state;          /* current state */
-  gboolean drained;             /* true if decoder has drained */
   gchar *final_uri;             /* final URI */
+  struct
+  {                             /* flags: */
+    gboolean drained;           /* true if decoder has drained */
+    gboolean disposing;         /* true if media is being disposed */
+  } flag;
   struct
   {                             /* callback handlers: */
     gulong pad_added;           /* pad-added callback id */
@@ -185,8 +189,11 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 #define media_state_seeking(media)   ((media)->state == SEEKING)
 #define media_state_sought(media)    ((media)->state == SOUGHT)
 
+/* Flags.  */
+#define media_flag_drained(media)    ((media)->flag.drained)
+#define media_flag_disposing(media)  ((media)->flag.disposing)
+
 /* Other queries.  */
-#define media_has_drained(media)     ((media)->drained)
 #define media_has_audio(media)       ((media)->audio.mixerpad != NULL)
 #define media_has_video(media)       ((media)->video.mixerpad != NULL)
 
@@ -541,8 +548,8 @@ lp_media_drained_callback (GstElement *dec, lp_Media *media)
   if (unlikely (media->video.frozen)) /* still image, nothing to do */
     goto done;
 
-  g_assert (!media->drained);
-  media->drained = TRUE;
+  g_assert (!media_flag_drained (media));
+  media->flag.drained = TRUE;
   lp_media_stop (media);
 
  done:
@@ -579,7 +586,7 @@ lp_media_stop_block_probe_callback (GstPad *pad,
     {
       lp_EventStop *event;
 
-      event = _lp_event_stop_new (media, media_has_drained (media));
+      event = _lp_event_stop_new (media, media_flag_drained (media));
       g_assert_nonnull (event);
       _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
     }
@@ -655,8 +662,10 @@ lp_media_init (lp_Media *media)
   g_rec_mutex_init (&media->mutex);
   media->offset = GST_CLOCK_TIME_NONE;
   media->state = STOPPED;
-  media->drained = FALSE;
   media->final_uri = NULL;
+
+  media->flag.drained = FALSE;
+  media->flag.disposing = FALSE;
 
   media->callback.pad_added = 0;
   media->callback.no_more_pads = 0;
@@ -962,6 +971,16 @@ lp_media_dispose (GObject *object)
   media = LP_MEDIA (object);
   media_lock (media);
 
+  if (media_flag_disposing (media))
+    {
+      media_unlock (media);
+      return;                   /* nothing to do */
+    }
+
+  /* The "disposing" flag is necessary as this function may be triggered
+     multiple times in the same thread.  */
+
+  media->flag.disposing = TRUE;
   while (!media_state_stopped (media))
     {
       lp_Scene *scene;
@@ -1180,7 +1199,7 @@ _lp_media_finish_stop (lp_Media *media)
   gstx_element_set_state_sync (media->bin, GST_STATE_NULL);
 
   g_clear_pointer (&media->bin, gst_object_unref);
-  media->drained = FALSE;
+  media->flag.drained = FALSE;
   media->video.frozen = FALSE;
   g_clear_pointer (&media->final_uri, g_free);
   g_clear_pointer (&media->audio.mixerpad, g_free);

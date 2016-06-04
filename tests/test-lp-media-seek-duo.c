@@ -24,15 +24,14 @@ main (void)
   lp_Media *media[2];
   lp_Event *event;
   guint64 interval;
-  gsize i;
 
   scene = SCENE_NEW (800, 600, 2);
   g_object_get (scene, "interval", &interval, NULL);
 
-  media[0] = lp_media_new (scene, SAMPLE_SYNC);
+  media[0] = lp_media_new (scene, SAMPLE_NIGHT);
   g_assert_nonnull (media[0]);
 
-  media[1] = lp_media_new (scene, SAMPLE_SYNC);
+  media[1] = lp_media_new (scene, SAMPLE_NIGHT);
   g_assert_nonnull (media[1]);
   g_object_set (media[1], "x", 400, "y", 400, NULL);
 
@@ -43,12 +42,9 @@ main (void)
   g_assert_nonnull (event);
   g_object_unref (event);
 
-  for (i = 0; i < 20; i++)
-    {
-      await_ticks (scene, 1);
-      g_assert (lp_media_seek (media[0], 5 * interval));
-      /* g_assert (lp_media_seek (media[1], 2 * interval)); */
-    }
+  await_ticks (scene, 2);
+  g_assert (lp_media_seek (media[0], -2 * interval));
+  await_ticks (scene, 2);
 
   g_object_unref (scene);
   exit (EXIT_SUCCESS);

@@ -47,8 +47,7 @@ typedef enum
   PAD_FLAG_NONE     = 0,                 /* no flags set */
   PAD_FLAG_ACTIVE   = (1 << 0),          /* pad is active */
   PAD_FLAG_BLOCKED  = (1 << 1),          /* pad is blocked */
-  PAD_FLAG_SOUGHT   = (1 << 2),          /* pad has been sought */
-  PAD_FLAG_FLUSHED  = (1 << 3),          /* pad has been flushed */
+  PAD_FLAG_FLUSHED  = (1 << 2),          /* pad has been flushed */
   PAD_FLAG_ALL      = (gint)(0xffffffff) /* all flags set */
 } lp_MediaPadFlag;
 
@@ -72,9 +71,8 @@ struct _lp_Media
   } callback;
   struct
   {                             /* seek offset: */
-    gint64 sum;                 /* accumulated relative offset */
-    gint64 abs;                 /* absolute offset */
-    gint64 pad;                 /* start time offset for ghost pads */
+    gint64 sum;                 /* accumulated offset */
+    gint64 last;                /* last offset */
   } seek;
   struct
   {                             /* audio output: */
@@ -200,7 +198,6 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 #define media_state_stopped(m)    ((m)->state == STOPPED)
 #define media_state_stopping(m)   ((m)->state == STOPPING)
 #define media_state_seeking(m)    ((m)->state == SEEKING)
-/* #define media_state_sought(m)     ((m)->state == SOUGHT) */
 #define media_state_disposing(m)  ((m)->state == DISPOSING)
 
 /* Media flag access.  */
@@ -217,14 +214,13 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 #define MEDIA_PAD_FLAGS_SET(pf, f)\
   ((pf) = (lp_MediaPadFlag)(f))
 
-#define MEDIA_PAD_FLAGS_TOOGLE(pf, f)\
+#define MEDIA_PAD_FLAGS_TOGGLE(pf, f)\
   (MEDIA_PAD_FLAGS_SET ((pf), (pf) ^ (f)))
 
 #define media_has_audio(m)           ((m)->audio.pad != NULL)
 #define media_has_video(m)           ((m)->video.pad != NULL)
 #define media_pad_flags_active(pf)   ((pf) & PAD_FLAG_ACTIVE)
 #define media_pad_flags_blocked(pf)  ((pf) & PAD_FLAG_BLOCKED)
-#define media_pad_flags_sought(pf)   ((pf) & PAD_FLAG_SOUGHT)
 #define media_pad_flags_flushed(pf)  ((pf) & PAD_FLAG_FLUSHED)
 
 #define media_is_flag_set_on_all_pads(m, f)                     \
@@ -235,6 +231,16 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
   (!((media_has_audio ((m)) && ((m)->audio.flags & (f)))        \
      || (media_has_video ((m)) && ((m)->video.flags & (f)))))
 
+#define media_toggle_flag_on_all_pads(m, f)             \
+  STMT_BEGIN                                            \
+  {                                                     \
+    if (media_has_audio (m))                            \
+      MEDIA_PAD_FLAGS_TOGGLE ((m)->audio.flags, (f));   \
+    if (media_has_video (m))                            \
+      MEDIA_PAD_FLAGS_TOGGLE ((m)->video.flags, (f));   \
+  }                                                     \
+  STMT_END
+
 /* Get the address of the flags associated with @pad in @media.  */
 
 static lp_MediaPadFlag *
@@ -242,44 +248,35 @@ media_get_pad_flags (lp_Media *media, GstPad *pad)
 {
   if (pad == media->audio.pad)
     return &media->audio.flags;
-
   if (pad == media->video.pad)
     return &media->video.flags;
-
-  g_assert_not_reached ();      /* bad pad */
+  g_assert_not_reached ();
   return NULL;
 }
 
-/* Installs probe @func with @mask onto @media pads.
-   Returns the number of probes installed.  */
+/* Installs probe @func with @mask onto @media pads.  */
 
-#define media_install_probe(media, mask, func)\
-  _media_install_probe ((media), (mask), (GstPadProbeCallback)(func))
-
-static int
-_media_install_probe (lp_Media *media, GstPadProbeType mask,
-                      GstPadProbeCallback func)
-{
-  guint n;
-  gulong id;
-
-  n = 0;
-  if (media_has_audio (media))
-    {
-      id = gst_pad_add_probe (media->audio.pad, mask, func, media, NULL);
-      g_assert (id > 0);
-      n++;
-    }
-  if (media_has_video (media))
-    {
-      id = gst_pad_add_probe (media->video.pad, mask, func, media, NULL);
-      g_assert (id > 0);
-      n++;
-    }
-  g_assert (n >= 1 && n <=2);
-
-  return n;
-}
+#define media_install_probe(m, t, f)            \
+  STMT_BEGIN                                    \
+  {                                             \
+    if (media_has_audio ((m)))                  \
+      {                                         \
+        g_assert (gst_pad_add_probe             \
+                  ((m)->audio.pad,              \
+                   (GstPadProbeType)(t),        \
+                   (GstPadProbeCallback)(f),    \
+                   (m), NULL) > 0);             \
+      }                                         \
+    if (media_has_video ((m)))                  \
+      {                                         \
+        g_assert (gst_pad_add_probe             \
+                  ((m)->video.pad,              \
+                   (GstPadProbeType)(t),        \
+                   (GstPadProbeCallback)(f),    \
+                   (m), NULL) > 0);             \
+      }                                         \
+  }                                             \
+  STMT_END
 
 
 /* callbacks */
@@ -292,8 +289,7 @@ _media_install_probe (lp_Media *media, GstPadProbeType mask,
    lp_media_no_more_pads_callback().  */
 
 static GstPadProbeReturn
-lp_media_pad_added_block_probe_callback (GstPad *pad,
-                                         arg_unused (GstPadProbeInfo *info),
+lp_media_pad_added_block_probe_callback (GstPad *pad, GstPadProbeInfo *info,
                                          lp_Media *media)
 {
   lp_MediaPadFlag *flags;
@@ -301,18 +297,27 @@ lp_media_pad_added_block_probe_callback (GstPad *pad,
   media_lock (media);
 
   if (unlikely (!media_state_starting (media)))
-    goto unblock;               /* drop cached probes */
+    goto unblock;               /* drop residual probes */
 
   flags = media_get_pad_flags (media, pad);
   g_assert_nonnull (flags);
   g_assert (media_pad_flags_active (*flags));
 
   if (media_pad_flags_blocked (*flags))
-    goto block;
+    {
+      media_unlock (media);
+      return GST_PAD_PROBE_OK;  /* block */
+    }
 
+  if (media_pad_flags_flushed (*flags))
+    goto unblock;               /* drop residual probes */
+
+  MEDIA_PAD_FLAGS_TOGGLE (*flags, PAD_FLAG_FLUSHED); /* flush */
+  g_assert (media_state_starting (media));
+  gst_pad_remove_probe (pad, GST_PAD_PROBE_INFO_ID (info));
   gst_pad_set_offset (pad, (gint64) media->offset);
 
-  if (media_is_flag_not_set_on_all_pads (media, PAD_FLAG_BLOCKED))
+  if (media_is_flag_set_on_all_pads (media, PAD_FLAG_FLUSHED))
     {
       lp_EventStart *event = _lp_event_start_new (media, FALSE);
       g_assert_nonnull (event);
@@ -322,10 +327,6 @@ lp_media_pad_added_block_probe_callback (GstPad *pad,
  unblock:
   media_unlock (media);
   return GST_PAD_PROBE_REMOVE;
-
- block:
-  media_unlock (media);
-  return GST_PAD_PROBE_OK;
 }
 
 /* Signals that a new pad has been added to media decoder.  Here we build,
@@ -550,7 +551,7 @@ lp_media_no_more_pads_callback (GstElement *dec, lp_Media *media)
       flags = &media->audio.flags;
       g_assert (media_pad_flags_active (*flags));
       g_assert (media_pad_flags_blocked (*flags));
-      MEDIA_PAD_FLAGS_TOOGLE (*flags, PAD_FLAG_BLOCKED); /* unblock */
+      MEDIA_PAD_FLAGS_TOGGLE (*flags, PAD_FLAG_BLOCKED); /* unblock */
     }
 
   if (media_has_video (media))
@@ -558,7 +559,7 @@ lp_media_no_more_pads_callback (GstElement *dec, lp_Media *media)
       flags = &media->video.flags;
       g_assert (media_pad_flags_active (*flags));
       g_assert (media_pad_flags_blocked (*flags));
-      MEDIA_PAD_FLAGS_TOOGLE (*flags, PAD_FLAG_BLOCKED); /* unblock */
+      MEDIA_PAD_FLAGS_TOGGLE (*flags, PAD_FLAG_BLOCKED); /* unblock */
 
     }
 
@@ -610,7 +611,7 @@ lp_media_drained_callback (GstElement *dec, lp_Media *media)
     goto done;
 
   g_assert (!media_has_drained (media));
-  media_toggle_drained (media);
+  media_toggle_drained (media); /* drain */
   lp_media_stop (media);
 
  done:
@@ -634,7 +635,7 @@ lp_media_stop_block_probe_callback (GstPad *pad,
   media_lock (media);
 
   if (unlikely (!media_state_stopping (media)))
-    goto done;                  /* drop cached probes */
+    goto done;                  /* drop residual probes */
 
   flags = media_get_pad_flags (media, pad);
   g_assert_nonnull (flags);
@@ -646,7 +647,7 @@ lp_media_stop_block_probe_callback (GstPad *pad,
   gst_object_unref (peer);
 
   g_assert (gst_pad_set_active (pad, FALSE));
-  MEDIA_PAD_FLAGS_TOOGLE (*flags, PAD_FLAG_ACTIVE); /* deactivate */
+  MEDIA_PAD_FLAGS_TOGGLE (*flags, PAD_FLAG_ACTIVE); /* deactivate */
 
   if (media_is_flag_not_set_on_all_pads (media, PAD_FLAG_ACTIVE))
     {
@@ -668,150 +669,47 @@ lp_media_stop_block_probe_callback (GstPad *pad,
    in state "started".  */
 
 static GstPadProbeReturn
-lp_media_seek_flush_probe_callback (GstPad *pad,
-                                    GstPadProbeInfo *info,
+lp_media_seek_flush_probe_callback (GstPad *pad, GstPadProbeInfo *info,
                                     lp_Media *media)
 {
+  lp_MediaPadFlag *flags;
   GstEvent *evt;
-  gchar *str;
-  lp_MediaPadFlag *flags;
 
-  if (!media_state_seeking (media))
-    goto unblock;               /* drop cached probes */
-
-  media_lock (media);
-
-  flags = media_get_pad_flags (media, pad);
-  g_assert_nonnull (flags);
-
-  if (media_pad_flags_flushed (*flags))
-    goto unblock;               /* drop cached probes */
-
-  evt = GST_PAD_PROBE_INFO_EVENT (info);
-  g_assert_nonnull (evt);
-
-  if (GST_EVENT_TYPE (evt) != GST_EVENT_FLUSH_STOP)
-    goto block;
-
-  str = gst_structure_to_string (gst_event_get_structure (evt));
-  _lp_debug ("FLUSHING %p %s", pad, str);
-  g_free (str);
-
-  g_assert (!media_pad_flags_flushed (*flags));
-  MEDIA_PAD_FLAGS_TOOGLE (*flags, PAD_FLAG_FLUSHED);
-
-  if (media_is_flag_set_on_all_pads (media, PAD_FLAG_FLUSHED))
-    {
-      if (media_has_audio (media))
-        {
-          flags = &media->audio.flags;
-          g_assert (media_pad_flags_blocked (*flags));
-          MEDIA_PAD_FLAGS_TOOGLE (*flags, PAD_FLAG_BLOCKED);
-        }
-      if (media_has_video (media))
-        {
-          flags = &media->video.flags;
-          g_assert (media_pad_flags_blocked (*flags));
-          MEDIA_PAD_FLAGS_TOOGLE (*flags, PAD_FLAG_BLOCKED);
-        }
-    }
-
- unblock:
   media_unlock (media);
-  return GST_PAD_PROBE_REMOVE;
 
- block:
-  media_unlock (media);
-  return GST_PAD_PROBE_OK;
-}
-
-/* Signals that a media pad has been blocked, which in this case happens
-   after lp_media_seek() is called.  Here we post a seek GstEvent on the pad
-   and wait for the corresponding flush-stop event to unblock it.  */
-
-static GstPadProbeReturn
-lp_media_seek_block_probe_callback (GstPad *pad,
-                                    arg_unused (GstPadProbeInfo *info),
-                                    lp_Media *media)
-{
-  lp_MediaPadFlag *flags;
-
-  media_lock (media);
-
-  if (!media_state_seeking (media))
-    goto unblock;               /* drop cached probes */
+  g_assert (media_state_seeking (media));
 
   flags = media_get_pad_flags (media, pad);
   g_assert_nonnull (flags);
   g_assert (media_pad_flags_active (*flags));
 
-  if (!media_pad_flags_sought (*flags))
+  evt = GST_PAD_PROBE_INFO_EVENT (info);
+  g_assert_nonnull (evt);
+
+  if (GST_EVENT_TYPE (evt) != GST_EVENT_FLUSH_STOP)
+    goto pass;
+
+  if (media_pad_flags_flushed (*flags))
+    goto remove;                /* drop residual probes */
+
+  MEDIA_PAD_FLAGS_TOGGLE (*flags, PAD_FLAG_FLUSHED); /* flush */
+  g_assert (media_state_seeking (media));
+  gst_pad_remove_probe (pad, GST_PAD_PROBE_INFO_ID (info));
+
+  if (media_is_flag_set_on_all_pads (media, PAD_FLAG_FLUSHED))
     {
-      GstEvent *evt;
-      gint evt_flags;
-      guint n;
-
-      g_assert (!media_pad_flags_blocked (*flags));
-      MEDIA_PAD_FLAGS_TOOGLE (*flags, PAD_FLAG_BLOCKED); /* block */
-      MEDIA_PAD_FLAGS_TOOGLE (*flags, PAD_FLAG_SOUGHT);  /* unsought */
-
-      _lp_debug ("\n\
-seeking pad %p\n\
-time:       %" GST_TIME_FORMAT "\n\
-rel-offset: %" GST_TIME_FORMAT "\n\
-abs-offset: %" GST_TIME_FORMAT "\n\
-pad-offset: %" GST_TIME_FORMAT "\n",
-                 pad,
-                 GST_TIME_ARGS (_lp_scene_get_running_time
-                                (media->prop.scene)),
-                 GST_TIME_ARGS (media->seek.sum),
-                 GST_TIME_ARGS (media->seek.abs),
-                 GST_TIME_ARGS (media->seek.pad));
-
-      evt_flags = 0
-        | GST_SEEK_FLAG_FLUSH
-        | GST_SEEK_FLAG_ACCURATE
-        | GST_SEEK_FLAG_TRICKMODE;
-
-      evt = gst_event_new_seek (1.0, GST_FORMAT_TIME,
-                                (GstSeekFlags) evt_flags,
-                                GST_SEEK_TYPE_SET, media->seek.abs,
-                                GST_SEEK_TYPE_NONE, 0);
-      g_assert_nonnull (evt);
-      gst_pad_send_event (pad, evt);
-      gst_pad_set_offset (pad, media->seek.pad);
-
-      n = media_install_probe (media, GST_PAD_PROBE_TYPE_EVENT_FLUSH,
-                               lp_media_seek_flush_probe_callback);
-      g_assert (n > 0);
+      lp_EventSeek *event = _lp_event_seek_new (media, media->seek.last);
+      g_assert_nonnull (event);
+      _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
     }
 
-  if (!media_pad_flags_blocked (*flags))
-    {
-      _lp_debug ("UNBLOCKING %p", pad);
-
-      if (media_pad_flags_flushed (*flags))
-        {
-          _lp_debug ("UNFLUSHING %p", pad);
-          MEDIA_PAD_FLAGS_TOOGLE (*flags, PAD_FLAG_FLUSHED);
-          g_assert (!media_pad_flags_flushed (*flags));
-          if (media_is_flag_not_set_on_all_pads (media, PAD_FLAG_FLUSHED))
-            {
-              lp_EventSeek *event = _lp_event_seek_new (media, 0);
-              _lp_debug ("POSTING SEEK EVENT %p", pad);
-              g_assert_nonnull (event);
-              _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
-            }
-        }
-      goto unblock;
-    }
-
-  media_unlock (media);
-  return GST_PAD_PROBE_DROP;    /* keep blocked */
-
- unblock:
+ remove:
   media_unlock (media);
   return GST_PAD_PROBE_REMOVE;
+
+ pass:
+  media_unlock (media);
+  return GST_PAD_PROBE_PASS;
 }
 
 
@@ -832,8 +730,7 @@ lp_media_init (lp_Media *media)
   media->callback.drained = 0;
 
   media->seek.sum = 0;
-  media->seek.abs = 0;
-  media->seek.pad = 0;
+  media->seek.last = 0;
 
   media->audio.pad = NULL;
   media->audio.flags = PAD_FLAG_NONE;
@@ -1308,6 +1205,11 @@ _lp_media_finish_start (lp_Media *media)
 
   g_assert (media_state_starting (media));
   gstx_element_sync_state_with_parent (media->bin);
+
+  g_assert (media_is_flag_set_on_all_pads (media, PAD_FLAG_ACTIVE));
+  g_assert (media_is_flag_not_set_on_all_pads (media, PAD_FLAG_BLOCKED));
+  g_assert (media_is_flag_set_on_all_pads (media, PAD_FLAG_FLUSHED));
+  media_toggle_flag_on_all_pads (media, PAD_FLAG_FLUSHED); /* un-flush */
   media->state = STARTED;
 
   media_unlock (media);
@@ -1352,9 +1254,11 @@ _lp_media_finish_seek (lp_Media *media)
   media_lock (media);
 
   g_assert (media_state_seeking (media));
+  g_assert (media_is_flag_set_on_all_pads (media, PAD_FLAG_ACTIVE));
+  g_assert (media_is_flag_not_set_on_all_pads (media, PAD_FLAG_BLOCKED));
+  g_assert (media_is_flag_set_on_all_pads (media, PAD_FLAG_FLUSHED));
+  media_toggle_flag_on_all_pads (media, PAD_FLAG_FLUSHED); /* un-flush */
   media->state = STARTED;
-
-  _lp_debug ("FINISHING SEEK");
 
   media_unlock (media);
 }
@@ -1430,7 +1334,6 @@ lp_media_to_string (lp_Media *media)
   media_unlock (media);
   return str;
 }
-
 
 /**
  * lp_media_start:
@@ -1519,11 +1422,11 @@ lp_media_start (lp_Media *media)
   media->flags = FLAG_NONE;
 
   media->seek.sum = 0;
-  media->seek.abs = 0;
-  media->seek.pad = 0;
+  media->seek.last = 0;
 
   media->audio.pad = NULL;
   media->audio.flags = PAD_FLAG_NONE;
+
   media->video.pad = NULL;
   media->video.flags = PAD_FLAG_NONE;
 
@@ -1578,8 +1481,10 @@ lp_media_seek (lp_Media *media, gint64 offset)
   GstQuery *query;
   gboolean seekable;
   guint64 now;
+  gint64 abs;
   gint64 run;
-  guint n;
+  gint64 pad;
+  gint flags;
 
   media_lock (media);
 
@@ -1601,22 +1506,45 @@ lp_media_seek (lp_Media *media, gint64 offset)
   if (unlikely (!seekable))
     goto fail;
 
-  _lp_debug ("SEEK %p", media);
-
   now = _lp_scene_get_running_time (media->prop.scene);
   run = now - media->offset;
   g_assert (run > 0);
 
+  media->seek.last = offset;
   media->seek.sum += offset;
   offset = media->seek.sum;
-  media->seek.abs = clamp (run + offset, 0, G_MAXINT64);
-  media->seek.pad = now;
+  abs = clamp (run + offset, 0, G_MAXINT64);
+  pad = now;
+
+  _lp_debug ("\n\
+seek %p\n\
+  now: %" GST_TIME_FORMAT "\n\
+  sum: %" GST_TIME_FORMAT "\n\
+  abs: %" GST_TIME_FORMAT "\n\
+  pad: %" GST_TIME_FORMAT "\n",
+             media,
+             GST_TIME_ARGS (_lp_scene_get_running_time
+                            (media->prop.scene)),
+             GST_TIME_ARGS (media->seek.sum),
+             GST_TIME_ARGS (abs),
+             GST_TIME_ARGS (pad));
 
   media->state = SEEKING;
-  n = media_install_probe (media,
-                           GST_PAD_PROBE_TYPE_IDLE,
-                           lp_media_seek_block_probe_callback);
-  g_assert (n > 0);
+  media_install_probe (media,
+                       GST_PAD_PROBE_TYPE_EVENT_FLUSH,
+                       lp_media_seek_flush_probe_callback);
+
+  flags = 0
+    | GST_SEEK_FLAG_FLUSH       /* flush bin */
+    | GST_SEEK_FLAG_ACCURATE    /* be accurate */
+    | GST_SEEK_FLAG_TRICKMODE;  /* decode only key frames */
+
+  g_assert (gst_element_seek_simple (media->bin, GST_FORMAT_TIME,
+                                     (GstSeekFlags) flags, abs));
+  if (media_has_audio (media))
+    gst_pad_set_offset (media->audio.pad, pad);
+  if (media_has_video (media))
+    gst_pad_set_offset (media->video.pad, pad);
 
   media_unlock (media);
   return TRUE;

@@ -154,7 +154,7 @@ LP_API G_DECLARE_FINAL_TYPE (lp_EventSeek, lp_event_seek,
                              LP, EVENT_SEEK, lp_Event)
 typedef enum
 {
-  LP_ERROR_START,               /* error while starting */
+  LP_ERROR_START = 0,           /* error while starting */
   LP_ERROR_STOP,                /* error while stopping */
   LP_ERROR_RUN                  /* error while running */
 } lp_Error;

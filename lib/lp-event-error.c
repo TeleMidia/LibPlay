@@ -152,8 +152,25 @@ lp_event_error_class_init (lp_EventErrorClass *cls)
 
 /* Creates a new error event.  */
 
+ATTR_PRINTF_FORMAT (3,4) lp_EventError *
+_lp_event_error_new (lp_Media *source, lp_Error code,
+                     const gchar *format, ...)
+{
+  GError* error;
+  va_list args;
+
+  va_start (args, format);
+  error = g_error_new_valist (LP_ERROR, code, format, args);
+  g_assert_nonnull (error);
+  va_end (args);
+
+  return _lp_event_error_new_custom (source, error);
+}
+
+/* Creates a custom error event.  */
+
 lp_EventError *
-_lp_event_error_new (lp_Media *source, GError *error)
+_lp_event_error_new_custom (lp_Media *source, GError *error)
 {
   return LP_EVENT_ERROR (g_object_new (LP_TYPE_EVENT_ERROR,
                                        "source", source,

@@ -94,11 +94,13 @@
 /tests/test-lp-media-prop-width-height
 /tests/test-lp-media-prop-x-y
 /tests/test-lp-media-prop-z
+/tests/test-lp-media-seek-duo
 /tests/test-lp-media-seek-fail
 /tests/test-lp-media-seek-loop
-/tests/test-lp-media-seek-duo
 /tests/test-lp-media-start-avi
-/tests/test-lp-media-start-fail
+/tests/test-lp-media-start-fail-bad-uri
+/tests/test-lp-media-start-fail-no-active-pads
+/tests/test-lp-media-start-fail-no-decoder
 /tests/test-lp-media-start-gif
 /tests/test-lp-media-start-jpg
 /tests/test-lp-media-start-m4v
@@ -109,7 +111,7 @@
 /tests/test-lp-media-start-ogv
 /tests/test-lp-media-start-png
 /tests/test-lp-media-start-random
-/tests/test-lp-media-stop-fail
+/tests/test-lp-media-stop-fail-not-started
 /tests/test-lp-media-stop-loop
 /tests/test-lp-media-stop-random
 /tests/test-lp-scene-advance

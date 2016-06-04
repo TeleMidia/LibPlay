@@ -454,32 +454,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           }
         else if (error->domain ==  GST_STREAM_ERROR)
           {
-            GstObject *obj;
-            lp_Media *media;
-
-            obj = GST_MESSAGE_SRC (msg);
-            g_assert_nonnull (obj);
-
-            media = _lp_media_find_media (obj);
-            if (media != NULL && _lp_media_get_active_pads (media) == 0)
-              {
-                GError *errnew;
-                lp_Event *event;
-
-                /* FIXME: Currently we only handle async start errors.  */
-
-                errnew = g_error_new_literal (LP_ERROR, LP_ERROR_START,
-                                              error->message);
-                g_assert_nonnull (errnew);
-                event = LP_EVENT (_lp_event_error_new (media, errnew));
-                g_error_free (errnew);
-
-                _lp_scene_dispatch (scene, event);
-              }
-            else
-              {
-                _lp_error ("STREAM ERROR: %s: %s", error->message, debug);
-              }
+            _lp_error ("STREAM ERROR: %s: %s", error->message, debug);
           }
         else
           {
@@ -747,7 +722,7 @@ lp_scene_constructed (GObject *object)
 {
   lp_Scene *scene;
   GstBus *bus;
-  gulong ret;
+  gulong id;
 
   scene = LP_SCENE (object);
   g_assert (!scene_is_quitting (scene));
@@ -761,9 +736,8 @@ lp_scene_constructed (GObject *object)
 
   bus = gst_pipeline_get_bus (GST_PIPELINE (scene->pipeline));
   g_assert_nonnull (bus);
-
-  ret = gst_bus_add_watch (bus, (GstBusFunc) lp_scene_bus_callback, scene);
-  g_assert (ret > 0);
+  id = gst_bus_add_watch (bus, (GstBusFunc) lp_scene_bus_callback, scene);
+  g_assert (id > 0);
   gst_object_unref (bus);
 
   gstx_bin_add (scene->pipeline, scene->audio.blank);

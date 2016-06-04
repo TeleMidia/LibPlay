@@ -22,43 +22,16 @@ main (void)
 {
   lp_Scene *scene;
   lp_Media *media;
-  lp_EventError *event;
-  gchar *str = NULL;
 
-  lp_Media *source = NULL;
-  lp_EventMask mask = 0;
-  GError *error = NULL;
-
-  scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "lockstep", TRUE, NULL));
-  g_assert_nonnull (scene);
-
+  scene = SCENE_NEW (800, 600, 0);
   media = lp_media_new (scene, SAMPLE_GNU);
   g_assert_nonnull (media);
 
-  error = g_error_new_literal (G_MARKUP_ERROR, G_MARKUP_ERROR_EMPTY, "e1");
-  g_assert_nonnull (error);
+  g_assert (!lp_media_stop (media));
+  g_assert (lp_media_start (media));
+  g_assert (!lp_media_stop (media));
+  g_assert (!lp_media_stop (media));
 
-  event = _lp_event_error_new_custom (media, error);
-  g_assert_nonnull (event);
-  g_error_free (error);
-
-  error = NULL;
-  g_object_get (event,
-                "source", &source,
-                "mask", &mask,
-                "error", &error, NULL);
-
-  str = lp_event_to_string (LP_EVENT (event));
-  g_assert_nonnull (str);
-  g_print ("%s\n", str);
-  g_free (str);
-
-  g_assert (source == media);
-  g_assert (mask == LP_EVENT_MASK_ERROR);
-  g_assert_nonnull (error);
-
-  g_object_unref (event);
   g_object_unref (scene);
-
   exit (EXIT_SUCCESS);
 }

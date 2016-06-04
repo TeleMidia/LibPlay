@@ -2,10 +2,6 @@ LibPlay TODO -- Tasks that need implementing.
 
 * KNOWN BUGS
 
-  + lib/lp-media.c: Fix seek
-
-    The seek operation is broken.  The current support is only tentative.
-
   + lib/lp-scene.c: Handle window closing gracefully.
 
     When the video sink window is closed the sink posts an error to
@@ -13,7 +9,15 @@ LibPlay TODO -- Tasks that need implementing.
     simply crashes due to an unmet assertion.  We could handle this error
     by destroying the scene.
 
+  + tests/test-lp-media-stop-random.c: Random failures
+
+    Check random failures.
+
 * FEATURES OR PROBLEMS
+
+  + lib/lp-media.c: Make full_uri a read-only media property.
+
+    So users may query the real URI that is being used by the player.
 
   + lib/lp-media.c: Handle more async errors.
 

@@ -532,8 +532,6 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
 static void
 lp_media_no_more_pads_callback (GstElement *dec, lp_Media *media)
 {
-  lp_MediaPadFlag *flags;
-
   media_lock (media);
 
   g_assert (media_state_starting (media));
@@ -546,22 +544,9 @@ lp_media_no_more_pads_callback (GstElement *dec, lp_Media *media)
       goto done;
     }
 
-  if (media_has_audio (media))
-    {
-      flags = &media->audio.flags;
-      g_assert (media_pad_flags_active (*flags));
-      g_assert (media_pad_flags_blocked (*flags));
-      MEDIA_PAD_FLAGS_TOGGLE (*flags, PAD_FLAG_BLOCKED); /* unblock */
-    }
-
-  if (media_has_video (media))
-    {
-      flags = &media->video.flags;
-      g_assert (media_pad_flags_active (*flags));
-      g_assert (media_pad_flags_blocked (*flags));
-      MEDIA_PAD_FLAGS_TOGGLE (*flags, PAD_FLAG_BLOCKED); /* unblock */
-
-    }
+  g_assert (media_is_flag_set_on_all_pads (media, PAD_FLAG_ACTIVE));
+  g_assert (media_is_flag_set_on_all_pads (media, PAD_FLAG_BLOCKED));
+  media_toggle_flag_on_all_pads (media, PAD_FLAG_BLOCKED); /* unblock */
 
  done:
   g_signal_handler_disconnect (dec, media->callback.pad_added);

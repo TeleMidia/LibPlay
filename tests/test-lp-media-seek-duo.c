@@ -24,8 +24,11 @@ main (void)
   lp_Media *media[2];
   lp_Event *event;
   guint64 interval;
+  gint64 step;
+  gchar *str;
+  guint i;
 
-  scene = SCENE_NEW (800, 600, 2);
+  scene = SCENE_NEW (200, 200, 2);
   g_object_get (scene, "interval", &interval, NULL);
 
   media[0] = lp_media_new (scene, SAMPLE_NIGHT);
@@ -33,7 +36,7 @@ main (void)
 
   media[1] = lp_media_new (scene, SAMPLE_NIGHT);
   g_assert_nonnull (media[1]);
-  g_object_set (media[1], "x", 400, "y", 400, NULL);
+  g_object_set (media[1], "x", 200, "y", 200, NULL);
 
   g_assert (lp_media_start (media[0]));
   g_assert (lp_media_start (media[1]));
@@ -42,9 +45,23 @@ main (void)
   g_assert_nonnull (event);
   g_object_unref (event);
 
-  await_ticks (scene, 2);
-  g_assert (lp_media_seek (media[0], -2 * interval));
-  await_ticks (scene, 2);
+  step = (gint64)(((double) interval) * .5);
+  str = g_strdup_printf ("seek %"G_GINT64_FORMAT, -step);
+  g_object_set (media[0], "z", 3, "text", str, NULL);
+  g_free (str);
+
+  for (i = 0; i < 5; i++)
+    {
+      gint64 offset;
+
+      await_ticks (scene, 1);
+      g_assert (lp_media_seek (media[0], -step));
+      event = await_filtered (scene, 1, LP_EVENT_MASK_SEEK);
+      g_assert_nonnull (event);
+      g_object_get (event, "offset", &offset, NULL);
+      g_assert (offset == -step);
+      g_object_unref (event);
+    }
 
   g_object_unref (scene);
   exit (EXIT_SUCCESS);

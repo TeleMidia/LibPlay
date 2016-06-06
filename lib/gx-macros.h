@@ -31,7 +31,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
   PRAGMA_DIAG_PUSH ()                           \
   PRAGMA_DIAG_IGNORE (-Wbad-function-cast)      \
   PRAGMA_DIAG_IGNORE (-Wcast-qual)              \
-  PRAGMA_DIAG_IGNORE (-Wshift-overflow=)
+  PRAGMA_DIAG_IGNORE (-Wshift-overflow)
 
 #define GX_INCLUDE_EPILOGUE                     \
   PRAGMA_DIAG_POP ()

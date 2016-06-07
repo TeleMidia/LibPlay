@@ -73,6 +73,8 @@
 /tests/lua
 /tests/suppfile
 /tests/test-lp-clock
+/tests/test-lp-clock-xfail-get
+/tests/test-lp-clock-xfail-set
 /tests/test-lp-event-error
 /tests/test-lp-event-error-xfail-get
 /tests/test-lp-event-error-xfail-set
@@ -130,6 +132,8 @@
 /tests/test-lp-media-stop-fail-not-started
 /tests/test-lp-media-stop-loop
 /tests/test-lp-media-stop-random
+/tests/test-lp-media-xfail-get
+/tests/test-lp-media-xfail-set
 /tests/test-lp-scene-advance
 /tests/test-lp-scene-new
 /tests/test-lp-scene-prop-interval
@@ -140,6 +144,8 @@
 /tests/test-lp-scene-prop-time
 /tests/test-lp-scene-prop-wave
 /tests/test-lp-scene-prop-width-height
+/tests/test-lp-scene-xfail-get
+/tests/test-lp-scene-xfail-set
 /tests/test-lp-version
 /tests/test-lp-version-string
 Makefile

@@ -113,7 +113,11 @@ programs+= test-lp-event-seek
 programs+= test-lp-event-seek-xfail-get
 programs+= test-lp-event-seek-xfail-set
 programs+= test-lp-clock
+programs+= test-lp-clock-xfail-get
+programs+= test-lp-clock-xfail-set
 programs+= test-lp-scene-new
+programs+= test-lp-scene-xfail-get
+programs+= test-lp-scene-xfail-set
 programs+= test-lp-scene-prop-mask
 programs+= test-lp-scene-prop-width-height
 programs+= test-lp-scene-prop-pattern
@@ -126,6 +130,8 @@ programs+= test-lp-scene-advance
 programs+= test-lp-media-new
 programs+= test-lp-media-new-xfail-bad-scene
 programs+= test-lp-media-new-xfail-bad-uri
+programs+= test-lp-media-xfail-get
+programs+= test-lp-media-xfail-set
 programs+= test-lp-media-start-fail-bad-uri
 programs+= test-lp-media-start-fail-no-active-pads
 programs+= test-lp-media-start-fail-no-decoder
@@ -164,6 +170,8 @@ TESTS=\
 
 # Tests that should fail.
 XFAIL_TESTS=\
+  test-lp-clock-xfail-get\
+  test-lp-clock-xfail-set\
   test-lp-event-error-xfail-get\
   test-lp-event-error-xfail-set\
   test-lp-event-key-xfail-get\
@@ -183,6 +191,10 @@ XFAIL_TESTS=\
   test-lp-event-xfail-new\
   test-lp-media-new-xfail-bad-scene\
   test-lp-media-new-xfail-bad-uri\
+  test-lp-media-xfail-get\
+  test-lp-media-xfail-set\
+  test-lp-scene-xfail-get\
+  test-lp-scene-xfail-set\
   $(NULL)
 
 EXTRA_DIST=\

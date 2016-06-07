@@ -30,7 +30,7 @@ typedef enum
   STOPPING,                     /* media is preparing to stop */
   SEEKING,                      /* media is seeking */
   SOUGHT,                       /* media has sought (seek ended) */
-  DISPOSING,                    /* media is being disposed */
+  DISPOSED                      /* media has been disposed */
 } lp_MediaState;
 
 /* Media flags.  */
@@ -198,7 +198,7 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 #define media_state_stopped(m)    ((m)->state == STOPPED)
 #define media_state_stopping(m)   ((m)->state == STOPPING)
 #define media_state_seeking(m)    ((m)->state == SEEKING)
-#define media_state_disposing(m)  ((m)->state == DISPOSING)
+#define media_state_disposed(m)   ((m)->state == DISPOSED)
 
 /* Media flag access.  */
 #define media_flags_set(m, f)\
@@ -1004,14 +1004,11 @@ lp_media_dispose (GObject *object)
   media = LP_MEDIA (object);
   media_lock (media);
 
-  if (media_state_disposing (media))
+  if (media_state_disposed (media)) /* drop residual calls */
     {
       media_unlock (media);
-      return;                   /* nothing to do */
+      return;
     }
-
-  /* The "disposing" flag is necessary as this function may be triggered
-     multiple times in the same thread.  */
 
   while (!media_state_stopped (media))
     {
@@ -1019,10 +1016,9 @@ lp_media_dispose (GObject *object)
       MEDIA_UNLOCKED (media, _lp_scene_step (media->prop.scene, TRUE));
     }
 
-  media->state = DISPOSING;
+  media->state = DISPOSED;
   media_unlock (media);
 
-  _lp_debug ("disposing media %p", media);
   G_OBJECT_CLASS (lp_media_parent_class)->dispose (object);
 }
 
@@ -1032,13 +1028,14 @@ lp_media_finalize (GObject *object)
   lp_Media *media;
 
   media = LP_MEDIA (object);
+  g_assert (media_state_disposed (media));
+
   g_rec_mutex_clear (&media->mutex);
   g_free (media->final_uri);
   g_free (media->prop.uri);
   g_free (media->prop.text);
   g_free (media->prop.text_font);
 
-  _lp_debug ("finalizing media %p", media);
   G_OBJECT_CLASS (lp_media_parent_class)->finalize (object);
 }
 

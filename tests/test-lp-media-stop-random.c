@@ -92,6 +92,12 @@ main (void)
               }
             break;
           }
+        case LP_EVENT_MASK_KEY:
+        case LP_EVENT_MASK_POINTER_CLICK:
+        case LP_EVENT_MASK_POINTER_MOVE:
+          {
+            break;
+          }
         default:
           {
             gchar *str;

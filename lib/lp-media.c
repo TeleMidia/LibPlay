@@ -20,6 +20,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "play-internal.h"
 #include "play.h"
+PRAGMA_DIAG_IGNORE (-Wunused-macros)
 
 /* Media state.  */
 typedef enum
@@ -38,6 +39,7 @@ typedef enum
 {
   FLAG_NONE     = 0,                 /* no flags set */
   FLAG_DRAINED  = (1 << 0),          /* media has drained */
+  FLAG_FROZEN   = (1 << 1),          /* media is a still image */
   FLAG_ALL      = (gint)(0xffffffff) /* all flags set */
 } lp_MediaFlag;
 
@@ -86,7 +88,6 @@ struct _lp_Media
   {                             /* video output: */
     GstElement *freeze;         /* image freeze (optional) */
     GstElement *text;           /* text overlay */
-    gboolean frozen;            /* true if image freeze is present */
     GstPad *pad;                /* video pad in bin */
     lp_MediaPadFlag flags;      /* video pad flags */
   } video;
@@ -201,27 +202,25 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 #define media_state_disposed(m)   ((m)->state == DISPOSED)
 
 /* Media flag access.  */
-#define media_flags_set(m, f)\
-  ((m)->flags = (lp_MediaFlag)(f))
+#define media_flags_init(m, f)    ((m)->flags = (lp_MediaFlag)(f))
+#define media_flag_set(m, f)      (media_flags_init ((m), (m)->flags | (f)))
+#define media_flag_toggle(m, f)   (media_flags_init ((m), (m)->flags ^ (f)))
 
-#define media_flags_toggle(m, f)\
-  (media_flags_set ((m), (m)->flags ^ (f)))
-
-#define media_has_drained(m)     ((m)->flags & FLAG_DRAINED)
-#define media_toggle_drained(m)  (media_flags_toggle (m, FLAG_DRAINED))
+#define media_has_drained(m)      ((m)->flags & FLAG_DRAINED)
+#define media_toggle_drained(m)   (media_flag_toggle (m, FLAG_DRAINED))
+#define media_is_frozen(m)        ((m)->flags & FLAG_FROZEN)
+#define media_toggle_frozen(m)    (media_flag_toggle (m, FLAG_FROZEN))
 
 /* Media pad queries and flag access.  */
-#define MEDIA_PAD_FLAGS_SET(pf, f)\
-  ((pf) = (lp_MediaPadFlag)(f))
-
-#define MEDIA_PAD_FLAGS_TOGGLE(pf, f)\
-  (MEDIA_PAD_FLAGS_SET ((pf), (pf) ^ (f)))
+#define MEDIA_PAD_FLAGS_INIT(p, f)   ((p) = (lp_MediaPadFlag)(f))
+#define MEIDA_PAD_FLAG_SET(p, f)     (MEDIA_PAD_FLAGS_INIT ((p), (p) | (f)))
+#define MEDIA_PAD_FLAG_TOGGLE(p, f)  (MEDIA_PAD_FLAGS_INIT ((p), (p) ^ (f)))
 
 #define media_has_audio(m)           ((m)->audio.pad != NULL)
 #define media_has_video(m)           ((m)->video.pad != NULL)
-#define media_pad_flags_active(pf)   ((pf) & PAD_FLAG_ACTIVE)
-#define media_pad_flags_blocked(pf)  ((pf) & PAD_FLAG_BLOCKED)
-#define media_pad_flags_flushed(pf)  ((pf) & PAD_FLAG_FLUSHED)
+#define media_pad_flag_active(p)     ((p) & PAD_FLAG_ACTIVE)
+#define media_pad_flag_blocked(p)    ((p) & PAD_FLAG_BLOCKED)
+#define media_pad_flag_flushed(p)    ((p) & PAD_FLAG_FLUSHED)
 
 #define media_is_flag_set_on_all_pads(m, f)                     \
   (!((media_has_audio ((m)) && !((m)->audio.flags & (f)))       \
@@ -235,15 +234,15 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
   STMT_BEGIN                                            \
   {                                                     \
     if (media_has_audio (m))                            \
-      MEDIA_PAD_FLAGS_TOGGLE ((m)->audio.flags, (f));   \
+      MEDIA_PAD_FLAG_TOGGLE ((m)->audio.flags, (f));    \
     if (media_has_video (m))                            \
-      MEDIA_PAD_FLAGS_TOGGLE ((m)->video.flags, (f));   \
+      MEDIA_PAD_FLAG_TOGGLE ((m)->video.flags, (f));    \
   }                                                     \
   STMT_END
 
 /* Get the address of the flags associated with @pad in @media.  */
 
-static lp_MediaPadFlag *
+static ATTR_PURE lp_MediaPadFlag *
 media_get_pad_flags (lp_Media *media, GstPad *pad)
 {
   if (pad == media->audio.pad)
@@ -301,18 +300,18 @@ lp_media_pad_added_block_probe_callback (GstPad *pad, GstPadProbeInfo *info,
 
   flags = media_get_pad_flags (media, pad);
   g_assert_nonnull (flags);
-  g_assert (media_pad_flags_active (*flags));
+  g_assert (media_pad_flag_active (*flags));
 
-  if (media_pad_flags_blocked (*flags))
+  if (media_pad_flag_blocked (*flags))
     {
       media_unlock (media);
       return GST_PAD_PROBE_OK;  /* block */
     }
 
-  if (media_pad_flags_flushed (*flags))
+  if (media_pad_flag_flushed (*flags))
     goto unblock;               /* drop residual probes */
 
-  MEDIA_PAD_FLAGS_TOGGLE (*flags, PAD_FLAG_FLUSHED); /* flush */
+  MEDIA_PAD_FLAG_TOGGLE (*flags, PAD_FLAG_FLUSHED); /* flush */
   g_assert (media_state_starting (media));
   gst_pad_remove_probe (pad, GST_PAD_PROBE_INFO_ID (info));
   gst_pad_set_offset (pad, (gint64) media->offset);
@@ -410,8 +409,8 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
       gst_object_unref (sink);
       gstx_element_sync_state_with_parent (media->audio.convert);
       gstx_element_sync_state_with_parent (media->audio.resample);
-      MEDIA_PAD_FLAGS_SET (media->audio.flags,
-                           PAD_FLAG_ACTIVE | PAD_FLAG_BLOCKED);
+      MEDIA_PAD_FLAGS_INIT (media->audio.flags,
+                            PAD_FLAG_ACTIVE | PAD_FLAG_BLOCKED);
     }
   else if (g_str_equal (name, "video/x-raw"))
     {
@@ -431,7 +430,7 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
           goto done;
         }
 
-      if (media->video.frozen)
+      if (media_is_frozen (media))
         {
           _lp_eltmap_alloc_check (media, media_eltmap_video_freeze);
           gstx_bin_add (media->bin, media->video.freeze);
@@ -455,7 +454,7 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
       g_assert (gst_pad_link (pad, sink) == GST_PAD_LINK_OK);
       gst_object_unref (sink);
 
-      if (media->video.frozen)
+      if (media_is_frozen (media))
         gst_object_unref (pad);
 
       pad = gst_element_get_static_pad (media->video.text, "src");
@@ -510,11 +509,11 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
                         media->prop.text_font, NULL);
         }
 
-      if (media->video.frozen)
+      if (media_is_frozen (media))
         gstx_element_sync_state_with_parent (media->video.freeze);
       gstx_element_sync_state_with_parent (media->video.text);
-      MEDIA_PAD_FLAGS_SET (media->video.flags,
-                           PAD_FLAG_ACTIVE | PAD_FLAG_BLOCKED);
+      MEDIA_PAD_FLAGS_INIT (media->video.flags,
+                            PAD_FLAG_ACTIVE | PAD_FLAG_BLOCKED);
     }
   else
     {
@@ -576,9 +575,10 @@ lp_media_autoplug_continue_callback (arg_unused (GstElement *elt),
   name = gst_structure_get_name (gst_caps_get_structure (caps, 0));
   g_assert_nonnull (name);
 
-  if (g_str_has_prefix (name, "image"))
-    MEDIA_LOCKED (media, media->video.frozen = TRUE);
+  if (!g_str_has_prefix (name, "image"))
+    return TRUE;                /* continue, nothing to do */
 
+  MEDIA_LOCKED (media, media_flag_set (media, FLAG_FROZEN)); /* freeze */
   return TRUE;
 }
 
@@ -592,7 +592,7 @@ lp_media_drained_callback (GstElement *dec, lp_Media *media)
 
   g_signal_handler_disconnect (dec, media->callback.drained);
 
-  if (unlikely (media->video.frozen)) /* still image, nothing to do */
+  if (media_is_frozen (media))  /* still image, nothing to do */
     goto done;
 
   g_assert (!media_has_drained (media));
@@ -632,7 +632,7 @@ lp_media_stop_block_probe_callback (GstPad *pad,
   gst_object_unref (peer);
 
   g_assert (gst_pad_set_active (pad, FALSE));
-  MEDIA_PAD_FLAGS_TOGGLE (*flags, PAD_FLAG_ACTIVE); /* deactivate */
+  MEDIA_PAD_FLAG_TOGGLE (*flags, PAD_FLAG_ACTIVE); /* deactivate */
 
   if (media_is_flag_not_set_on_all_pads (media, PAD_FLAG_ACTIVE))
     {
@@ -666,7 +666,7 @@ lp_media_seek_flush_probe_callback (GstPad *pad, GstPadProbeInfo *info,
 
   flags = media_get_pad_flags (media, pad);
   g_assert_nonnull (flags);
-  g_assert (media_pad_flags_active (*flags));
+  g_assert (media_pad_flag_active (*flags));
 
   evt = GST_PAD_PROBE_INFO_EVENT (info);
   g_assert_nonnull (evt);
@@ -674,10 +674,10 @@ lp_media_seek_flush_probe_callback (GstPad *pad, GstPadProbeInfo *info,
   if (GST_EVENT_TYPE (evt) != GST_EVENT_FLUSH_STOP)
     goto pass;
 
-  if (media_pad_flags_flushed (*flags))
+  if (media_pad_flag_flushed (*flags))
     goto remove;                /* drop residual probes */
 
-  MEDIA_PAD_FLAGS_TOGGLE (*flags, PAD_FLAG_FLUSHED); /* flush */
+  MEDIA_PAD_FLAG_TOGGLE (*flags, PAD_FLAG_FLUSHED); /* flush */
   g_assert (media_state_seeking (media));
   gst_pad_remove_probe (pad, GST_PAD_PROBE_INFO_ID (info));
 
@@ -722,7 +722,6 @@ lp_media_init (lp_Media *media)
 
   media->video.pad = NULL;
   media->video.flags = PAD_FLAG_NONE;
-  media->video.frozen = FALSE;
 
   media->prop.scene = DEFAULT_SCENE;
   media->prop.uri = DEFAULT_URI;

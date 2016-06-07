@@ -30,7 +30,7 @@ main (void)
   media = lp_media_new (scene, SAMPLE_NIGHT);
   g_assert_nonnull (media);
 
-  g_object_set (media, "text", "no mute", "text-font", "sans 40", NULL);
+  g_object_set (media, "text", "unmute", "text-font", "sans 40", NULL);
   g_object_get (media, "mute", &mute, NULL);
   g_assert (mute == FALSE);  /* default */
 
@@ -49,7 +49,7 @@ main (void)
   g_assert (mute);
   await_ticks (scene, 1);
 
-  g_object_set (media, "text", "no mute", NULL);
+  g_object_set (media, "text", "unmute", NULL);
   g_object_set (media, "mute", FALSE, NULL);
   g_object_get (media, "mute", &mute, NULL);
   g_assert (mute == FALSE);

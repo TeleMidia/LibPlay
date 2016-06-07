@@ -87,15 +87,31 @@ check-scripts:
 programs=
 programs+= test-lp-version
 programs+= test-lp-version-string
-programs+= test-lp-event-xfail
+programs+= test-lp-event-xfail-new
 programs+= test-lp-event-tick
+programs+= test-lp-event-tick-xfail-get
+programs+= test-lp-event-tick-xfail-set
 programs+= test-lp-event-key
+programs+= test-lp-event-key-xfail-get
+programs+= test-lp-event-key-xfail-set
 programs+= test-lp-event-pointer-click
+programs+= test-lp-event-pointer-click-xfail-get
+programs+= test-lp-event-pointer-click-xfail-set
 programs+= test-lp-event-pointer-move
+programs+= test-lp-event-pointer-move-xfail-get
+programs+= test-lp-event-pointer-move-xfail-set
 programs+= test-lp-event-error
+programs+= test-lp-event-error-xfail-get
+programs+= test-lp-event-error-xfail-set
 programs+= test-lp-event-start
+programs+= test-lp-event-start-xfail-get
+programs+= test-lp-event-start-xfail-set
 programs+= test-lp-event-stop
+programs+= test-lp-event-stop-xfail-get
+programs+= test-lp-event-stop-xfail-set
 programs+= test-lp-event-seek
+programs+= test-lp-event-seek-xfail-get
+programs+= test-lp-event-seek-xfail-set
 programs+= test-lp-clock
 programs+= test-lp-scene-new
 programs+= test-lp-scene-prop-mask
@@ -108,8 +124,8 @@ programs+= test-lp-scene-prop-time
 programs+= test-lp-scene-prop-lockstep
 programs+= test-lp-scene-advance
 programs+= test-lp-media-new
-programs+= test-lp-media-new-xfail-1
-programs+= test-lp-media-new-xfail-2
+programs+= test-lp-media-new-xfail-bad-scene
+programs+= test-lp-media-new-xfail-bad-uri
 programs+= test-lp-media-start-fail-bad-uri
 programs+= test-lp-media-start-fail-no-active-pads
 programs+= test-lp-media-start-fail-no-decoder
@@ -148,9 +164,25 @@ TESTS=\
 
 # Tests that should fail.
 XFAIL_TESTS=\
-  test-lp-event-xfail\
-  test-lp-media-new-xfail-1\
-  test-lp-media-new-xfail-2\
+  test-lp-event-error-xfail-get\
+  test-lp-event-error-xfail-set\
+  test-lp-event-key-xfail-get\
+  test-lp-event-key-xfail-set\
+  test-lp-event-pointer-click-xfail-get\
+  test-lp-event-pointer-click-xfail-set\
+  test-lp-event-pointer-move-xfail-get\
+  test-lp-event-pointer-move-xfail-set\
+  test-lp-event-seek-xfail-get\
+  test-lp-event-seek-xfail-set\
+  test-lp-event-start-xfail-get\
+  test-lp-event-start-xfail-set\
+  test-lp-event-stop-xfail-get\
+  test-lp-event-stop-xfail-set\
+  test-lp-event-tick-xfail-get\
+  test-lp-event-tick-xfail-set\
+  test-lp-event-xfail-new\
+  test-lp-media-new-xfail-bad-scene\
+  test-lp-media-new-xfail-bad-uri\
   $(NULL)
 
 EXTRA_DIST=\

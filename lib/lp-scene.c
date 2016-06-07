@@ -130,29 +130,29 @@ static gint lp_scene_tick_callback (GstClock *, GstClockTime, GstClockID,
 
 
 /* Locking and unlocking.  */
-#define scene_lock(scene)         g_rec_mutex_lock (&(scene)->mutex)
-#define scene_unlock(scene)       g_rec_mutex_unlock (&(scene)->mutex)
+#define scene_lock(sc)    g_rec_mutex_lock (&(sc)->mutex)
+#define scene_unlock(sc)  g_rec_mutex_unlock (&(sc)->mutex)
 
-#define SCENE_LOCKED(scene, stmt)               \
+#define SCENE_LOCKED(sc, stmt)                  \
   STMT_BEGIN                                    \
   {                                             \
-    scene_lock ((scene));                       \
+    scene_lock ((sc));                          \
     stmt;                                       \
-    scene_unlock ((scene));                     \
+    scene_unlock ((sc));                        \
   }                                             \
   STMT_END
 
-#define SCENE_UNLOCKED(scene, stmt)             \
+#define SCENE_UNLOCKED(sc, stmt)                \
   STMT_BEGIN                                    \
   {                                             \
-    scene_unlock ((scene));                     \
+    scene_unlock ((sc));                        \
     stmt;                                       \
-    scene_lock ((scene));                       \
+    scene_lock ((sc));                          \
   }                                             \
   STMT_END
 
 /* Other queries.  */
-#define scene_is_quitting(scene)  ((scene)->quitting)
+#define scene_is_quitting(sc)  ((sc)->quitting)
 
 /* Enslaves @scene's audio sink clock to @scene clock.  */
 
@@ -434,8 +434,12 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     case GST_MESSAGE_ERROR:
     case GST_MESSAGE_WARNING:
       {
+        GstObject *obj = NULL;
         GError *error = NULL;
         gchar *debug = NULL;
+
+        obj = GST_MESSAGE_SRC (msg);
+        g_assert_nonnull (obj);
 
         if (GST_MESSAGE_TYPE (msg) == GST_MESSAGE_ERROR)
           gst_message_parse_error (msg, &error, NULL);
@@ -446,19 +450,15 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
         debug = gst_error_get_message (error->domain, error->code);
         g_assert_nonnull (debug);
 
-        if (unlikely (error->domain == GST_LIBRARY_ERROR
-                      || error->domain == GST_RESOURCE_ERROR
-                      || error->domain == GST_CORE_ERROR))
+        if (GST_IS_BASE_SINK (obj) /* output closed, destroy scene */
+            && error->domain == GST_RESOURCE_ERROR
+            && error->code == GST_RESOURCE_ERROR_NOT_FOUND)
           {
             _lp_critical ("%s: %s", error->message, debug);
           }
-        else if (error->domain ==  GST_STREAM_ERROR)
+        else                    /* unknown error */
           {
-            _lp_error ("STREAM ERROR: %s: %s", error->message, debug);
-          }
-        else
-          {
-            g_assert_not_reached (); /* unknown error */
+            _lp_critical ("%s: %s", error->message, debug);
           }
 
         g_free (debug);

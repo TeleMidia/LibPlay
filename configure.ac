@@ -76,6 +76,7 @@ AU_ARG_ENABLE_VALGRIND
 nw=
 nw="$nw -Wsystem-headers"     # Suppress system headers warnings
 nw="$nw -Wpadded"             # Our structs are not packed
+nw="$nw -Wshift-overflow=2"   # Triggered by Glib and GStreamer headers
 AU_ARG_ENABLE_WARNINGS([$nw])
 
 # Library functions.

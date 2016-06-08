@@ -21,6 +21,6 @@ int
 main (void)
 {
   TEST_TEMPLATE_EVENT_XFAIL_GET
-    (_lp_event_seek_new (media, 0));
+    (_lp_event_seek_new (media, FALSE, 0));
   exit (EXIT_SUCCESS);
 }

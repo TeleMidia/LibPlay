@@ -55,7 +55,7 @@ main (void)
       gint64 offset;
 
       await_ticks (scene, 1);
-      g_assert (lp_media_seek (media[0], -step));
+      g_assert (lp_media_seek (media[0], TRUE, -step));
       event = await_filtered (scene, 1, LP_EVENT_MASK_SEEK);
       g_assert_nonnull (event);
       g_object_get (event, "offset", &offset, NULL);

@@ -115,7 +115,7 @@ lp_EventStop *
 _lp_event_stop_new (lp_Media *, gboolean);
 
 lp_EventSeek *
-_lp_event_seek_new (lp_Media *, gint64);
+_lp_event_seek_new (lp_Media *, gboolean, gint64);
 
 /* media */
 

@@ -25,6 +25,7 @@ struct _lp_EventSeek
   lp_Event parent;              /* parent object */
   struct
   {
+    gboolean relative;          /* true if seek was relative */
     gint64 offset;              /* offset time */
   } prop;
 };
@@ -33,12 +34,14 @@ struct _lp_EventSeek
 enum
 {
   PROP_0,
+  PROP_RELATIVE,
   PROP_OFFSET,
   PROP_LAST
 };
 
 /* Property defaults.  */
-#define DEFAULT_OFFSET  0       /* no offset */
+#define DEFAULT_RELATIVE  FALSE /* absolute */
+#define DEFAULT_OFFSET    0     /* no offset */
 
 /* Define the lp_EventSeek type.  */
 GX_DEFINE_TYPE (lp_EventSeek, lp_event_seek, LP_TYPE_EVENT)
@@ -49,6 +52,7 @@ GX_DEFINE_TYPE (lp_EventSeek, lp_event_seek, LP_TYPE_EVENT)
 static void
 lp_event_seek_init (lp_EventSeek *event)
 {
+  event->prop.relative = DEFAULT_RELATIVE;
   event->prop.offset = DEFAULT_OFFSET;
 }
 
@@ -61,6 +65,9 @@ lp_event_seek_get_property (GObject *object, guint prop_id,
   event = LP_EVENT_SEEK (object);
   switch (prop_id)
     {
+    case PROP_RELATIVE:
+      g_value_set_boolean (value, event->prop.relative);
+      break;
     case PROP_OFFSET:
       g_value_set_int64 (value, event->prop.offset);
       break;
@@ -78,6 +85,9 @@ lp_event_seek_set_property (GObject *object, guint prop_id,
   event = LP_EVENT_SEEK (object);
   switch (prop_id)
     {
+    case PROP_RELATIVE:
+      event->prop.relative = g_value_get_boolean (value);
+      break;
     case PROP_OFFSET:
       event->prop.offset = g_value_get_int64 (value);
       break;
@@ -114,8 +124,10 @@ lp_event_seek_to_string (lp_Event *event)
 
   seek = LP_EVENT_SEEK (event);
   return _lp_event_to_string (event, "\
+  relative: %s\n\
   offset: %" G_GINT64_FORMAT "\n\
-",                            seek->prop.offset);
+",                            strbool (seek->prop.relative),
+                              seek->prop.offset);
 }
 
 static void
@@ -134,6 +146,12 @@ lp_event_seek_class_init (lp_EventSeekClass *cls)
   lp_event_class->to_string = lp_event_seek_to_string;
 
   g_object_class_install_property
+    (gobject_class, PROP_RELATIVE, g_param_spec_boolean
+     ("relative", "relative", "true if seek was relative",
+      DEFAULT_RELATIVE,
+      (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
+
+  g_object_class_install_property
     (gobject_class, PROP_OFFSET, g_param_spec_int64
      ("offset", "offset", "offset time (in nanoseconds)",
       G_MININT64, G_MAXINT64, DEFAULT_OFFSET,
@@ -146,10 +164,11 @@ lp_event_seek_class_init (lp_EventSeekClass *cls)
 /* Creates a new seek event.  */
 
 lp_EventSeek *
-_lp_event_seek_new (lp_Media *source, gint64 offset)
+_lp_event_seek_new (lp_Media *source, gboolean relative, gint64 offset)
 {
   return LP_EVENT_SEEK (g_object_new (LP_TYPE_EVENT_SEEK,
                                       "source", source,
                                       "mask", LP_EVENT_MASK_SEEK,
+                                      "relative", relative,
                                       "offset", offset, NULL));
 }

@@ -30,10 +30,10 @@ main (void)
       media = lp_media_new (scene, SAMPLE_GNU);
       g_assert_nonnull (media);
 
-      g_assert (!lp_media_seek (media, 0));
+      g_assert (!lp_media_seek (media, FALSE, 0));
       g_assert (lp_media_start (media));
-      g_assert (!lp_media_seek (media, 0));
-      g_assert (!lp_media_seek (media, 0));
+      g_assert (!lp_media_seek (media, TRUE, 0));
+      g_assert (!lp_media_seek (media, FALSE, 0));
 
       g_object_unref (scene);
     }

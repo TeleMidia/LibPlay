@@ -234,7 +234,7 @@ scene_update_clock_id (lp_Scene *scene)
   g_assert (clock == scene->clock.clock);
 
   time = gst_clock_get_time (clock);
-  g_assert (time != GST_CLOCK_TIME_NONE);
+  g_assert (GST_CLOCK_TIME_IS_VALID (time));
 
   id = gst_clock_new_periodic_id (clock, time, scene->prop.interval);
   g_assert_nonnull (id);
@@ -828,8 +828,6 @@ lp_scene_dispose (GObject *object)
     gst_clock_id_unref (scene->clock.id);
 
   scene_unlock (scene);
-
-  _lp_debug ("disposing scene %p", scene);
   G_OBJECT_CLASS (lp_scene_parent_class)->dispose (object);
 }
 
@@ -848,7 +846,6 @@ lp_scene_finalize (GObject *object)
   g_free (scene->prop.text);
   g_free (scene->prop.text_font);
 
-  _lp_debug ("finalizing scene %p", scene);
   G_OBJECT_CLASS (lp_scene_parent_class)->finalize (object);
 }
 

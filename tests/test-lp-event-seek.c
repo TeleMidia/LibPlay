@@ -27,6 +27,7 @@ main (void)
 
   lp_Media *source = NULL;
   lp_EventMask mask = 0;
+  gboolean relative = FALSE;
   gint64 offset = G_MAXINT64;
 
   scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "lockstep", TRUE, NULL));
@@ -35,12 +36,13 @@ main (void)
   media = lp_media_new (scene, SAMPLE_GNU);
   g_assert_nonnull (media);
 
-  event = _lp_event_seek_new (media, 0);
+  event = _lp_event_seek_new (media, TRUE, 0);
   g_assert_nonnull (event);
 
   g_object_get (event,
                 "source", &source,
                 "mask", &mask,
+                "relative", &relative,
                 "offset", &offset, NULL);
 
   str = lp_event_to_string (LP_EVENT (event));
@@ -50,6 +52,7 @@ main (void)
 
   g_assert (source == media);
   g_assert (mask == LP_EVENT_MASK_SEEK);
+  g_assert (relative == TRUE);
   g_assert (offset == 0);
 
   g_object_unref (event);

@@ -40,7 +40,7 @@ main (void)
   for (i = 0; i < 3; i++)
     {
       await_ticks (scene, 2);
-      g_assert (lp_media_seek (media, -2 * interval));
+      g_assert (lp_media_seek (media, TRUE, -2 * interval));
     }
 
   g_object_unref (scene);

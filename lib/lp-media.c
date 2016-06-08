@@ -73,6 +73,7 @@ struct _lp_Media
   } callback;
   struct
   {                             /* seek offset: */
+    gboolean relative;          /* true if last seek was relative */
     gint64 sum;                 /* accumulated offset */
     gint64 last;                /* last offset */
   } seek;
@@ -253,29 +254,39 @@ media_get_pad_flags (lp_Media *media, GstPad *pad)
   return NULL;
 }
 
-/* Installs probe @func with @mask onto @media pads.  */
+/* Installs probe @func with @mask onto @media pads, and stores the probe
+   ids into @id_audio and @id_video if these are non-null.  Returns the
+   number of installed probes.  */
 
-#define media_install_probe(m, t, f)            \
-  STMT_BEGIN                                    \
-  {                                             \
-    if (media_has_audio ((m)))                  \
-      {                                         \
-        g_assert (gst_pad_add_probe             \
-                  ((m)->audio.pad,              \
-                   (GstPadProbeType)(t),        \
-                   (GstPadProbeCallback)(f),    \
-                   (m), NULL) > 0);             \
-      }                                         \
-    if (media_has_video ((m)))                  \
-      {                                         \
-        g_assert (gst_pad_add_probe             \
-                  ((m)->video.pad,              \
-                   (GstPadProbeType)(t),        \
-                   (GstPadProbeCallback)(f),    \
-                   (m), NULL) > 0);             \
-      }                                         \
-  }                                             \
-  STMT_END
+static guint
+media_install_probe (lp_Media *media, GstPadProbeType type,
+                     GstPadProbeCallback func,
+                     gulong *id_audio, gulong *id_video)
+{
+  gulong id;
+  guint n;
+
+  n = 0;
+
+  if (media_has_audio (media))
+    {
+      id = gst_pad_add_probe (media->audio.pad, type, func, media, NULL);
+      g_assert (id > 0);
+      set_if_nonnull (id_audio, id);
+      n++;
+    }
+
+  if (media_has_video (media))
+    {
+      id = gst_pad_add_probe (media->video.pad, type, func, media, NULL);
+      g_assert (id > 0);
+      set_if_nonnull (id_video, id);
+      n++;
+    }
+
+  return n;
+}
+
 
 
 /* callbacks */
@@ -683,7 +694,8 @@ lp_media_seek_flush_probe_callback (GstPad *pad, GstPadProbeInfo *info,
 
   if (media_is_flag_set_on_all_pads (media, PAD_FLAG_FLUSHED))
     {
-      lp_EventSeek *event = _lp_event_seek_new (media, media->seek.last);
+      lp_EventSeek *event = _lp_event_seek_new (media, media->seek.relative,
+                                                media->seek.last);
       g_assert_nonnull (event);
       _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
     }
@@ -714,6 +726,7 @@ lp_media_init (lp_Media *media)
   media->callback.autoplug_continue = 0;
   media->callback.drained = 0;
 
+  media->seek.relative = FALSE;
   media->seek.sum = 0;
   media->seek.last = 0;
 
@@ -1402,6 +1415,7 @@ lp_media_start (lp_Media *media)
   media->state = STARTING;
   media->flags = FLAG_NONE;
 
+  media->seek.relative = FALSE;
   media->seek.sum = 0;
   media->seek.last = 0;
 
@@ -1436,8 +1450,9 @@ lp_media_stop (lp_Media *media)
     goto fail;
 
   media->state = STOPPING;
-  media_install_probe (media, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
-                       lp_media_stop_block_probe_callback);
+  media_install_probe
+    (media, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
+     (GstPadProbeCallback) lp_media_stop_block_probe_callback, NULL, NULL);
 
   media_unlock (media);
   return TRUE;
@@ -1450,22 +1465,36 @@ lp_media_stop (lp_Media *media)
 /**
  * lp_media_seek:
  * @media: an #lp_Media
+ * @relative: %TRUE is offset is relative to current playback time
  * @offset: a relative offset time (in nanoseconds)
  *
  * Seeks in @media asynchronously by @offset.
  *
+ * If @relative is %TRUE, @offset is assumed to be relative to the current
+ * playback time of @media.  Positive @offset values seek forward from the
+ * current time, and negative values seek backward.
+ *
+ * If @relative is %FALSE, @offset is assumed to be an absolute offset in
+ * @media time.  Positive @offset values indicate an offset from @media
+ * beginning and negative values indicate an offset from its end.
+ *
  * Returns: %TRUE if successful, or %FALSE otherwise
  */
 gboolean
-lp_media_seek (lp_Media *media, gint64 offset)
+lp_media_seek (lp_Media *media, gboolean relative, gint64 offset)
 {
   GstQuery *query;
   gboolean seekable;
+  gulong id_audio;
+  gulong id_video;
+  gint64 duration;
   guint64 now;
-  gint64 abs;
   gint64 run;
-  gint64 pad;
+  gint64 sum;
+  gint64 abs;
   gint flags;
+
+  gboolean status;
 
   media_lock (media);
 
@@ -1487,45 +1516,90 @@ lp_media_seek (lp_Media *media, gint64 offset)
   if (unlikely (!seekable))
     goto fail;
 
-  now = _lp_scene_get_running_time (media->prop.scene);
-  run = now - media->offset;
-  g_assert (run > 0);
-
-  media->seek.last = offset;
-  media->seek.sum += offset;
-  offset = media->seek.sum;
-  abs = clamp (run + offset, 0, G_MAXINT64);
-  pad = now;
-
-  _lp_debug ("\n\
-seek %p\n\
-  now: %" GST_TIME_FORMAT "\n\
-  sum: %" GST_TIME_FORMAT "\n\
-  abs: %" GST_TIME_FORMAT "\n\
-  pad: %" GST_TIME_FORMAT "\n",
-             media,
-             GST_TIME_ARGS (_lp_scene_get_running_time
-                            (media->prop.scene)),
-             GST_TIME_ARGS (media->seek.sum),
-             GST_TIME_ARGS (abs),
-             GST_TIME_ARGS (pad));
+  duration = GST_CLOCK_TIME_NONE;
+  if (!relative && offset < 0.0) /* resolve duration */
+    {
+      query = gst_query_new_duration (GST_FORMAT_TIME);
+      g_assert_nonnull (query);
+      if (unlikely (!gst_element_query (media->decoder, query)))
+        {
+          gst_query_unref (query);
+          goto fail;
+        }
+      gst_query_parse_duration (query, NULL, &duration);
+      gst_query_unref (query);
+    }
 
   media->state = SEEKING;
-  media_install_probe (media,
-                       GST_PAD_PROBE_TYPE_EVENT_FLUSH,
-                       lp_media_seek_flush_probe_callback);
+  media_install_probe
+    (media, GST_PAD_PROBE_TYPE_EVENT_FLUSH,
+     (GstPadProbeCallback) lp_media_seek_flush_probe_callback,
+     &id_audio, &id_video);
+
+  now = _lp_scene_get_running_time (media->prop.scene); /* pipeline time */
+  run = now - media->offset;    /* media playback (running) time */
+  g_assert (run > 0);
+  sum = media->seek.sum;        /* accumulated (relative) offset */
+
+  if (relative)                 /* offset is relative */
+    {
+      abs = run + sum + offset;
+      if (abs > 0)
+        sum += offset;
+      else
+        abs = 0;
+    }
+  else                          /* offset is absolute */
+    {
+      abs = clamp (run + sum, 0, G_MAXINT64);
+      if (offset < 0)
+        {
+          g_assert (GST_CLOCK_STIME_IS_VALID (duration));
+          offset = duration + offset;
+        }
+      sum = sum + offset - abs;
+      abs = offset;
+    }
+
+  _lp_debug ("\n\
+seek (%s) %p\n\
+  now: %" GST_TIME_FORMAT "\n\
+  run: %" GST_TIME_FORMAT "\n\
+  sum: %" GST_STIME_FORMAT "\n\
+  abs: %" GST_TIME_FORMAT "\n",
+             relative ? "relative" : "absolute",
+             media,
+             GST_TIME_ARGS (now),
+             GST_TIME_ARGS (run),
+             GST_STIME_ARGS (sum),
+             GST_TIME_ARGS (abs));
+
+  media->seek.relative = relative; /* last seek type */
+  media->seek.last = offset;       /* last seek offset */
 
   flags = 0
     | GST_SEEK_FLAG_FLUSH       /* flush bin */
     | GST_SEEK_FLAG_ACCURATE    /* be accurate */
     | GST_SEEK_FLAG_TRICKMODE;  /* decode only key frames */
 
-  g_assert (gst_element_seek_simple (media->bin, GST_FORMAT_TIME,
-                                     (GstSeekFlags) flags, abs));
+  status = gst_element_seek_simple (media->bin, GST_FORMAT_TIME,
+                                    (GstSeekFlags) flags, abs);
+  if (unlikely (!status))
+    {
+      if (media_has_audio (media))
+        gst_pad_remove_probe (media->audio.pad, id_audio);
+      if (media_has_video (media))
+        gst_pad_remove_probe (media->video.pad, id_video);
+      goto fail;
+    }
+
+  /* Update the accumulate offset only in case of success.  */
+  media->seek.sum = sum;
+
   if (media_has_audio (media))
-    gst_pad_set_offset (media->audio.pad, pad);
+    gst_pad_set_offset (media->audio.pad, now);
   if (media_has_video (media))
-    gst_pad_set_offset (media->video.pad, pad);
+    gst_pad_set_offset (media->video.pad, now);
 
   media_unlock (media);
   return TRUE;

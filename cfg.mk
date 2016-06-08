@@ -20,15 +20,6 @@ COPYRIGHT_YEAR= 2016
 COPYRIGHT_HOLDER= PUC-Rio/Laboratorio TeleMidia
 
 INDENT_OPTIONS=\
-  --brace-indent0\
-  --case-brace-indentation0\
-  --case-indentation2\
-  --else-endif-column0\
-  --gnu-style\
-  --indent-label-1\
-  --leave-preprocessor-space\
-  --no-tabs\
-  -l76\
   $(NULL)
 
 INDENT_EXCLUDE=\
@@ -97,3 +88,46 @@ fetch-remote-local:
 	  fi;\
 	  $(FETCH) -dir="$$dir" "$(nclua)/$$path" || exit 1;\
 	done
+
+# Build dependencies.
+glib_git:= git://git.gnome.org/glib
+glib_configure:=\
+  --prefix=$(PWD)/deps/tree\
+  --enable-debug\
+  --enable-gc-friendly\
+  --disable-mem-pools\
+  --disable-gtk-doc\
+  --disable-man\
+  --disable-dtrace\
+  --with-libiconv=gnu\
+  CFLAGS="-O0 -g"\
+  $(NULL)
+GLIB_CLONE= test -d deps/glib || git clone $(deps_git_glib) deps/glib
+GLIB_SYNC= (cd deps/glib && git pull) || exit 1
+GLIB_CONFIGURE= (cd deps/glib && ./autogen.sh $(glib_configure)) || exit 1
+GLIB_MAKE= $(MAKE) -C deps/glib
+
+.PHONY: deps-sync
+deps-sync:
+	$(GLIB_TRY_CLONE)
+	$(GLIB_SYNC)
+
+.PHONY: deps-force-configure
+deps-force-configure:
+	$(GLIB_CONFIGURE)
+
+.PHONY: deps-configure
+deps-configure:
+	test -f deps/glib/configure || { $(GLIB_CONFIGURE); } && :
+
+.PHONY: deps-build
+deps-build: deps-configure
+	$(GLIB_MAKE)
+
+.PHONY: deps-clean
+deps-clean:
+	$(GLIB_MAKE) clean
+
+.PHONY: deps-install
+deps-install: deps-build
+	$(GLIB_MAKE) install

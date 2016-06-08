@@ -58,6 +58,7 @@
 /configure
 /coverage
 /coverage.info
+/deps
 /dist-deb
 /examples/dump
 /examples/seek

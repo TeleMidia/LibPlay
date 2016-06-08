@@ -72,7 +72,11 @@ AU_SYSTEM_MINGW
 AU_ARG_ENABLE_COVERAGE
 AU_ARG_ENABLE_DEBUG
 AU_ARG_ENABLE_VALGRIND
-AU_ARG_ENABLE_WARNINGS
+
+nw=
+nw="$nw -Wsystem-headers"     # Suppress system headers warnings
+nw="$nw -Wpadded"             # Our structs are not packed
+AU_ARG_ENABLE_WARNINGS([$nw])
 
 # Library functions.
 AC_CHECK_LIBM
@@ -151,6 +155,5 @@ AC_MSG_NOTICE([summary of main build options:
   Warning flags:      ${WERROR_CFLAGS} ${WARN_CFLAGS}
   Library types:      Shared=${enable_shared}, Static=${enable_static}
   Valgrind:           ${VALGRIND}
-
   Lua bindings:       ${au_check_lua}
 ])

@@ -1465,7 +1465,7 @@ lp_media_stop (lp_Media *media)
 /**
  * lp_media_seek:
  * @media: an #lp_Media
- * @relative: %TRUE is offset is relative to current playback time
+ * @relative: %TRUE if offset is relative to current playback time
  * @offset: a relative offset time (in nanoseconds)
  *
  * Seeks in @media asynchronously by @offset.

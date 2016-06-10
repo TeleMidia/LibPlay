@@ -29,7 +29,7 @@ main (void)
   scene = SCENE_NEW (800, 600, 2);
   g_object_get (scene, "interval", &interval, NULL);
 
-  media = lp_media_new (scene, SAMPLE_LEGO);
+  media = lp_media_new (scene, SAMPLE_CLOCK);
   g_assert_nonnull (media);
 
   g_assert (lp_media_start (media));
@@ -40,7 +40,15 @@ main (void)
   for (i = 0; i < 3; i++)
     {
       await_ticks (scene, 2);
-      g_assert (lp_media_seek (media, TRUE, -2 * interval));
+      g_assert (lp_media_seek (media, FALSE, 0));
+    }
+
+  await_ticks (scene, 2);
+
+  for (i = 0; i < 3; i++)
+    {
+      g_assert (lp_media_seek (media, FALSE, -4 * interval));
+      await_ticks (scene, 2);
     }
 
   g_object_unref (scene);

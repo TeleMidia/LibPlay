@@ -46,6 +46,7 @@ PRAGMA_DIAG_IGNORE (-Winline)
 #define SAMPLE_GNU        SAMPLES_DIR (gnu.png)
 
 /* Video samples.  */
+#define SAMPLE_CLOCK      SAMPLES_DIR (clock.ogv)
 #define SAMPLE_DIODE      SAMPLES_DIR (diode.mp4)
 #define SAMPLE_LEGO       SAMPLES_DIR (lego.ogv)
 #define SAMPLE_NIGHT      SAMPLES_DIR (night.avi)
@@ -56,6 +57,7 @@ PRAGMA_DIAG_IGNORE (-Winline)
 static ATTR_UNUSED const gchar *samples_all[] =
 {
   SAMPLE_ARCADE,
+  SAMPLE_CLOCK,
   SAMPLE_COZY,
   SAMPLE_DIODE,
   SAMPLE_EARTH,

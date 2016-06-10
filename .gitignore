@@ -115,7 +115,8 @@
 /tests/test-lp-media-prop-z
 /tests/test-lp-media-seek-duo
 /tests/test-lp-media-seek-fail
-/tests/test-lp-media-seek-loop
+/tests/test-lp-media-seek-loop-abs
+/tests/test-lp-media-seek-loop-rel
 /tests/test-lp-media-start-avi
 /tests/test-lp-media-start-duo
 /tests/test-lp-media-start-fail-bad-uri

@@ -20,62 +20,56 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  /* get/set lockstep */
-  STMT_BEGIN
+  lp_Scene *scene;
+  gboolean lockstep;
+  guint64 time;
+  guint64 last;
+  gint i, j;
+
+  scene = SCENE_NEW (800, 600, 4);
+  g_object_get (scene, "lockstep", &lockstep, NULL);
+  g_assert (!lockstep);
+
+  g_object_set (scene, "pattern", 18, "wave", 0, NULL);
+  await_ticks (scene, 2);
+
+  g_assert (!lp_scene_advance (scene, GST_SECOND));
+
+  for (i = 0; i < 3; i++)
     {
-      lp_Scene *scene;
-      gboolean lockstep;
-      guint64 time;
-      guint64 last;
-      gint i, j;
-
-      scene = SCENE_NEW (800, 600, 0);
+      g_object_set (scene, "lockstep", TRUE, NULL);
       g_object_get (scene, "lockstep", &lockstep, NULL);
-      g_assert (!lockstep);
+      g_assert (lockstep);
 
-      g_object_set (scene, "pattern", 18, "wave", 0, NULL);
-      await_ticks (scene, 2);
+      g_object_get (scene, "time", &time, NULL);
+      last = time;
 
-      g_assert (!lp_scene_advance (scene, GST_SECOND));
-
-      for (i = 0; i < 3; i++)
+      for (j = 0; j < 2000; j++) /* 2s */
         {
-          g_object_set (scene, "lockstep", TRUE, NULL);
-          g_object_get (scene, "lockstep", &lockstep, NULL);
-          g_assert (lockstep);
-
+          g_assert (lp_scene_advance (scene, 1 * GST_MSECOND));
           g_object_get (scene, "time", &time, NULL);
+          g_assert (((time - last) / GST_MSECOND) == 1);
           last = time;
-
-          for (j = 0; j < 2000; j++) /* 2s */
-            {
-              g_assert (lp_scene_advance (scene, 1 * GST_MSECOND));
-              g_object_get (scene, "time", &time, NULL);
-              g_assert (((time - last) / GST_MSECOND) == 1);
-              last = time;
-              g_usleep (1 * 1000);
-            }
-
-          for (j = 0; j < 4; j++) /* 2s */
-            {
-              g_assert (lp_scene_advance (scene, 500 * GST_MSECOND));
-              g_object_get (scene, "time", &time, NULL);
-              g_assert (((time - last) / GST_MSECOND) == 500);
-              last = time;
-              SLEEP (.5);
-            }
-
-          g_object_set (scene, "lockstep", FALSE, NULL);
-          g_object_get (scene, "lockstep", &lockstep, NULL);
-          g_assert (!lockstep);
-          g_assert (!lp_scene_advance (scene, GST_SECOND));
-
-          SLEEP (2);            /* 2s */
+          g_usleep (1 * 1000);
         }
 
-      g_object_unref (scene);
-    }
-  STMT_END;
+      for (j = 0; j < 4; j++) /* 2s */
+        {
+          g_assert (lp_scene_advance (scene, 500 * GST_MSECOND));
+          g_object_get (scene, "time", &time, NULL);
+          g_assert (((time - last) / GST_MSECOND) == 500);
+          last = time;
+          SLEEP (.5);
+        }
 
+      g_object_set (scene, "lockstep", FALSE, NULL);
+      g_object_get (scene, "lockstep", &lockstep, NULL);
+      g_assert (!lockstep);
+      g_assert (!lp_scene_advance (scene, GST_SECOND));
+
+      SLEEP (2);            /* 2s */
+    }
+
+  g_object_unref (scene);
   exit (EXIT_SUCCESS);
 }

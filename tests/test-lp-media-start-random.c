@@ -47,7 +47,9 @@ main (void)
       g_assert (lp_media_start (media[i]));
     }
 
-  await_ticks (scene, 8);
+  await_ticks (scene, 5);
+
+  g_timeout_add_seconds (2, (GSourceFunc) abort, NULL);
   g_object_unref (scene);
 
   exit (EXIT_SUCCESS);

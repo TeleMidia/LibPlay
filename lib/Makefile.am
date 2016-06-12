@@ -50,6 +50,7 @@ libplay_la_SOURCES=\
   lp-event-key.c\
   lp-event-pointer-click.c\
   lp-event-pointer-move.c\
+  lp-event-quit.c\
   lp-event-seek.c\
   lp-event-start.c\
   lp-event-stop.c\

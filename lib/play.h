@@ -110,16 +110,21 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (lp_Event, g_object_unref)
 typedef enum
 {
   LP_EVENT_MASK_NONE          = 0,
-  LP_EVENT_MASK_TICK          = (1 << 0),
-  LP_EVENT_MASK_KEY           = (1 << 1),
-  LP_EVENT_MASK_POINTER_CLICK = (1 << 2),
-  LP_EVENT_MASK_POINTER_MOVE  = (1 << 3),
-  LP_EVENT_MASK_ERROR         = (1 << 4),
-  LP_EVENT_MASK_START         = (1 << 5),
-  LP_EVENT_MASK_STOP          = (1 << 6),
-  LP_EVENT_MASK_SEEK          = (1 << 7),
+  LP_EVENT_MASK_QUIT          = (1 << 0),
+  LP_EVENT_MASK_TICK          = (1 << 1),
+  LP_EVENT_MASK_KEY           = (1 << 2),
+  LP_EVENT_MASK_POINTER_CLICK = (1 << 3),
+  LP_EVENT_MASK_POINTER_MOVE  = (1 << 4),
+  LP_EVENT_MASK_ERROR         = (1 << 5),
+  LP_EVENT_MASK_START         = (1 << 6),
+  LP_EVENT_MASK_STOP          = (1 << 7),
+  LP_EVENT_MASK_SEEK          = (1 << 8),
   LP_EVENT_MASK_ANY           = (gint)(0xffffffff)
 } lp_EventMask;
+
+#define LP_TYPE_EVENT_QUIT (lp_event_quit_get_type ())
+LP_API G_DECLARE_FINAL_TYPE (lp_EventQuit, lp_event_quit,
+                             LP, EVENT_QUIT, lp_Event)
 
 #define LP_TYPE_EVENT_TICK (lp_event_tick_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_EventTick, lp_event_tick,
@@ -156,6 +161,7 @@ typedef enum
 {
   LP_ERROR_START = 0,           /* error while starting */
   LP_ERROR_STOP,                /* error while stopping */
+  LP_ERROR_SEEK,                /* error while seeking */
   LP_ERROR_RUN                  /* error while running */
 } lp_Error;
 
@@ -210,6 +216,9 @@ lp_scene_advance (lp_Scene *, guint64);
 
 LP_API lp_Event *
 lp_scene_receive (lp_Scene *, gboolean);
+
+LP_API void
+lp_scene_quit (lp_Scene *);
 
 LP_END_DECLS
 

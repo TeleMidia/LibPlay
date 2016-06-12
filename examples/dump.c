@@ -50,6 +50,11 @@ main (void)
 
       switch (lp_event_get_mask (event))
         {
+        case LP_EVENT_MASK_QUIT:
+          {
+            done = TRUE;
+            break;
+          }
         case LP_EVENT_MASK_ERROR:
           {
             GError *error = NULL;

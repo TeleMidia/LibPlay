@@ -56,7 +56,7 @@ _lp_event_to_string (lp_Event *event, const gchar *fmt, ...)
   va_start (args, fmt);
   n = g_vasprintf (&suffix, fmt, args);
   g_assert_nonnull (suffix);
-  g_assert (n > 0);
+  g_assert (n >= 0);
   va_end (args);
 
   str = g_strdup_printf ("\
@@ -128,6 +128,7 @@ lp_event_set_property (GObject *object, guint prop_id,
         event->priv->mask = (lp_EventMask) mask;
         switch (event->priv->mask)
           {
+          case LP_EVENT_MASK_QUIT:
           case LP_EVENT_MASK_TICK:
           case LP_EVENT_MASK_KEY:
           case LP_EVENT_MASK_POINTER_CLICK:

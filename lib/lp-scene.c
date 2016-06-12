@@ -18,6 +18,17 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
 #include "play-internal.h"
+PRAGMA_DIAG_IGNORE (-Wunused-macros)
+
+/* Scene state.  */
+typedef enum
+{
+  STARTED = 0,                  /* scene is playing (has started) */
+  STARTING,                     /* scene is preparing to play (start) */
+  STOPPED,                      /* scene is stopped */
+  STOPPING,                     /* scene is preparing to stop */
+  DISPOSED                      /* scene has been disposed */
+} lp_SceneState;
 
 /* Scene object.  */
 struct _lp_Scene
@@ -25,8 +36,8 @@ struct _lp_Scene
   GObject parent;               /* parent object */
   GRecMutex mutex;              /* sync access to scene */
   GstElement *pipeline;         /* scene pipeline */
-  gboolean quitting;            /* true if scene is quitting */
   GMainLoop *loop;              /* scene loop */
+  lp_SceneState state;          /* current state */
   GList *events;                /* pending events */
   GList *children;              /* child media objects */
   struct
@@ -125,35 +136,81 @@ enum
 /* Define the lp_Scene type.  */
 GX_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
 
-static gint lp_scene_tick_callback (GstClock *, GstClockTime, GstClockID,
-                                    lp_Scene *);
-
 
-/* Locking and unlocking.  */
+/* Scene locking and unlocking.  */
 #define scene_lock(sc)    g_rec_mutex_lock (&(sc)->mutex)
 #define scene_unlock(sc)  g_rec_mutex_unlock (&(sc)->mutex)
 
-#define SCENE_LOCKED(sc, stmt)                  \
+/* Scene state queries.  */
+#define scene_state_started(s)   ((s)->state == STARTED)
+#define scene_state_starting(s)  ((s)->state == STARTING)
+#define scene_state_stopped(s)   ((s)->state == STOPPED)
+#define scene_state_stopping(s)  ((s)->state == STOPPING)
+#define scene_state_disposed(s)  ((s)->state == DISPOSED)
+
+/* Scene run-time data.  */
+#define scene_reset_run_time_data(s)            \
   STMT_BEGIN                                    \
   {                                             \
-    scene_lock ((sc));                          \
-    stmt;                                       \
-    scene_unlock ((sc));                        \
+    (s)->pipeline = NULL;                       \
+    (s)->loop = NULL;                           \
+    (s)->state = STOPPED;                       \
+    (s)->events = NULL;                         \
+    (s)->children = NULL;                       \
+    (s)->clock.id = NULL;                       \
+    (s)->clock.clock = NULL;                    \
+    (s)->clock.offset = GST_CLOCK_TIME_NONE;    \
   }                                             \
   STMT_END
 
-#define SCENE_UNLOCKED(sc, stmt)                \
+#define scene_release_run_time_data(s)                                  \
+  STMT_BEGIN                                                            \
+  {                                                                     \
+    g_assert ((s)->children == NULL);                                   \
+    gst_object_unref ((s)->pipeline);                                   \
+    g_main_loop_unref ((s)->loop);                                      \
+    g_list_free_full ((s)->events, (GDestroyNotify) g_object_unref);    \
+    if (scene->clock.id != NULL)                                        \
+      gst_clock_id_unref ((s)->clock.id);                               \
+    g_object_unref ((s)->clock.clock);                                  \
+    scene_reset_run_time_data ((s));                                    \
+  }                                                                     \
+  STMT_END
+
+/* Scene property cache.  */
+#define scene_reset_property_cache(s)                   \
+  STMT_BEGIN                                            \
+  {                                                     \
+    (s)->prop.mask = DEFAULT_MASK;                      \
+    (s)->prop.width = DEFAULT_WIDTH;                    \
+    (s)->prop.height = DEFAULT_HEIGHT;                  \
+    (s)->prop.pattern = DEFAULT_PATTERN;                \
+    (s)->prop.wave = DEFAULT_WAVE;                      \
+    (s)->prop.ticks = DEFAULT_TICKS;                    \
+    (s)->prop.interval= DEFAULT_INTERVAL;               \
+    (s)->prop.time = DEFAULT_TIME;                      \
+    (s)->prop.lockstep = DEFAULT_LOCKSTEP;              \
+    (s)->prop.slave_audio = DEFAULT_SLAVE_AUDIO;        \
+    (s)->prop.text = DEFAULT_TEXT;                      \
+    (s)->prop.text_color = DEFAULT_TEXT_COLOR;          \
+    (s)->prop.text_font = DEFAULT_TEXT_FONT;            \
+  }                                                     \
+  STMT_END
+
+#define scene_release_property_cache(s)         \
   STMT_BEGIN                                    \
   {                                             \
-    scene_unlock ((sc));                        \
-    stmt;                                       \
-    scene_lock ((sc));                          \
+    g_free ((s)->prop.text);                    \
+    g_free ((s)->prop.text_font);               \
   }                                             \
   STMT_END
 
-/* Other queries.  */
-#define scene_is_quitting(sc)  ((sc)->quitting)
+/* Forward declarations.  */
+static gint lp_scene_tick_callback (GstClock *, GstClockTime, GstClockID,
+                                    lp_Scene *);
+static gboolean lp_scene_bus_callback (GstBus *, GstMessage *, lp_Scene *);
 
+
 /* Enslaves @scene's audio sink clock to @scene clock.  */
 
 static void
@@ -161,6 +218,9 @@ scene_enslave_audio_clock (lp_Scene *scene)
 {
   GstElement *sink;
   GstClock *clock;
+  GstClock *master;
+
+  g_assert (scene_state_started (scene));
 
   sink = _lp_scene_get_real_audio_sink (scene);
   g_assert_nonnull (sink);
@@ -171,23 +231,23 @@ scene_enslave_audio_clock (lp_Scene *scene)
   clock = GST_AUDIO_BASE_SINK (sink)->provided_clock;
   g_assert_nonnull (clock);
 
-  if (unlikely (!gst_clock_set_master (clock, scene->prop.slave_audio
-                                       ? scene->clock.clock : NULL)))
-    {
+  master = (scene->prop.slave_audio) ? scene->clock.clock : NULL;
+  if (unlikely (!gst_clock_set_master (clock, master)))
       _lp_warn ("cannot enslave audio clock to scene clock");
-    }
 
   gst_object_unref (sink);
 }
 
 /* Returns the real sink (determined by @offset) of @scene.  */
 
-static GstElement *
+static ATTR_USE_RESULT GstElement *
 scene_get_real_sink (lp_Scene *scene, ptrdiff_t offset)
 {
   GstElement **elt;
   GObject *obj = NULL;
   GstElement *sink = NULL;
+
+  g_assert (scene_state_started (scene));
 
   elt = (GstElement **)(((ptrdiff_t) scene) + offset);
   g_assert_nonnull (*elt);
@@ -205,18 +265,171 @@ scene_get_real_sink (lp_Scene *scene, ptrdiff_t offset)
   return sink;
 }
 
-/* Runs a single iteration of @scene loop without locking the @scene.
-   Call may block if @block is true.  */
+/* Creates scene pipeline and starts @scene.
+   Returns %TRUE if successful, or %FALSE otherwise.
 
-static void
+   WARNING: Call this function with scene *UNLOCKED*.  */
+
+static ATTR_USE_RESULT gboolean
+scene_start_unlocked (lp_Scene *scene)
+{
+  GstElement *pipeline;
+  GstBus *bus;
+  gulong id;
+
+  scene_lock (scene);
+
+  if (unlikely (!scene_state_stopped (scene)))
+    goto fail;                  /* nothing to do */
+
+  _lp_eltmap_alloc_check (scene, lp_scene_eltmap);
+
+  pipeline = scene->pipeline;
+  g_assert_nonnull (pipeline);
+
+  scene->loop = g_main_loop_new (NULL, FALSE);
+  g_assert_nonnull (scene->loop);
+
+  scene->clock.clock = GST_CLOCK (g_object_new (LP_TYPE_CLOCK, NULL));
+  g_assert_nonnull (scene->clock.clock);
+  gst_pipeline_use_clock (GST_PIPELINE (pipeline), scene->clock.clock);
+
+  bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
+  g_assert_nonnull (bus);
+  id = gst_bus_add_watch (bus, (GstBusFunc) lp_scene_bus_callback, scene);
+  g_assert (id > 0);
+  gst_object_unref (bus);
+
+  gstx_bin_add (pipeline, scene->audio.blank);
+  gstx_bin_add (pipeline, scene->audio.mixer);
+  gstx_bin_add (pipeline, scene->audio.sink);
+  gstx_element_link (scene->audio.blank, scene->audio.mixer);
+  gstx_element_link (scene->audio.mixer, scene->audio.sink);
+  g_object_set (scene->audio.blank, "wave", scene->prop.wave, NULL);
+
+  if (_lp_scene_has_video (scene))
+    {
+      GstCaps *caps;
+
+      _lp_eltmap_alloc_check (scene, lp_scene_eltmap_video);
+      gstx_bin_add (pipeline, scene->video.blank);
+      gstx_bin_add (pipeline, scene->video.filter);
+      gstx_bin_add (pipeline, scene->video.mixer);
+      gstx_bin_add (pipeline, scene->video.text);
+      gstx_bin_add (pipeline, scene->video.convert);
+      gstx_bin_add (pipeline, scene->video.sink);
+      gstx_element_link (scene->video.blank, scene->video.filter);
+      gstx_element_link (scene->video.filter, scene->video.mixer);
+      gstx_element_link (scene->video.mixer, scene->video.text);
+      gstx_element_link (scene->video.text, scene->video.convert);
+      gstx_element_link (scene->video.convert, scene->video.sink);
+      g_object_set (scene->video.blank,
+                    "pattern", scene->prop.pattern, NULL);
+
+      caps = gst_caps_new_empty_simple ("video/x-raw");
+      g_assert_nonnull (caps);
+      gst_caps_set_simple (caps,
+                           "width", G_TYPE_INT, scene->prop.width,
+                           "height", G_TYPE_INT, scene->prop.height, NULL);
+      g_object_set (scene->video.filter, "caps", caps, NULL);
+      gst_caps_unref (caps);
+    }
+
+  scene->state = STARTING;
+  scene_unlock (scene);
+  gstx_element_set_state_sync (pipeline, GST_STATE_PLAYING);
+  scene_lock (scene);
+
+  if (scene->prop.slave_audio)
+    scene_enslave_audio_clock (scene);
+
+  scene->state = STARTED;
+  scene->clock.offset = gstx_element_get_clock_time (scene->pipeline);
+
+  scene_unlock (scene);
+  return TRUE;
+
+ fail:
+  scene_unlock (scene);
+  return FALSE;
+}
+
+/* Destroys scene pipeline and stops @scene.
+   Returns %TRUE if successful, or %FALSE otherwise.
+
+   WARNING: Call this function with scene *UNLOCKED*.  */
+
+static ATTR_USE_RESULT gboolean
+scene_stop_unlocked (lp_Scene *scene)
+{
+  GstElement *pipeline;
+  GstBus *bus;
+  GList *l;
+
+  scene_lock (scene);
+
+  if (unlikely (!scene_state_started (scene)))
+    goto fail;                  /* nothing to do */
+
+  if (likely (scene->clock.id != NULL)) /* disable ticks */
+    gst_clock_id_unschedule (scene->clock.id);
+
+  while ((l = scene->children) != NULL) /* unref children */
+    {
+      scene_unlock (scene);
+      g_object_unref (LP_MEDIA (l->data));
+      scene_lock (scene);
+      scene->children = g_list_delete_link (scene->children, l);
+    }
+  g_assert_null (scene->children);
+
+  pipeline = scene->pipeline;
+  g_assert_nonnull (pipeline);
+
+  bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
+  g_assert_nonnull (bus);
+  g_assert (gst_bus_remove_watch (bus));
+  gst_object_unref (bus);
+
+  scene->state = STOPPING;
+  scene_unlock (scene);
+  gstx_element_set_state_sync (pipeline, GST_STATE_NULL);
+  scene_lock (scene);
+
+  scene_release_run_time_data (scene);
+  scene_unlock (scene);
+  return TRUE;
+
+ fail:
+  scene_unlock (scene);
+  return FALSE;
+}
+
+/* Runs a single iteration of @scene loop without locking the @scene.
+   Call may block if @block is true.
+   Returns %TRUE if successful, or %FALSE otherwise.
+
+   WARNING: Call this function with scene *UNLOCKED*.  */
+
+static ATTR_USE_RESULT gboolean
 scene_step_unlocked (lp_Scene *scene, gboolean block)
 {
+  GMainLoop *loop;
   GMainContext *ctx;
 
-  g_assert (!scene_is_quitting (scene));
-  ctx = g_main_loop_get_context (scene->loop);
+  scene_lock (scene);
+  if (unlikely (!scene_state_started (scene)))
+    {
+      scene_unlock (scene);
+      return FALSE;
+    }
+  loop = scene->loop;
+  scene_unlock (scene);
+
+  ctx = g_main_loop_get_context (loop);
   g_assert_nonnull (ctx);
   g_main_context_iteration (ctx, block);
+  return TRUE;
 }
 
 /* Updates @scene clock id.  */
@@ -228,6 +441,8 @@ scene_update_clock_id (lp_Scene *scene)
   GstClockID id;
   GstClockTime time;
   GstClockCallback cb;
+
+  g_assert (scene_state_started (scene));
 
   clock = gst_pipeline_get_clock (GST_PIPELINE (scene->pipeline));
   g_assert_nonnull (clock);
@@ -253,7 +468,7 @@ scene_update_clock_id (lp_Scene *scene)
 
 /* callbacks */
 
-/* WARNING: In these callbacks, any access to scene *MUST* be locked.  */
+/* WARNING: In the callbacks, scene must be *LOCKED*.  */
 
 /* Signals a pipeline clock tick.  Here we dispatch a tick lp_Event.  */
 
@@ -266,7 +481,10 @@ lp_scene_tick_callback (arg_unused (GstClock *clock),
   lp_Event *event;
   guint64 ticks;
 
-  SCENE_LOCKED (scene, ticks = scene->prop.ticks);
+  scene_lock (scene);
+  g_assert (scene_state_started (scene));
+  ticks = scene->prop.ticks;
+  scene_unlock (scene);
 
   event = LP_EVENT (_lp_event_tick_new (scene, ticks));
   g_assert_nonnull (event);
@@ -304,7 +522,10 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           {
           case LP_EVENT_MASK_TICK:
             {
-              SCENE_LOCKED (scene, scene->prop.ticks++);
+              scene_lock (scene);
+              if (likely (scene_state_started (scene)))
+                scene->prop.ticks++;
+              scene_unlock (scene);
               break;
             }
           case LP_EVENT_MASK_KEY:           /* fall through */
@@ -345,8 +566,11 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           }
 
         scene_lock (scene);
-        scene->events = g_list_append (scene->events, event);
-        g_assert_nonnull (scene->events);
+        if (likely (scene_state_started (scene)))
+          {
+            scene->events = g_list_append (scene->events, event);
+            g_assert_nonnull (scene->events);
+          }
         scene_unlock (scene);
         break;
       }
@@ -450,7 +674,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
         debug = gst_error_get_message (error->domain, error->code);
         g_assert_nonnull (debug);
 
-        if (GST_IS_BASE_SINK (obj) /* output closed, destroy scene */
+        if (GST_IS_BASE_SINK (obj) /* output closed, quit scene */
             && error->domain == GST_RESOURCE_ERROR
             && error->code == GST_RESOURCE_ERROR_NOT_FOUND)
           {
@@ -477,7 +701,10 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
       break;
     case GST_MESSAGE_NEW_CLOCK:
       {
-        SCENE_LOCKED (scene, scene_update_clock_id (scene));
+        scene_lock (scene);
+        if (scene_state_started (scene))
+          scene_update_clock_id (scene);
+        scene_unlock (scene);
         break;
       }
     case GST_MESSAGE_PROGRESS:
@@ -525,30 +752,8 @@ static void
 lp_scene_init (lp_Scene *scene)
 {
   g_rec_mutex_init (&scene->mutex);
-  scene->quitting = FALSE;
-
-  scene->loop = g_main_loop_new (NULL, FALSE);
-  g_assert_nonnull (scene->loop);
-  scene->events = NULL;
-  scene->children = NULL;
-
-  scene->clock.id = NULL;
-  scene->clock.clock = NULL;
-  scene->clock.offset = GST_CLOCK_TIME_NONE;
-
-  scene->prop.mask = DEFAULT_MASK;
-  scene->prop.width = DEFAULT_WIDTH;
-  scene->prop.height = DEFAULT_HEIGHT;
-  scene->prop.pattern = DEFAULT_PATTERN;
-  scene->prop.wave = DEFAULT_WAVE;
-  scene->prop.ticks = DEFAULT_TICKS;
-  scene->prop.interval= DEFAULT_INTERVAL;
-  scene->prop.time = DEFAULT_TIME;
-  scene->prop.lockstep = DEFAULT_LOCKSTEP;
-  scene->prop.slave_audio = DEFAULT_SLAVE_AUDIO;
-  scene->prop.text = DEFAULT_TEXT;
-  scene->prop.text_color = DEFAULT_TEXT_COLOR;
-  scene->prop.text_font = DEFAULT_TEXT_FONT;
+  scene_reset_run_time_data (scene);
+  scene_reset_property_cache (scene);
 }
 
 static void
@@ -559,8 +764,6 @@ lp_scene_get_property (GObject *object, guint prop_id,
 
   scene = LP_SCENE (object);
   scene_lock (scene);
-  if (unlikely (scene_is_quitting (scene)))
-    goto done;
 
   switch (prop_id)
     {
@@ -587,6 +790,7 @@ lp_scene_get_property (GObject *object, guint prop_id,
       break;
     case PROP_TIME:
       scene->prop.time = _lp_scene_get_running_time (scene);
+      g_assert (GST_CLOCK_TIME_IS_VALID (scene->prop.time));
       g_value_set_uint64 (value, scene->prop.time);
       break;
     case PROP_LOCKSTEP:
@@ -608,7 +812,6 @@ lp_scene_get_property (GObject *object, guint prop_id,
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
 
- done:
   scene_unlock (scene);
 }
 
@@ -620,8 +823,6 @@ lp_scene_set_property (GObject *object, guint prop_id,
 
   scene = LP_SCENE (object);
   scene_lock (scene);
-  if (unlikely (scene_is_quitting (scene)))
-    goto done;
 
   switch (prop_id)
     {
@@ -646,7 +847,6 @@ lp_scene_set_property (GObject *object, guint prop_id,
       break;
     case PROP_INTERVAL:
       scene->prop.interval = g_value_get_uint64 (value);
-      scene_update_clock_id (scene);
       break;
     case PROP_TIME:
       g_assert_not_reached ();  /* read-only */
@@ -675,8 +875,16 @@ lp_scene_set_property (GObject *object, guint prop_id,
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
 
+  if (!scene_state_started (scene))
+    goto done;                  /* nothing to do */
+
   switch (prop_id)
     {
+    case PROP_INTERVAL:
+      {
+        scene_update_clock_id (scene);
+        break;
+      }
     case PROP_PATTERN:          /* fall through */
     case PROP_TEXT:             /* fall through */
     case PROP_TEXT_COLOR:       /* fall through */
@@ -720,114 +928,37 @@ lp_scene_set_property (GObject *object, guint prop_id,
 static void
 lp_scene_constructed (GObject *object)
 {
-  lp_Scene *scene;
-  GstBus *bus;
-  gulong id;
-
-  scene = LP_SCENE (object);
-  g_assert (!scene_is_quitting (scene));
-
-  _lp_eltmap_alloc_check (scene, lp_scene_eltmap);
-
-  scene->clock.clock = GST_CLOCK (g_object_new (LP_TYPE_CLOCK, NULL));
-  g_assert_nonnull (scene->clock.clock);
-  gst_pipeline_use_clock (GST_PIPELINE (scene->pipeline),
-                          scene->clock.clock);
-
-  bus = gst_pipeline_get_bus (GST_PIPELINE (scene->pipeline));
-  g_assert_nonnull (bus);
-  id = gst_bus_add_watch (bus, (GstBusFunc) lp_scene_bus_callback, scene);
-  g_assert (id > 0);
-  gst_object_unref (bus);
-
-  gstx_bin_add (scene->pipeline, scene->audio.blank);
-  gstx_bin_add (scene->pipeline, scene->audio.mixer);
-  gstx_bin_add (scene->pipeline, scene->audio.sink);
-  gstx_element_link (scene->audio.blank, scene->audio.mixer);
-  gstx_element_link (scene->audio.mixer, scene->audio.sink);
-
-  if (_lp_scene_has_video (scene))
-    {
-      GstCaps *caps;
-
-      _lp_eltmap_alloc_check (scene, lp_scene_eltmap_video);
-      gstx_bin_add (scene->pipeline, scene->video.blank);
-      gstx_bin_add (scene->pipeline, scene->video.filter);
-      gstx_bin_add (scene->pipeline, scene->video.mixer);
-      gstx_bin_add (scene->pipeline, scene->video.text);
-      gstx_bin_add (scene->pipeline, scene->video.convert);
-      gstx_bin_add (scene->pipeline, scene->video.sink);
-      gstx_element_link (scene->video.blank, scene->video.filter);
-      gstx_element_link (scene->video.filter, scene->video.mixer);
-      gstx_element_link (scene->video.mixer, scene->video.text);
-      gstx_element_link (scene->video.text, scene->video.convert);
-      gstx_element_link (scene->video.convert, scene->video.sink);
-
-      caps = gst_caps_new_empty_simple ("video/x-raw");
-      g_assert_nonnull (caps);
-      gst_caps_set_simple (caps,
-                           "width", G_TYPE_INT, scene->prop.width,
-                           "height", G_TYPE_INT, scene->prop.height, NULL);
-      g_object_set (scene->video.filter, "caps", caps, NULL);
-      gst_caps_unref (caps);
-    }
-
-  g_object_set (scene,
-                "pattern", scene->prop.pattern,
-                "wave", scene->prop.wave, NULL);
-
-  gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
-
-  scene_lock (scene);
-  if (scene->prop.slave_audio)
-    {
-      scene_enslave_audio_clock (scene);
-    }
-  scene->clock.offset = gstx_element_get_clock_time (scene->pipeline);
-  scene_unlock (scene);
+  /* FIXME: Handle bootstrap errors gracefully.  */
+  g_assert (scene_start_unlocked (LP_SCENE (object)));
 }
 
 static void
 lp_scene_dispose (GObject *object)
 {
   lp_Scene *scene;
-  GList *l;
-  GstElement *pipeline;
-  GstBus *bus;
 
   scene = LP_SCENE (object);
   scene_lock (scene);
 
-  if (likely (scene->clock.id != NULL)) /* disable ticks */
-    gst_clock_id_unschedule (scene->clock.id);
-
-  while ((l = scene->children) != NULL) /* collect children */
+  if (scene_state_disposed (scene))
     {
-      SCENE_UNLOCKED (scene, g_object_unref (LP_MEDIA (l->data)));
-      scene->children = g_list_delete_link (scene->children, l);
+      scene_unlock (scene);
+      return;                   /* drop residual calls */
     }
-  g_assert_null (scene->children);
 
-  scene->quitting = TRUE;       /* disable all scene functions */
+  while (!scene_state_stopped (scene))
+    {
+      scene_unlock (scene);
+      if (!scene_stop_unlocked (scene))
+        g_assert (scene_step_unlocked (scene, TRUE));
+      scene_lock (scene);
+    }
 
-  pipeline = scene->pipeline;
-  g_assert_nonnull (pipeline);
-
-  bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
-  g_assert_nonnull (bus);
-  g_assert (gst_bus_remove_watch (bus));
-  gst_object_unref (bus);
-
-  SCENE_UNLOCKED
-    (scene, gstx_element_set_state_sync (pipeline, GST_STATE_NULL));
-
-  gst_object_unref (scene->pipeline);
-  g_object_unref (scene->clock.clock);
-
-  if (likely (scene->clock.id != NULL))
-    gst_clock_id_unref (scene->clock.id);
-
+  g_assert (scene_state_stopped (scene));
+  scene_release_property_cache (scene);
+  scene->state = DISPOSED;
   scene_unlock (scene);
+
   G_OBJECT_CLASS (lp_scene_parent_class)->dispose (object);
 }
 
@@ -837,14 +968,8 @@ lp_scene_finalize (GObject *object)
   lp_Scene *scene;
 
   scene = LP_SCENE (object);
+  g_assert (scene_state_disposed (scene));
   g_rec_mutex_clear (&scene->mutex);
-  g_main_loop_unref (scene->loop);
-
-  g_assert_null (scene->children);
-  g_list_free_full (scene->events, (GDestroyNotify) g_object_unref);
-
-  g_free (scene->prop.text);
-  g_free (scene->prop.text_font);
 
   G_OBJECT_CLASS (lp_scene_parent_class)->finalize (object);
 }
@@ -961,9 +1086,14 @@ _lp_scene_add_media (lp_Scene *scene, lp_Media *media)
 {
   scene_lock (scene);
 
+  if (unlikely (!scene_state_started (scene)))
+    goto done;                  /* nothing to do */
+
+  g_assert (scene_state_started (scene));
   scene->children = g_list_append (scene->children, media);
   g_assert_nonnull (scene->children);
 
+ done:
   scene_unlock (scene);
 }
 
@@ -974,8 +1104,20 @@ _lp_scene_get_pipeline (lp_Scene *scene)
 {
   GstElement *pipeline;
 
-  SCENE_LOCKED (scene, pipeline = scene->pipeline);
+  scene_lock (scene);
+
+  if (unlikely (!scene_state_started (scene)))
+    goto fail;                  /* nothing to do */
+
+  g_assert (scene_state_started (scene));
+  pipeline = scene->pipeline;
+
+  scene_unlock (scene);
   return pipeline;
+
+ fail:
+  scene_unlock (scene);
+  return NULL;
 }
 
 /* Returns the @scene running time (in nanoseconds).  */
@@ -987,11 +1129,19 @@ _lp_scene_get_running_time (lp_Scene *scene)
 
   scene_lock (scene);
 
+  if (unlikely (!scene_state_started (scene)))
+    goto fail;                  /* nothing to do */
+
+  g_assert (scene_state_started (scene));
   time = gstx_element_get_clock_time (scene->pipeline);
   time = time - scene->clock.offset;
 
   scene_unlock (scene);
   return time;
+
+ fail:
+  scene_unlock (scene);
+  return GST_CLOCK_TIME_NONE;
 }
 
 /* Returns @scene audio mixer.  */
@@ -1001,8 +1151,20 @@ _lp_scene_get_audio_mixer (lp_Scene *scene)
 {
   GstElement *mixer;
 
-  SCENE_LOCKED (scene, mixer = scene->audio.mixer);
+  scene_lock (scene);
+
+  if (unlikely (!scene_state_started (scene)))
+    goto fail;                  /* nothing to do */
+
+  g_assert (scene_state_started (scene));
+  mixer = scene->audio.mixer;
+
+  scene_unlock (scene);
   return mixer;
+
+  fail:
+  scene_unlock (scene);
+  return NULL;
 }
 
 /* Returns @scene (real) audio sink.
@@ -1015,10 +1177,18 @@ _lp_scene_get_real_audio_sink (lp_Scene *scene)
 
   scene_lock (scene);
 
+  if (unlikely (!scene_state_started (scene)))
+    goto fail;                  /* nothing to do */
+
+  g_assert (scene_state_started (scene));
   sink = scene_get_real_sink (scene, offsetof (lp_Scene, audio.sink));
 
   scene_unlock (scene);
   return sink;
+
+ fail:
+  scene_unlock (scene);
+  return NULL;
 }
 
 /* Returns @scene video mixer.  */
@@ -1028,8 +1198,20 @@ _lp_scene_get_video_mixer (lp_Scene *scene)
 {
   GstElement *mixer;
 
-  SCENE_LOCKED (scene, mixer = scene->video.mixer);
+  scene_lock (scene);
+
+  if (unlikely (!scene_state_started (scene)))
+    goto fail;                  /* nothing to do */
+
+  g_assert (scene_state_started (scene));
+  mixer = scene->video.mixer;
+
+  scene_unlock (scene);
   return mixer;
+
+ fail:
+  scene_unlock (scene);
+  return NULL;
 }
 
 /* Returns @scene (real) video sink.
@@ -1042,10 +1224,18 @@ _lp_scene_get_real_video_sink (lp_Scene *scene)
 
   scene_lock (scene);
 
+  if (unlikely (!scene_state_started (scene)))
+    goto fail;                  /* nothing to do */
+
+  g_assert (scene_state_started (scene));
   sink = scene_get_real_sink (scene, offsetof (lp_Scene, video.sink));
 
   scene_unlock (scene);
   return sink;
+
+ fail:
+  scene_unlock (scene);
+  return NULL;
 }
 
 /* Returns true if @scene has video output.  */
@@ -1070,13 +1260,13 @@ void
 _lp_scene_step (lp_Scene *scene, gboolean block)
 {
   scene_lock (scene);
-  if (unlikely (scene_is_quitting (scene)))
-    goto done;
-
-  SCENE_UNLOCKED (scene, scene_step_unlocked (scene, block));
-
- done:
+  if (unlikely (!scene_state_started (scene)))
+    {
+      scene_unlock (scene);
+      return;                   /* nothing to do */
+    }
   scene_unlock (scene);
+  g_assert (scene_step_unlocked (scene, block));
 }
 
 /* Dispatches @event to @scene, i.e., posts an application message
@@ -1089,8 +1279,16 @@ _lp_scene_dispatch (lp_Scene *scene, lp_Event *event)
   GstMessage *msg;
   GstElement *pipeline;
 
-  st = gst_structure_new ("lp_Event", "lp_Event", G_TYPE_POINTER, event,
-                          NULL);
+  scene_lock (scene);
+  if (unlikely (!scene_state_started (scene)))
+    {
+      scene_unlock (scene);
+      return;                   /* nothing to do */
+    }
+  scene_unlock (scene);
+
+  st = gst_structure_new
+    ("lp_Event", "lp_Event", G_TYPE_POINTER, event, NULL);
   g_assert_nonnull (st);
 
   msg = gst_message_new_application (NULL, st);
@@ -1190,17 +1388,21 @@ lp_scene_to_string (lp_Scene *scene)
 gboolean
 lp_scene_advance (lp_Scene *scene, guint64 time)
 {
-  gboolean status = FALSE;
+  gboolean status;
 
   scene_lock (scene);
-  if (unlikely (scene_is_quitting (scene)))
-    goto done;
+  if (unlikely (!scene_state_started (scene)))
+    goto fail;                  /* nothing to do */
 
+  g_assert (scene_state_started (scene));
   status = _lp_clock_advance (LP_CLOCK (scene->clock.clock), time);
 
- done:
   scene_unlock (scene);
   return status;
+
+ fail:
+  scene_unlock (scene);
+  return FALSE;
 }
 
 /**
@@ -1218,26 +1420,39 @@ lp_Event *
 lp_scene_receive (lp_Scene *scene, gboolean block)
 {
   lp_Event *event = NULL;
+  gboolean started;
 
   scene_lock (scene);
-  if (unlikely (scene_is_quitting (scene)))
-    goto done;
+  if (unlikely (!scene_state_started (scene)))
+    goto quitted;               /* nothing to do */
+
+  g_assert (scene_state_started (scene));
+  started = TRUE;
 
  retry:
   if (block)
     {
-      while (scene->events == NULL)
-        SCENE_UNLOCKED (scene, scene_step_unlocked (scene, TRUE));
+      while (started && scene->events == NULL)
+        {
+          scene_unlock (scene);
+          started = scene_step_unlocked (scene, TRUE);
+          scene_lock (scene);
+        }
     }
   else
     {
-      SCENE_UNLOCKED (scene, scene_step_unlocked (scene, FALSE));
+      scene_unlock (scene);
+      started = scene_step_unlocked (scene, FALSE);
+      scene_lock (scene);
     }
+
+  if (unlikely (!started))
+    goto quitted;               /* scene quitted */
 
   if (unlikely (scene->events == NULL))
     {
       event = NULL;
-      goto done;                /* nothing to do */
+      goto done;                /* no event */
     }
 
   event = LP_EVENT (scene->events->data);
@@ -1253,4 +1468,28 @@ lp_scene_receive (lp_Scene *scene, gboolean block)
  done:
   scene_unlock (scene);
   return event;
+
+ quitted:
+  scene_unlock (scene);
+  return LP_EVENT (_lp_event_quit_new (scene));
+}
+
+/**
+ * lp_scene_quit:
+ * @scene: an #lp_Scene
+ *
+ * Quits @scene if it has not quitted already.  After a scene has quitted,
+ * the only thing one can do with it is destroy it.
+ */
+void
+lp_scene_quit (lp_Scene *scene)
+{
+  scene_lock (scene);
+  if (unlikely (!scene_state_started (scene)))
+    {
+      scene_unlock (scene);
+      return;                   /* nothing to do */
+    }
+  scene_unlock (scene);
+  g_assert (scene_stop_unlocked (scene));
 }

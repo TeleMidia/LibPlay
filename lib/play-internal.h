@@ -87,6 +87,9 @@ _lp_clock_advance (lp_Clock *, GstClockTime);
 gchar *
 _lp_event_to_string (lp_Event *, const gchar *fmt, ...);
 
+lp_EventQuit *
+_lp_event_quit_new (lp_Scene *);
+
 lp_EventTick *
 _lp_event_tick_new (lp_Scene *, guint64);
 

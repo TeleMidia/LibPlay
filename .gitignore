@@ -88,6 +88,9 @@
 /tests/test-lp-event-pointer-move
 /tests/test-lp-event-pointer-move-xfail-get
 /tests/test-lp-event-pointer-move-xfail-set
+/tests/test-lp-event-quit
+/tests/test-lp-event-quit-xfail-get
+/tests/test-lp-event-quit-xfail-set
 /tests/test-lp-event-seek
 /tests/test-lp-event-seek-xfail-get
 /tests/test-lp-event-seek-xfail-set
@@ -114,7 +117,7 @@
 /tests/test-lp-media-prop-x-y
 /tests/test-lp-media-prop-z
 /tests/test-lp-media-seek-duo
-/tests/test-lp-media-seek-fail
+/tests/test-lp-media-seek-fail-not-started
 /tests/test-lp-media-seek-loop-abs
 /tests/test-lp-media-seek-loop-rel
 /tests/test-lp-media-start-avi
@@ -131,13 +134,16 @@
 /tests/test-lp-media-start-ogv
 /tests/test-lp-media-start-png
 /tests/test-lp-media-start-random
+/tests/test-lp-media-stop-broken-audio
 /tests/test-lp-media-stop-fail-not-started
 /tests/test-lp-media-stop-loop
 /tests/test-lp-media-stop-random
 /tests/test-lp-media-xfail-get
 /tests/test-lp-media-xfail-set
 /tests/test-lp-scene-advance
+/tests/test-lp-scene-advance-quitted
 /tests/test-lp-scene-new
+/tests/test-lp-scene-get-quitted
 /tests/test-lp-scene-prop-interval
 /tests/test-lp-scene-prop-lockstep
 /tests/test-lp-scene-prop-mask
@@ -146,6 +152,9 @@
 /tests/test-lp-scene-prop-time
 /tests/test-lp-scene-prop-wave
 /tests/test-lp-scene-prop-width-height
+/tests/test-lp-scene-quit
+/tests/test-lp-scene-quit-quitted
+/tests/test-lp-scene-set-quitted
 /tests/test-lp-scene-xfail-get
 /tests/test-lp-scene-xfail-set
 /tests/test-lp-version

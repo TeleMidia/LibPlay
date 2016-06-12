@@ -88,6 +88,9 @@ programs=
 programs+= test-lp-version
 programs+= test-lp-version-string
 programs+= test-lp-event-xfail-new
+programs+= test-lp-event-quit
+programs+= test-lp-event-quit-xfail-get
+programs+= test-lp-event-quit-xfail-set
 programs+= test-lp-event-tick
 programs+= test-lp-event-tick-xfail-get
 programs+= test-lp-event-tick-xfail-set
@@ -117,7 +120,9 @@ programs+= test-lp-clock-xfail-get
 programs+= test-lp-clock-xfail-set
 programs+= test-lp-scene-new
 programs+= test-lp-scene-xfail-get
+programs+= test-lp-scene-get-quitted
 programs+= test-lp-scene-xfail-set
+programs+= test-lp-scene-set-quitted
 programs+= test-lp-scene-prop-mask
 programs+= test-lp-scene-prop-width-height
 programs+= test-lp-scene-prop-pattern
@@ -127,6 +132,9 @@ programs+= test-lp-scene-prop-interval
 programs+= test-lp-scene-prop-time
 programs+= test-lp-scene-prop-lockstep
 programs+= test-lp-scene-advance
+programs+= test-lp-scene-advance-quitted
+programs+= test-lp-scene-quit
+programs+= test-lp-scene-quit-quitted
 programs+= test-lp-media-new
 programs+= test-lp-media-new-xfail-bad-scene
 programs+= test-lp-media-new-xfail-bad-uri
@@ -146,10 +154,11 @@ programs+= test-lp-media-start-ogv
 programs+= test-lp-media-start-png
 programs+= test-lp-media-start-duo
 programs+= test-lp-media-start-random
+programs+= test-lp-media-stop-broken-audio
 programs+= test-lp-media-stop-fail-not-started
 programs+= test-lp-media-stop-loop
 programs+= test-lp-media-stop-random
-programs+= test-lp-media-seek-fail
+programs+= test-lp-media-seek-fail-not-started
 programs+= test-lp-media-seek-loop-abs
 programs+= test-lp-media-seek-loop-rel
 programs+= test-lp-media-seek-duo
@@ -181,6 +190,8 @@ XFAIL_TESTS=\
   test-lp-event-pointer-click-xfail-set\
   test-lp-event-pointer-move-xfail-get\
   test-lp-event-pointer-move-xfail-set\
+  test-lp-event-quit-xfail-get\
+  test-lp-event-quit-xfail-set\
   test-lp-event-seek-xfail-get\
   test-lp-event-seek-xfail-set\
   test-lp-event-start-xfail-get\

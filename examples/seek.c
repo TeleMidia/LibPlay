@@ -69,6 +69,11 @@ main (int argc, char *const *argv)
 
       switch (lp_event_get_mask (event))
         {
+        case LP_EVENT_MASK_QUIT:
+          {
+            done = TRUE;
+            break;
+          }
         case LP_EVENT_MASK_STOP:
           {
             lp_Media *source = LP_MEDIA (lp_event_get_source (event));

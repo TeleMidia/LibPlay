@@ -20,24 +20,33 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 int
 main (void)
 {
-  /* sync error: not started */
-  STMT_BEGIN
-    {
-      lp_Scene *scene;
-      lp_Media *media;
+  lp_Scene *scene;
+  lp_EventQuit *event;
+  gchar *str = NULL;
 
-      scene = SCENE_NEW (800, 600, 0);
-      media = lp_media_new (scene, SAMPLE_GNU);
-      g_assert_nonnull (media);
+  lp_Scene *source = NULL;
+  lp_EventMask mask = 0;
 
-      g_assert (!lp_media_seek (media, FALSE, 0));
-      g_assert (lp_media_start (media));
-      g_assert (!lp_media_seek (media, TRUE, 0));
-      g_assert (!lp_media_seek (media, FALSE, 0));
+  scene = LP_SCENE (g_object_new (LP_TYPE_SCENE, "lockstep", TRUE, NULL));
+  g_assert_nonnull (scene);
 
-      g_object_unref (scene);
-    }
-  STMT_END;
+  event = _lp_event_quit_new (scene);
+  g_assert_nonnull (event);
+
+  g_object_get (event,
+                "source", &source,
+                "mask", &mask, NULL);
+
+  str = lp_event_to_string (LP_EVENT (event));
+  g_assert_nonnull (str);
+  g_print ("%s\n", str);
+  g_free (str);
+
+  g_assert (source == scene);
+  g_assert (mask == LP_EVENT_MASK_QUIT);
+
+  g_object_unref (event);
+  g_object_unref (scene);
 
   exit (EXIT_SUCCESS);
 }

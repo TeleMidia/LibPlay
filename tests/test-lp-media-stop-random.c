@@ -111,6 +111,7 @@ main (void)
       g_object_unref (event);
     }
 
+  g_timeout_add_seconds (2, (GSourceFunc) abort, NULL);
   g_object_unref (scene);
 
   exit (EXIT_SUCCESS);

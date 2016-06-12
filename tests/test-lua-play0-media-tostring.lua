@@ -28,7 +28,7 @@ do
    local sc = assert (scene.new (800, 600))
    local m = assert (media.new (sc, tests.sample ('gnu')))
    sc:set ('text', tostring (m))
-   local await = 5
+   local await = 3
    while await > 0 do
       local t = sc:receive (true)
       assert (t.source == sc)

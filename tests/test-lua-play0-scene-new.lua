@@ -29,6 +29,6 @@ do
    local sc = assert (scene.new (0, 0))
    print (sc)
 
-   local sc = assert (scene.new (800, 600))
+   local sc = assert (sc:new (800, 600))
    print (sc)
 end

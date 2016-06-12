@@ -17,6 +17,7 @@ along with LibPLay.  If not, see <http://www.gnu.org/licenses/>.  ]]--
 
 local assert = assert
 local pcall = pcall
+local print = print
 local tests = require ('tests0')
 
 local play = require ('play.play0')
@@ -28,15 +29,14 @@ do
    local sc = scene.new (800, 600)
    assert (sc)
 
-   assert (pcall (media.new, nil) == false)
-   assert (pcall (media.new, sc) == false)
-   assert (pcall (media.new, sc, {}) == false)
+   assert (pcall (media.new, nil) == false) -- bad scene
+   assert (pcall (media.new, sc) == false)  -- bad uri
 
-   local m1 = media.new (sc, tests.sample ('gnu'))
-   assert (m1)
+   local m = assert (media.new (sc, tests.sample ('gnu')))
+   print (m)
 
-   local m2 = media.new (sc, tests.sample ('night'))
-   assert (m1)
+   local m = assert (media.new (sc, tests.sample ('night')))
+   print (m)
 
    sc:quit ()
    assert (media.new (sc, tests.sample ('diode')) == nil)

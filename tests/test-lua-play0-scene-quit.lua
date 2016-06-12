@@ -23,26 +23,14 @@ local scene = play.scene
 _ENV = nil
 
 do
-   local sc = assert (scene.new ())
-
-   assert (pcall (sc.get, nil) == false)           -- bad scene
-   assert (pcall (sc.get, sc, nil) == false)       -- bad property
-   assert (pcall (sc.get, sc, 'unknown') == false) -- unknown property
-
-   assert (sc:get ('width') == 0)
-   assert (sc:get ('height') == 0)
-   assert (sc:get ('pattern') == 2)
-   assert (sc:get ('wave') == 4)
-   assert (sc:get ('ticks') == 0)
-   assert (sc:get ('interval') == 1000000000)
-   assert (sc:get ('time') > 0)
-   assert (sc:get ('lockstep') == false)
-   assert (sc:get ('slave-audio') == false)
-   assert (sc:get ('text') == nil)
-   assert (sc:get ('text-color') == 0xffffffff)
-   assert (sc:get ('text-font') == nil)
-
    local sc = assert (scene.new (800, 600))
-   assert (sc:get ('width') == 800)
-   assert (sc:get ('height') == 600)
+
+   assert (pcall (scene.quit, nil) == false) -- bad scene
+   assert (pcall (sc.quit, nil) == false)
+
+   assert (sc:receive (true))
+
+   assert (sc:quit ())
+   assert (sc:quit () == false) -- already quitted
+   assert (sc:quit () == false)
 end

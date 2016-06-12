@@ -18,6 +18,7 @@ along with LibPLay.  If not, see <http://www.gnu.org/licenses/>.  ]]--
 local assert = assert
 local error = error
 local pairs = pairs
+local pcall = pcall
 local print = print
 local type = type
 
@@ -40,6 +41,8 @@ do
    sc:set ('pattern', 0)
    sc:set ('wave', 0)
    sc:set ('text-font', 'sans bold 14')
+
+   assert (pcall (sc.receive, nil) == false) -- bad scene
 
    local await = 5
    while await > 0 do

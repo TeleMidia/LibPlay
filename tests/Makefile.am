@@ -87,6 +87,7 @@ scripts+= test-lua-play0-scene-new.lua
 scripts+= test-lua-play0-scene-get.lua
 scripts+= test-lua-play0-scene-set.lua
 scripts+= test-lua-play0-scene-receive.lua
+scripts+= test-lua-play0-scene-quit.lua
 scripts+= test-lua-play0-scene-tostring.lua
 scripts+= test-lua-play0-media-api.lua
 scripts+= test-lua-play0-media-new.lua

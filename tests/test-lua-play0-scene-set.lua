@@ -25,10 +25,10 @@ _ENV = nil
 do
    local sc = assert (scene.new ())
 
-   assert (pcall (sc.set, nil) == false)
-   assert (pcall (sc.set, sc, nil) == false)
-   assert (pcall (sc.set, sc, 'unknown') == false)
-   assert (pcall (sc.set, sc, 'unknown', 30) == false)
+   assert (pcall (sc.set, nil) == false)               -- bad scene
+   assert (pcall (sc.set, sc, nil) == false)           -- bad property
+   assert (pcall (sc.set, sc, 'unknown') == false)     -- unknown property
+   assert (pcall (sc.set, sc, 'unknown', 30) == false) -- unknown property
 
    assert (sc:get ('width') == 0)
    assert (sc:get ('height') == 0)
@@ -42,9 +42,9 @@ do
    assert (pcall (sc.set, sc, 'pattern', {}) == false)           -- bad type
    assert (pcall (sc.set, sc, 'wave', nil) == false)             -- bad type
    assert (pcall (sc.set, sc, 'interval', {}) == false)          -- bad type
-   assert (pcall (sc.set, sc, 'text', function()end) == false) -- bad type
-   assert (pcall (sc.set, sc, 'text-color', {}) == false)      -- bad type
-   assert (pcall (sc.set, sc, 'text-font', {}) == false)       -- bad type
+   assert (pcall (sc.set, sc, 'text', function()end) == false)   -- bad type
+   assert (pcall (sc.set, sc, 'text-color', {}) == false)        -- bad type
+   assert (pcall (sc.set, sc, 'text-font', {}) == false)         -- bad type
 
    assert (sc:get ('pattern') == 2)
    sc:set ('pattern', 3)

@@ -15,12 +15,15 @@ LibPlay TODO -- Tasks that need implementing.
     Cf. lp_scene_constructed().  We're assuming that scene_state_unlocked()
     will always work.
 
-  + lib/lp-media.c: Handle unref's of individual media objects.
+  + lib/lp-media.c: Handle the destruction of individual media objects.
 
     Currently, we do not support the destruction of individual media
     objects---only the whole scene may be destroyed.  One possible way to
     cope with this is via some _lp_media_make_orphan() call, which could
     stop the media object and set its parent scene to NULL.
+
+    This bug also affects the Lua bindings.  It prevents garbage collector
+    from unref-ing the media object in __l_media_gc().
 
   + tests/test-lp-media-stop-random.c: Check random failures.
 

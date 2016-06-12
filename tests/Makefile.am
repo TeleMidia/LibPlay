@@ -17,6 +17,7 @@
 # along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.
 
 include $(top_srcdir)/build-aux/Makefile.am.common
+include $(top_srcdir)/build-aux/Makefile.am.link
 
 AM_CPPFLAGS= -I$(top_srcdir)/lib -I$(top_builddir)/lib\
   -DTOP_SRCDIR=\"$(top_srcdir)\" -DTOP_BUILDDIR=\"$(top_builddir)\"
@@ -25,6 +26,16 @@ AM_CFLAGS= $(WERROR_CFLAGS) $(WARN_CFLAGS)\
   $(GLIB_CFLAGS) $(GSTREAMER_CFLAGS)
 AM_LDFLAGS= -static $(GLIB_LIBS) $(GSTREAMER_LIBS)
 LDADD= $(top_builddir)/lib/libplay.la
+
+# Auxiliary libraries.
+noinst_LTLIBRARIES=
+if WITH_LUA
+noinst_LTLIBRARIES+= tests0.la
+tests0_la_CPPFLAGS= $(AM_CPPFLAGS) -I$(top_srcdir)/play
+tests0_la_CFLAGS= $(AM_CFLAGS) $(GLIB_CFLAGS) $(LUA_CFLAGS)
+tests0_la_LDFLAGS= -module $(LT_MODULE_LDFLAGS) -rpath '/force-shared'\
+  $(GLIB_LIBS) $(LUA_LIBS)
+endif
 
 # Auxiliary programs.
 noinst_PROGRAMS=
@@ -76,6 +87,10 @@ scripts+= test-lua-play0-scene-new.lua
 scripts+= test-lua-play0-scene-get.lua
 scripts+= test-lua-play0-scene-set.lua
 scripts+= test-lua-play0-scene-receive.lua
+scripts+= test-lua-play0-scene-tostring.lua
+scripts+= test-lua-play0-media-api.lua
+scripts+= test-lua-play0-media-new.lua
+scripts+= test-lua-play0-media-tostring.lua
 endif
 check_SCRIPTS= $(scripts)
 
@@ -213,6 +228,7 @@ EXTRA_DIST=\
   $(check_SCRIPTS)\
   gst.supp\
   suppfile.m4\
+  test-samples.h\
   test-templates.h\
   tests.h\
   $(NULL)

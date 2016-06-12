@@ -28,7 +28,9 @@ _ENV = nil
 local function dump (t)
    local s = '{'
    for k,v in pairs (t) do
-      s = s..('%s=%s,'):format (k,v)
+      if k ~= 'source' then
+         s = s..('%s=%s,'):format (k,v)
+      end
    end
    return s:sub (1,-2)..'}'
 end
@@ -42,9 +44,11 @@ do
    local await = 5
    while await > 0 do
       local t = sc:receive (true)
-      -- TODO: Check source.
+      assert (t.source == sc)
       if t.type == 'tick' then
          assert (type (t.serial) == 'number')
+         sc:set ('pattern', sc:get ('pattern') + 1)
+         sc:set ('wave', sc:get ('wave') + 1)
          await = await - 1
       elseif t.type == 'key' then
          assert (type (t.key) == 'string')
@@ -60,7 +64,8 @@ do
       else
          error ('unexpected event')
       end
-      sc:set ('text', dump (t))
-      print (dump (t))
+      local s = dump (t)
+      sc:set ('text', s)
+      print (s)
    end
 end

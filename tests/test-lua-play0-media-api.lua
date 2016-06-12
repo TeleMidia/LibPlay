@@ -19,14 +19,10 @@ local type = type
 local assert = assert
 
 local play = require ('play.play0')
-local scene = play.scene
+local media = play.media
 _ENV = nil
 do
-   assert (type (scene.new) == 'function')
-   assert (type (scene.__gc) == 'function')
-   assert (type (scene.__tostring) == 'function')
-   assert (type (scene.get) == 'function')
-   assert (type (scene.set) == 'function')
-   assert (type (scene.receive) == 'function')
-   assert (type (scene.quit) == 'function')
+   assert (type (media.new) == 'function')
+   assert (type (media.__gc) == 'function')
+   assert (type (media.__tostring) == 'function')
 end

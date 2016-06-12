@@ -15,18 +15,25 @@ License for more details.
 You should have received a copy of the GNU General Public License
 along with LibPLay.  If not, see <http://www.gnu.org/licenses/>.  ]]--
 
-local type = type
 local assert = assert
+local tostring = tostring
+local tests = require ('tests0')
 
 local play = require ('play.play0')
 local scene = play.scene
+local media = play.media
 _ENV = nil
+
 do
-   assert (type (scene.new) == 'function')
-   assert (type (scene.__gc) == 'function')
-   assert (type (scene.__tostring) == 'function')
-   assert (type (scene.get) == 'function')
-   assert (type (scene.set) == 'function')
-   assert (type (scene.receive) == 'function')
-   assert (type (scene.quit) == 'function')
+   local sc = assert (scene.new (800, 600))
+   local m = assert (media.new (sc, tests.sample ('gnu')))
+   sc:set ('text', tostring (m))
+   local await = 5
+   while await > 0 do
+      local t = sc:receive (true)
+      assert (t.source == sc)
+      if t.type == 'tick' then
+         await = await - 1
+      end
+   end
 end

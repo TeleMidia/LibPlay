@@ -15,18 +15,29 @@ License for more details.
 You should have received a copy of the GNU General Public License
 along with LibPLay.  If not, see <http://www.gnu.org/licenses/>.  ]]--
 
-local type = type
 local assert = assert
+local pcall = pcall
+local tests = require ('tests0')
 
 local play = require ('play.play0')
 local scene = play.scene
+local media = play.media
 _ENV = nil
+
 do
-   assert (type (scene.new) == 'function')
-   assert (type (scene.__gc) == 'function')
-   assert (type (scene.__tostring) == 'function')
-   assert (type (scene.get) == 'function')
-   assert (type (scene.set) == 'function')
-   assert (type (scene.receive) == 'function')
-   assert (type (scene.quit) == 'function')
+   local sc = scene.new (800, 600)
+   assert (sc)
+
+   assert (pcall (media.new, nil) == false)
+   assert (pcall (media.new, sc) == false)
+   assert (pcall (media.new, sc, {}) == false)
+
+   local m1 = media.new (sc, tests.sample ('gnu'))
+   assert (m1)
+
+   local m2 = media.new (sc, tests.sample ('night'))
+   assert (m1)
+
+   sc:quit ()
+   assert (media.new (sc, tests.sample ('diode')) == nil)
 end

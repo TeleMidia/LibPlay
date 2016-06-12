@@ -28,15 +28,78 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 GX_INCLUDE_PROLOGUE
 #include "play.h"
 GX_INCLUDE_EPILOGUE
+PRAGMA_DIAG_IGNORE (-Wunused-macros)
 
 /* Scene object.  */
 typedef struct Scene
 {
-  lp_Scene *scene;
+  lp_Scene *scene;              /* wrapped scene */
+  gboolean quitted;             /* true if scene has quitted */
 } Scene;
 
-/* Registry key for scene metatable.  */
+/* Media object.  */
+typedef struct Media
+{
+  Scene *sw;                    /* parent wrapped scene */
+  lp_Media *media;              /* wrapped media */
+} Media;
+
+/* Registry keys for metatables.  */
 #define SCENE "play.scene"
+#define MEDIA "play.media"
+
+/* Local registry for this module.  */
+static guint play_registry_size = 0;
+#define PLAY_REGISTRY_INDEX (deconst (void *, &play_registry_size))
+
+#define play_registry_create(L)\
+  luax_mregistry_create (L, PLAY_REGISTRY_INDEX)
+
+#define play_registry_destroy(L)\
+  luax_mregistry_destroy (L, PLAY_REGISTRY_INDEX)
+
+#define play_registry_get(L)\
+  luax_mregistry_get (L, PLAY_REGISTRY_INDEX)
+
+#define play_registry_add_scene(L, sw)          \
+  STMT_BEGIN                                    \
+  {                                             \
+    if (play_registry_size == 0)                \
+      {                                         \
+        lua_newtable ((L));                     \
+        play_registry_create (L);               \
+      }                                         \
+    play_registry_get ((L));                    \
+    lua_pushvalue ((L), -2);                    \
+    lua_rawsetp ((L), -2, (sw));                \
+    lua_pop ((L), 1);                           \
+    play_registry_size++;                       \
+    g_assert (play_registry_size > 0);          \
+  }                                             \
+  STMT_END
+
+#define play_registry_remove_scene(L, sw)       \
+  STMT_BEGIN                                    \
+  {                                             \
+    g_assert (play_registry_size > 0);          \
+    play_registry_get ((L));                    \
+    lua_pushnil ((L));                          \
+    lua_rawsetp ((L), -2, (sw));                \
+    lua_pop ((L), 1);                           \
+    if (--play_registry_size == 0)              \
+      play_registry_destroy ((L));              \
+  }                                             \
+  STMT_END
+
+#define play_registry_get_scene(L, sw)          \
+  STMT_BEGIN                                    \
+  {                                             \
+    play_registry_get ((L));                    \
+    lua_rawgetp ((L), -1, (sw));                \
+    g_assert (lua_isuserdata ((L), -1));        \
+    lua_replace ((L), -2);                      \
+  }                                             \
+  STMT_END
 
 /* Forward declarations.  */
 static int l_scene_new (lua_State *);
@@ -45,6 +108,10 @@ static int __l_scene_tostring (lua_State *);
 static int l_scene_get (lua_State *);
 static int l_scene_set (lua_State *);
 static int l_scene_receive (lua_State *);
+static int l_scene_quit (lua_State *);
+static int l_media_new (lua_State *);
+static int __l_media_gc (lua_State *);
+static int __l_media_tostring (lua_State *);
 int luaopen_play_play0 (lua_State *);
 
 /* Scene object metamethods.  */
@@ -55,11 +122,19 @@ static const struct luaL_Reg scene_funcs[] = {
   {"get", l_scene_get},
   {"set", l_scene_set},
   {"receive", l_scene_receive},
+  {"quit", l_scene_quit},
+  {NULL, NULL},
+};
+
+/* Media object metamethods.  */
+static const struct luaL_Reg media_funcs[] = {
+  {"new", l_media_new},
+  {"__gc", __l_media_gc},
+  {"__tostring", __l_media_tostring},
   {NULL, NULL},
 };
 
 
-PRAGMA_DIAG_IGNORE (-Wunused-macros)
 #if defined DEBUG && DEBUG
 # define debug(fmt, ...)                                \
   g_print (G_STRLOC " [thread %p] " fmt "\n",           \
@@ -109,6 +184,7 @@ play_event_push (lua_State *L, lp_Event *event)
   mask = lp_event_get_mask (event);
   switch (mask)
     {
+    case LP_EVENT_MASK_QUIT:          /* fall through */
     case LP_EVENT_MASK_TICK:          /* fall through */
     case LP_EVENT_MASK_KEY:           /* fall through */
     case LP_EVENT_MASK_POINTER_CLICK: /* fall through */
@@ -123,10 +199,15 @@ play_event_push (lua_State *L, lp_Event *event)
         scene = LP_SCENE (src);
         g_assert (sw->scene == scene);
 
-        /* TODO: Set "source" field.  */
+        play_registry_get_scene (L, sw);
+        lua_setfield (L, -2, "source");
 
         switch (mask)
           {
+          case LP_EVENT_MASK_QUIT:
+            {
+              break;
+            }
           case LP_EVENT_MASK_TICK:
             {
               guint64 serial;
@@ -194,7 +275,7 @@ play_event_push (lua_State *L, lp_Event *event)
     }
 }
 
-/* Checks if the object at @index is a scene. If successful, returns the
+/* Checks if the object at @index is a scene.  If successful, returns the
    scene and stores the wrapped lp_Scene into @scene.  Otherwise, throws an
    error.  */
 
@@ -211,10 +292,27 @@ scene_check (lua_State *L, int index, lp_Scene **scene)
   return sw;
 }
 
+/* Checks if the object at @index is a media.  If successful, returns the
+   media and stores the wrapped lp_Media into @media.  Otherwise, throws an
+   error.  */
+
+static Media *
+media_check (lua_State *L, int index, lp_Media **media)
+{
+  Media *mw;
+
+  mw = (Media *) luaL_checkudata (L, index, MEDIA);
+  g_assert_nonnull (mw);
+  g_assert_nonnull (mw->media);
+  set_if_nonnull (media, mw->media);
+
+  return mw;
+}
+
 
 /*-
  * scene.new ([width:number, height:number])
- * scene:new ()
+ * scene:new ([width:number, height:number])
  *      -> scene:Scene; or
  *      -> nil, errmsg:string
  *
@@ -225,9 +323,10 @@ scene_check (lua_State *L, int index, lp_Scene **scene)
 static int
 l_scene_new (lua_State *L)
 {
-  Scene *sw;
   int width;
   int height;
+
+  Scene *sw;
 
   luax_optudata (L, 1, SCENE);
   width = (int) clamp (luaL_optinteger (L, 2, 0), G_MININT, G_MAXINT);
@@ -238,9 +337,12 @@ l_scene_new (lua_State *L)
 
   sw->scene = lp_scene_new (width, height);
   g_assert_nonnull (sw->scene);
+  sw->quitted = FALSE;
 
   g_object_set_data (G_OBJECT (sw->scene), SCENE, sw);
   luaL_setmetatable (L, SCENE);
+
+  play_registry_add_scene (L, sw);
 
   return 1;
 }
@@ -253,9 +355,18 @@ l_scene_new (lua_State *L)
 static int
 __l_scene_gc (lua_State *L)
 {
+  Scene *sw;
   lp_Scene *scene;
 
-  scene_check (L, 1, &scene);
+  sw = scene_check (L, 1, &scene);
+  if (!sw->quitted)
+    {
+      lua_pushcfunction (L, l_scene_quit);
+      lua_pushvalue (L, 1);
+      lua_call (L, 1, 1);
+      g_assert (lua_toboolean (L, -1));
+    }
+
   g_object_unref (scene);
 
   return 0;
@@ -418,14 +529,131 @@ l_scene_receive (lua_State *L)
   return 1;
 }
 
+/*-
+ * scene:quit ()
+ *
+ * Quits scene if it has not quit yet.
+ *
+ * Returns true if successful, or false otherwise.
+ */
+static int
+l_scene_quit (lua_State *L)
+{
+  Scene *sw;
+  lp_Scene *scene;
+
+  sw = scene_check (L, 1, &scene);
+  if (unlikely (sw->quitted))
+    {
+      lua_pushboolean (L, FALSE);
+      return 1;
+    }
+
+  lp_scene_quit (scene);
+  sw->quitted = TRUE;
+  lua_pushboolean (L, TRUE);
+
+  play_registry_remove_scene (L, sw);
+
+  return 1;
+}
+
+
+/*-
+ * media.new (scene:Scene, uri:string)
+ * media:new (scene:Scene, uri:string)
+ *      -> media:Media; or
+ *      -> nil, errmsg:string
+ *
+ * Creates a new media with the given parent scene and content URI.
+ *
+ * Returns the new media if successful, or nil plus error message.
+ */
+static int
+l_media_new (lua_State *L)
+{
+  Scene *sw;
+  lp_Scene *scene;
+  const char *uri;
+
+  Media *mw;
+
+  luax_optudata (L, 1, MEDIA);
+  sw = scene_check (L, 2, &scene);
+  uri = luaL_checkstring (L, 3);
+
+  if (unlikely (sw->quitted))
+    {
+      lua_pushnil (L);
+      lua_pushliteral (L, "scene has quitted");
+      return 2;
+    }
+
+  mw = (Media *) lua_newuserdata (L, sizeof (*mw));
+  g_assert_nonnull (mw);
+
+  mw->sw = sw;
+  mw->media = lp_media_new (mw->sw->scene, uri);
+  g_assert_nonnull (mw->media); /* cannot fail */
+
+  g_object_set_data (G_OBJECT (mw->media), MEDIA, mw);
+  luaL_setmetatable (L, MEDIA);
+
+  return 1;
+}
+
+/*-
+ * media:__gc ()
+ *
+ * Destroys media.
+ */
+static int
+__l_media_gc (lua_State *L)
+{
+  lp_Media *media;
+
+  media_check (L, 1, &media);
+  /* FIXME: We should keep a reference to media.  */
+  /* g_object_unref (media); */
+
+  return 0;
+}
+
+/*-
+ * media:__tostring ()
+ *      -> s:string
+ *
+ * Dumps media to a string and returns it.
+ */
+static int
+__l_media_tostring (lua_State *L)
+{
+  lp_Media *media;
+  char *str;
+
+  media_check (L, 1, &media);
+  str = lp_media_to_string (media);
+  g_assert_nonnull (str);
+
+  lua_pushstring (L, str);
+  g_free (str);
+
+  return 1;
+}
+
 
 int
 luaopen_play_play0 (lua_State *L)
 {
   lua_newtable (L);
+
   luax_newmetatable (L, SCENE);
   luaL_setfuncs (L, scene_funcs, 0);
   lua_setfield (L, -2, "scene");
+
+  luax_newmetatable (L, MEDIA);
+  luaL_setfuncs (L, media_funcs, 0);
+  lua_setfield (L, -2, "media");
 
   return 1;
 }

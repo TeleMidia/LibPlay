@@ -32,60 +32,8 @@ GX_INCLUDE_EPILOGUE
 PRAGMA_DIAG_IGNORE (-Wfloat-equal)
 PRAGMA_DIAG_IGNORE (-Winline)
 
-/* Expands to the path of the given sample file.  */
-#define SAMPLES_DIR(file) TOP_SRCDIR"/tests/samples/"G_STRINGIFY (file)
+#include "test-samples.h"
 
-/* Audio samples. */
-#define SAMPLE_ARCADE     SAMPLES_DIR (arcade.mp3)
-#define SAMPLE_COZY       SAMPLES_DIR (cozy.oga)
-#define SAMPLE_EVILEYE    SAMPLES_DIR (evileye.mp3)
-
-/* Image samples.  */
-#define SAMPLE_EARTH      SAMPLES_DIR (earth.gif)
-#define SAMPLE_FELIS      SAMPLES_DIR (felis.jpg)
-#define SAMPLE_GNU        SAMPLES_DIR (gnu.png)
-
-/* Video samples.  */
-#define SAMPLE_CLOCK      SAMPLES_DIR (clock.ogv)
-#define SAMPLE_DIODE      SAMPLES_DIR (diode.mp4)
-#define SAMPLE_LEGO       SAMPLES_DIR (lego.ogv)
-#define SAMPLE_NIGHT      SAMPLES_DIR (night.avi)
-#define SAMPLE_ROAD       SAMPLES_DIR (road.ogv)
-#define SAMPLE_SYNC       SAMPLES_DIR (sync.m4v)
-
-/* All samples.  */
-static ATTR_UNUSED const gchar *samples_all[] =
-{
-  SAMPLE_ARCADE,
-  SAMPLE_CLOCK,
-  SAMPLE_COZY,
-  SAMPLE_DIODE,
-  SAMPLE_EARTH,
-  SAMPLE_EVILEYE,
-  SAMPLE_FELIS,
-  SAMPLE_GNU,
-  SAMPLE_LEGO,
-  SAMPLE_NIGHT,
-  SAMPLE_ROAD,
-  SAMPLE_SYNC,
-};
-
-/* By format.  */
-#define SAMPLE_AVI SAMPLE_NIGHT
-#define SAMPLE_GIF SAMPLE_EARTH
-#define SAMPLE_JPG SAMPLE_FELIS
-#define SAMPLE_M4V SAMPLE_SYNC
-#define SAMPLE_MP3 SAMPLE_ARCADE
-#define SAMPLE_MP4 SAMPLE_DIODE
-#define SAMPLE_OGA SAMPLE_COZY
-#define SAMPLE_OGV SAMPLE_LEGO
-#define SAMPLE_PNG SAMPLE_GNU
-
-/* Random sample.  */
-#define random_sample()\
-  samples_all[g_random_int_range (0, nelementsof (samples_all))]
-
-
 /* Creates a test scene.   */
 #define SCENE_NEW(width, height, pattern)\
   _SCENE_NEW (width, height, pattern, __FILE__)

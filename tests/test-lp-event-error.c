@@ -57,6 +57,7 @@ main (void)
   g_assert (mask == LP_EVENT_MASK_ERROR);
   g_assert_nonnull (error);
 
+  g_error_free (error);
   g_object_unref (event);
   g_object_unref (scene);
 

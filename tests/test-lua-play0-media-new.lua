@@ -15,10 +15,11 @@ License for more details.
 You should have received a copy of the GNU General Public License
 along with LibPLay.  If not, see <http://www.gnu.org/licenses/>.  ]]--
 
+local ME = assert (arg[1]:sub (3))
 local assert = assert
 local pcall = pcall
 local print = print
-local tests = require ('tests0')
+local tests = require ('tests')
 
 local play = require ('play.play0')
 local scene = play.scene
@@ -26,8 +27,7 @@ local media = play.media
 _ENV = nil
 
 do
-   local sc = scene.new (800, 600)
-   assert (sc)
+   local sc = tests.scene_new (800, 600, nil, ME)
 
    assert (pcall (media.new, nil) == false) -- bad scene
    assert (pcall (media.new, sc) == false)  -- bad uri

@@ -17,7 +17,7 @@ along with LibPLay.  If not, see <http://www.gnu.org/licenses/>.  ]]--
 
 local ME = assert (arg[1]:sub (3))
 local assert = assert
-local tostring = tostring
+local pcall = pcall
 local tests = require ('tests')
 
 local play = require ('play.play0')
@@ -27,7 +27,24 @@ _ENV = nil
 
 do
    local sc = tests.scene_new (800, 600, nil, ME)
-   local m = assert (media.new (sc, tests.sample ('gnu')))
-   sc:set ('text', ME..'\n'..tostring (m))
-   assert (tests.scene_await (sc, 'tick', 3))
+   local m = assert (media.new (sc, tests.sample ('night')))
+
+   assert (pcall (media.stop, nil) == false) -- bad media
+   assert (m:stop () == false)               -- not started
+   assert (m:stop () == false)               -- not started
+
+   assert (m:start ())          -- start media
+   local evt = tests.scene_await (sc, 'start')
+   assert (evt.type == 'start' and evt.source == m and evt.resume == false)
+
+   assert (m:stop ())           -- stop media
+   local evt = tests.scene_await (sc, 'stop')
+   assert (evt.type == 'stop' and evt.source == m and evt.eos == false)
+
+   assert (m:start ())          -- start media
+   local evt = tests.scene_await (sc, 'start')
+   assert (evt.type == 'start' and evt.source == m and evt.resume == false)
+
+   local evt = tests.scene_await (sc, 'stop') -- wait for eos
+   assert (evt.type == 'stop' and evt.source == m and evt.eos == true)
 end

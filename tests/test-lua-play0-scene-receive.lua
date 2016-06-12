@@ -15,12 +15,14 @@ License for more details.
 You should have received a copy of the GNU General Public License
 along with LibPLay.  If not, see <http://www.gnu.org/licenses/>.  ]]--
 
+local ME = assert (arg[1]:sub (3))
 local assert = assert
 local error = error
 local pairs = pairs
 local pcall = pcall
 local print = print
 local type = type
+local tests = require ('tests')
 
 local play = require ('play.play0')
 local scene = play.scene
@@ -37,10 +39,9 @@ local function dump (t)
 end
 
 do
-   local sc = assert (scene.new (800, 600))
+   local sc = tests.scene_new (800, 600, nil, ME)
    sc:set ('pattern', 0)
    sc:set ('wave', 0)
-   sc:set ('text-font', 'sans bold 14')
 
    assert (pcall (sc.receive, nil) == false) -- bad scene
 
@@ -68,7 +69,7 @@ do
          error ('unexpected event')
       end
       local s = dump (t)
-      sc:set ('text', s)
+      sc:set ('text', ME..'\n'..s)
       print (s)
    end
 end

@@ -15,20 +15,22 @@ License for more details.
 You should have received a copy of the GNU General Public License
 along with LibPLay.  If not, see <http://www.gnu.org/licenses/>.  ]]--
 
+local ME = assert (arg[1]:sub (3))
 local assert = assert
 local pcall = pcall
+local tests = require ('tests')
 
 local play = require ('play.play0')
 local scene = play.scene
 _ENV = nil
 
 do
-   local sc = assert (scene.new (800, 600))
+   local sc = tests.scene_new (800, 600, nil, ME)
 
    assert (pcall (scene.quit, nil) == false) -- bad scene
    assert (pcall (sc.quit, nil) == false)
 
-   assert (sc:receive (true))
+   assert (tests.scene_await (sc, 'tick', 2))
 
    assert (sc:quit ())
    assert (sc:quit () == false) -- already quitted

@@ -92,6 +92,8 @@ scripts+= test-lua-play0-scene-tostring.lua
 scripts+= test-lua-play0-media-api.lua
 scripts+= test-lua-play0-media-new.lua
 scripts+= test-lua-play0-media-tostring.lua
+scripts+= test-lua-play0-media-start.lua
+scripts+= test-lua-play0-media-stop.lua
 endif
 check_SCRIPTS= $(scripts)
 
@@ -232,6 +234,7 @@ EXTRA_DIST=\
   test-samples.h\
   test-templates.h\
   tests.h\
+  tests.lua\
   $(NULL)
 
 CLEANFILES+= *.log *.trs

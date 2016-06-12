@@ -162,7 +162,7 @@ typedef enum
   LP_ERROR_START = 0,           /* error while starting */
   LP_ERROR_STOP,                /* error while stopping */
   LP_ERROR_SEEK,                /* error while seeking */
-  LP_ERROR_RUN                  /* error while running */
+  LP_ERROR_LAST,                /* total number of error codes */
 } lp_Error;
 
 #define LP_ERROR lp_error_quark ()

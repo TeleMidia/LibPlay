@@ -15,6 +15,7 @@ License for more details.
 You should have received a copy of the GNU General Public License
 along with LibPLay.  If not, see <http://www.gnu.org/licenses/>.  ]]--
 
+local ME = assert (arg[1]:sub (3))
 local assert = assert
 local pcall = pcall
 

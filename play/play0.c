@@ -61,6 +61,16 @@ static guint play_registry_size = 0;
 #define play_registry_get(L)\
   luax_mregistry_get (L, PLAY_REGISTRY_INDEX)
 
+#define play_registry_dump(L)                   \
+  STMT_BEGIN                                    \
+  {                                             \
+    play_registry_get ((L));                    \
+    if (!lua_isnil ((L), -1))                   \
+      luax_dump_table ((L), -1);                \
+    lua_pop ((L), 1);                           \
+  }                                             \
+  STMT_END
+
 #define play_registry_add_scene(L, sw)          \
   STMT_BEGIN                                    \
   {                                             \
@@ -70,7 +80,9 @@ static guint play_registry_size = 0;
         play_registry_create (L);               \
       }                                         \
     play_registry_get ((L));                    \
-    lua_pushvalue ((L), -2);                    \
+    lua_newtable ((L));                         \
+    lua_pushvalue ((L), -3);                    \
+    lua_rawseti ((L), -2, 0);                   \
     lua_rawsetp ((L), -2, (sw));                \
     lua_pop ((L), 1);                           \
     play_registry_size++;                       \
@@ -91,14 +103,55 @@ static guint play_registry_size = 0;
   }                                             \
   STMT_END
 
+#define play_registry_get_scene_table(L, sw)    \
+  STMT_BEGIN                                    \
+  {                                             \
+    g_assert (play_registry_size > 0);          \
+    play_registry_get ((L));                    \
+    lua_rawgetp ((L), -1, (sw));                \
+    g_assert (lua_istable ((L), -1));           \
+    lua_replace ((L), -2);                      \
+  }                                             \
+  STMT_END
+
 #define play_registry_get_scene(L, sw)          \
   STMT_BEGIN                                    \
   {                                             \
-    play_registry_get ((L));                    \
-    lua_rawgetp ((L), -1, (sw));                \
+    play_registry_get_scene_table ((L), (sw));  \
+    lua_rawgeti ((L), -1, 0);                   \
     g_assert (lua_isuserdata ((L), -1));        \
     lua_replace ((L), -2);                      \
   }                                             \
+  STMT_END
+
+#define play_registry_add_media(L, mw)                  \
+  STMT_BEGIN                                            \
+  {                                                     \
+    play_registry_get_scene_table ((L), (mw)->sw);      \
+    lua_pushvalue ((L), -2);                            \
+    lua_rawsetp ((L), -2, (mw));                        \
+    lua_pop ((L), 1);                                   \
+  }                                                     \
+  STMT_END
+
+#define play_registry_remove_media(L, mw)               \
+  STMT_BEGIN                                            \
+  {                                                     \
+    play_registry_get_scene_table ((L), (mw)->sw);      \
+    lua_pushnil ((L));                                  \
+    lua_rawsetp ((L), -2, (mw));                        \
+    lua_pop ((L), 1);                                   \
+  }                                                     \
+  STMT_END
+
+#define play_registry_get_media(L, mw)                  \
+  STMT_BEGIN                                            \
+  {                                                     \
+    play_registry_get_scene_table ((L), (mw)->sw);      \
+    lua_rawgetp ((L), -1, (mw));                        \
+    assert (lua_isuserdata ((L), -1));                  \
+    lua_replace ((L), -2);                              \
+  }                                                     \
   STMT_END
 
 /* Forward declarations.  */
@@ -112,6 +165,9 @@ static int l_scene_quit (lua_State *);
 static int l_media_new (lua_State *);
 static int __l_media_gc (lua_State *);
 static int __l_media_tostring (lua_State *);
+static int l_media_start (lua_State *);
+static int l_media_stop (lua_State *);
+static int l_media_seek (lua_State *);
 int luaopen_play_play0 (lua_State *);
 
 /* Scene object metamethods.  */
@@ -131,6 +187,9 @@ static const struct luaL_Reg media_funcs[] = {
   {"new", l_media_new},
   {"__gc", __l_media_gc},
   {"__tostring", __l_media_tostring},
+  {"start", l_media_start},
+  {"stop", l_media_stop},
+  {"seek", l_media_seek},
   {NULL, NULL},
 };
 
@@ -190,8 +249,8 @@ play_event_push (lua_State *L, lp_Event *event)
     case LP_EVENT_MASK_POINTER_CLICK: /* fall through */
     case LP_EVENT_MASK_POINTER_MOVE:
       {
-        lp_Scene *scene;
         Scene *sw;
+        lp_Scene *scene;
 
         sw = (Scene *) g_object_get_data (src, SCENE);
         g_assert_nonnull (sw);
@@ -212,8 +271,9 @@ play_event_push (lua_State *L, lp_Event *event)
             {
               guint64 serial;
 
-              luax_setstringfield (L, -1, "type", "tick");
               g_object_get (event, "serial", &serial, NULL);
+
+              luax_setstringfield (L, -1, "type", "tick");
               luax_setintegerfield (L, -1, "serial", serial);
               break;
             }
@@ -222,8 +282,11 @@ play_event_push (lua_State *L, lp_Event *event)
               gchar *key;
               gboolean press;
 
+              g_object_get (event,
+                            "key", &key,
+                            "press", &press, NULL);
+
               luax_setstringfield (L, -1, "type", "key");
-              g_object_get (event, "key", &key, "press", &press, NULL);
               luax_setstringfield (L, -1, "key", key);
               luax_setbooleanfield (L, -1, "press", press);
               g_free (key);
@@ -236,9 +299,13 @@ play_event_push (lua_State *L, lp_Event *event)
               gint button;
               gboolean press;
 
+              g_object_get (event,
+                            "x", &x,
+                            "y", &y,
+                            "button", &button,
+                            "press", &press, NULL);
+
               luax_setstringfield (L, -1, "type", "pointer-click");
-              g_object_get (event, "x", &x, "y", &y,
-                            "button", &button, "press", &press, NULL);
               luax_setnumberfield (L, -1, "x", x);
               luax_setnumberfield (L, -1, "y", y);
               luax_setintegerfield (L, -1, "button", button);
@@ -250,8 +317,9 @@ play_event_push (lua_State *L, lp_Event *event)
               gdouble x;
               gdouble y;
 
-              luax_setstringfield (L, -1, "type", "pointer-move");
               g_object_get (event, "x", &x, "y", &y, NULL);
+
+              luax_setstringfield (L, -1, "type", "pointer-move");
               luax_setnumberfield (L, -1, "x", x);
               luax_setnumberfield (L, -1, "y", y);
               break;
@@ -267,7 +335,74 @@ play_event_push (lua_State *L, lp_Event *event)
     case LP_EVENT_MASK_STOP:    /* fall through */
     case LP_EVENT_MASK_SEEK:
       {
-        error_throw (L, "not implemented");
+        Media *mw;
+        lp_Media *media;
+
+        mw = (Media *) g_object_get_data (src, MEDIA);
+        g_assert_nonnull (mw);
+
+        media = LP_MEDIA (src);
+        g_assert (mw->media == media);
+
+        play_registry_get_media (L, mw);
+        lua_setfield (L, -2, "source");
+
+        switch (mask)
+          {
+          case LP_EVENT_MASK_ERROR:
+            {
+              const char *map[] = {"start", "stop", "seek"};
+              GError *error = NULL;
+
+              g_object_get (event, "error", &error, NULL);
+              g_assert_nonnull (error);
+              g_assert (nelementsof (map) == LP_ERROR_LAST);
+              g_assert (error->code >= 0 && error->code < LP_ERROR_LAST);
+
+              luax_setstringfield (L, -1, "type", "error");
+              luax_setstringfield (L, -1, "code", map[error->code]);
+              luax_setstringfield (L, -1, "message", error->message);
+
+              g_error_free (error);
+              break;
+            }
+          case LP_EVENT_MASK_START:
+            {
+              gboolean resume;
+
+              g_object_get (event, "resume", &resume, NULL);
+
+              luax_setstringfield (L, -1, "type", "start");
+              luax_setbooleanfield (L, -1, "resume", resume);
+              break;
+            }
+          case LP_EVENT_MASK_STOP:
+            {
+              gboolean eos;
+
+              g_object_get (event, "eos", &eos, NULL);
+
+              luax_setstringfield (L, -1, "type", "stop");
+              luax_setbooleanfield (L, -1, "eos", eos);
+              break;
+            }
+          case LP_EVENT_MASK_SEEK:
+            {
+              gboolean relative;
+              gint64 offset;
+
+              g_object_get (event,
+                            "relative", &relative,
+                            "offset", &offset, NULL);
+
+              luax_setstringfield (L, -1, "type", "seek");
+              luax_setbooleanfield (L, -1, "relative", relative);
+              luax_setintegerfield (L, -1, "offset", offset);
+              break;
+            }
+          default:
+            g_assert_not_reached ();
+          }
         break;
       }
     default:
@@ -343,6 +478,8 @@ l_scene_new (lua_State *L)
   luaL_setmetatable (L, SCENE);
 
   play_registry_add_scene (L, sw);
+  debug ("creating scene %p", sw);
+  play_registry_dump (L);
 
   return 1;
 }
@@ -531,6 +668,7 @@ l_scene_receive (lua_State *L)
 
 /*-
  * scene:quit ()
+ *      -> b:boolean
  *
  * Quits scene if it has not quit yet.
  *
@@ -554,6 +692,8 @@ l_scene_quit (lua_State *L)
   lua_pushboolean (L, TRUE);
 
   play_registry_remove_scene (L, sw);
+  debug ("quitting scene %p", sw);
+  play_registry_dump (L);
 
   return 1;
 }
@@ -599,6 +739,10 @@ l_media_new (lua_State *L)
   g_object_set_data (G_OBJECT (mw->media), MEDIA, mw);
   luaL_setmetatable (L, MEDIA);
 
+  play_registry_add_media (L, mw);
+  debug ("creating media %p in %p", mw, mw->sw);
+  play_registry_dump (L);
+
   return 1;
 }
 
@@ -613,6 +757,7 @@ __l_media_gc (lua_State *L)
   lp_Media *media;
 
   media_check (L, 1, &media);
+
   /* FIXME: We should keep a reference to media.  */
   /* g_object_unref (media); */
 
@@ -637,6 +782,67 @@ __l_media_tostring (lua_State *L)
 
   lua_pushstring (L, str);
   g_free (str);
+
+  return 1;
+}
+
+/*-
+ * media:start ()
+ *      -> b:boolean
+ *
+ * Starts media asynchronously.
+ *
+ * Returns true if successful, or false otherwise.
+ */
+static int
+l_media_start (lua_State *L)
+{
+  lp_Media *media;
+
+  media_check (L, 1, &media);
+  lua_pushboolean (L, lp_media_start (media));
+
+  return 1;
+}
+
+/*-
+ * media:stop ()
+ *      -> b:boolean
+ *
+ * Stops media asynchronously.
+ *
+ * Returns true if successful, or false otherwise.
+ */
+static int
+l_media_stop (lua_State *L)
+{
+  lp_Media *media;
+
+  media_check (L, 1, &media);
+  lua_pushboolean (L, lp_media_stop (media));
+
+  return 1;
+}
+
+/*-
+ * media:seek (relative:boolean, offset:number)
+ *      -> b:boolean
+ *
+ * Seeks in media asynchronously by offset nanoseconds.
+ *
+ * Returns true if successful, or false otherwise.
+ */
+static int
+l_media_seek (lua_State *L)
+{
+  lp_Media *media;
+  gboolean relative;
+  lua_Integer offset;
+
+  media_check (L, 1, &media);
+  relative = lua_toboolean (L, 2);
+  offset = luaL_checkinteger (L, 3);
+  lua_pushboolean (L, lp_media_seek (media, relative, offset));
 
   return 1;
 }

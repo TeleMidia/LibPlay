@@ -39,7 +39,7 @@ static const struct luaL_Reg tests0_funcs[] = {
  * tests0.samples_dir (file:string)
  *       -> path:string
  *
- * Returns the absolute path of FILE in samples directory.
+ * Returns the absolute path of @file in samples directory.
  */
 static int
 l_samples_dir (lua_State *L)
@@ -56,7 +56,7 @@ l_samples_dir (lua_State *L)
  * tests0.sample (name:string)
  *       ->path:string
  *
- * Returns the absolute path of a given sample.
+ * Returns the absolute path of sample with @name.
  */
 static int
 l_sample (lua_State *L)

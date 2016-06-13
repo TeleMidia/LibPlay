@@ -165,6 +165,8 @@ static int l_scene_quit (lua_State *);
 static int l_media_new (lua_State *);
 static int __l_media_gc (lua_State *);
 static int __l_media_tostring (lua_State *);
+static int l_media_get (lua_State *);
+static int l_media_set (lua_State *);
 static int l_media_start (lua_State *);
 static int l_media_stop (lua_State *);
 static int l_media_seek (lua_State *);
@@ -187,6 +189,8 @@ static const struct luaL_Reg media_funcs[] = {
   {"new", l_media_new},
   {"__gc", __l_media_gc},
   {"__tostring", __l_media_tostring},
+  {"get", l_media_get},
+  {"set", l_media_set},
   {"start", l_media_start},
   {"stop", l_media_stop},
   {"seek", l_media_seek},
@@ -213,6 +217,11 @@ static const struct luaL_Reg media_funcs[] = {
 /* Throws an "unknown property" error.  */
 #define error_throw_property_unknown(L, obj, prop)      \
   error_throw_format ((L), "unknown %s property '%s'",  \
+                      G_OBJECT_TYPE_NAME (obj), prop)
+
+/* Throws a "constructor-only property" error.  */
+#define error_throw_property_constructor_only(L, obj, prop)     \
+  error_throw_format ((L), "constructor-only %s property '%s'", \
                       G_OBJECT_TYPE_NAME (obj), prop)
 
 /* Throws a "non-writable property" error.  */
@@ -410,6 +419,115 @@ play_event_push (lua_State *L, lp_Event *event)
     }
 }
 
+/* Pushes into @L the the value of property @name of object @obj.  */
+
+static void
+play_get_property (lua_State *L, GObject *obj, const char *name)
+{
+  GParamSpec *pspec;
+  GValue value = G_VALUE_INIT;
+  GType type;
+
+  pspec = gx_object_find_property (obj, name);
+  if (unlikely (pspec == NULL))
+    error_throw_property_unknown (L, obj, name);
+
+  g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
+  g_object_get_property (obj, name, &value);
+
+  type = G_VALUE_TYPE (&value);
+  switch (type)
+    {
+    case G_TYPE_BOOLEAN:
+      lua_pushboolean (L, g_value_get_boolean (&value));
+      break;
+    case G_TYPE_DOUBLE:
+      lua_pushnumber (L, g_value_get_double (&value));
+      break;
+    case G_TYPE_INT:
+      lua_pushinteger (L, g_value_get_int (&value));
+      break;
+    case G_TYPE_UINT:
+      lua_pushinteger (L, g_value_get_uint (&value));
+      break;
+    case G_TYPE_UINT64:
+      lua_pushinteger (L, (lua_Integer) clamp (g_value_get_uint64 (&value),
+                                               0, G_MAXINT));
+      break;
+    case G_TYPE_STRING:
+      {
+        const char *str = g_value_get_string (&value);
+        if (str == NULL)
+          lua_pushnil (L);
+        else
+          lua_pushstring (L, str);
+        break;
+      }
+    default:
+      {
+        if (type == LP_TYPE_SCENE)
+          {
+            Scene *sw;
+            lp_Scene *sc;
+
+            /* FIXME: This is not working.  */
+
+            sc = (lp_Scene *) g_value_get_object (&value);
+            g_assert_nonnull (sc);
+
+            sw = (Scene *) g_object_get_data (G_OBJECT (sc), SCENE);
+            g_assert_nonnull (sw);
+
+            play_registry_get_scene (L, sw);
+            break;
+          }
+        g_assert_not_reached ();
+      }
+    }
+  g_value_unset (&value);
+}
+
+/* Pops a value from @L and sets it as the value of property @name of object
+   @obj. */
+
+static void
+play_set_property (lua_State *L, GObject *obj, const char *name)
+{
+  GParamSpec *pspec;
+
+  pspec = gx_object_find_property (obj, name);
+  if (unlikely (pspec == NULL))
+    error_throw_property_unknown (L, obj, name);
+
+  if (unlikely (!(pspec->flags & G_PARAM_WRITABLE)))
+    error_throw_property_not_writable (L, obj, name);
+
+  if (unlikely (pspec->flags & G_PARAM_CONSTRUCT_ONLY))
+    error_throw_property_constructor_only (L, obj, name);
+
+  switch (G_PARAM_SPEC_VALUE_TYPE (pspec))
+    {
+    case G_TYPE_BOOLEAN:
+      g_object_set (obj, name, lua_toboolean (L, 3), NULL);
+      break;
+    case G_TYPE_DOUBLE:
+      g_object_set (obj, name, luaL_checknumber (L, 3), NULL);
+      break;
+    case G_TYPE_INT:            /* fall through */
+    case G_TYPE_UINT:
+      g_object_set (obj, name, luaL_checkinteger (L, 3), NULL);
+      break;
+    case G_TYPE_UINT64:
+      g_object_set (obj, name, luaL_checkinteger (L, 3), NULL);
+      break;
+    case G_TYPE_STRING:
+      g_object_set (obj, name, luaL_optstring (L, 3, NULL), NULL);
+      break;
+    default:
+      g_assert_not_reached ();
+    }
+}
+
 /* Checks if the object at @index is a scene.  If successful, returns the
    scene and stores the wrapped lp_Scene into @scene.  Otherwise, throws an
    error.  */
@@ -535,54 +653,18 @@ __l_scene_tostring (lua_State *L)
  * scene:get (name:string)
  *      -> value:any
  *
- * Gets scene property value.
+ * Gets scene property @name.
  */
 static int
 l_scene_get (lua_State *L)
 {
   lp_Scene *scene;
-  const gchar *name;
-
-  GParamSpec *pspec;
-  GValue value = G_VALUE_INIT;
+  const char *name;
 
   scene_check (L, 1, &scene);
   name = luaL_checkstring (L, 2);
 
-  pspec = gx_object_find_property (scene, name);
-  if (unlikely (pspec == NULL))
-    return error_throw_property_unknown (L, scene, name);
-
-  g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
-  g_object_get_property (G_OBJECT (scene), name, &value);
-  switch (G_VALUE_TYPE (&value))
-    {
-    case G_TYPE_BOOLEAN:
-      lua_pushboolean (L, g_value_get_boolean (&value));
-      break;
-    case G_TYPE_INT:
-      lua_pushinteger (L, g_value_get_int (&value));
-      break;
-    case G_TYPE_UINT:
-      lua_pushinteger (L, g_value_get_uint (&value));
-      break;
-    case G_TYPE_UINT64:
-      lua_pushinteger (L, (lua_Integer) clamp (g_value_get_uint64 (&value),
-                                               0, G_MAXINT));
-      break;
-    case G_TYPE_STRING:
-      {
-        const char *str = g_value_get_string (&value);
-        if (str == NULL)
-          lua_pushnil (L);
-        else
-          lua_pushstring (L, str);
-        break;
-      }
-    default:
-     g_assert_not_reached ();
-    }
-  g_value_unset (&value);
+  play_get_property (L, G_OBJECT (scene), name);
 
   return 1;
 }
@@ -590,49 +672,18 @@ l_scene_get (lua_State *L)
 /*-
  * scene:set (name:string, value:any)
  *
- * Sets scene property name to value.
+ * Sets scene property @name to @value.
  */
 static int
 l_scene_set (lua_State *L)
 {
   lp_Scene *scene;
-  const gchar *name;
-
-  GParamSpec *pspec;
+  const char *name;
 
   scene_check (L, 1, &scene);
   name = luaL_checkstring (L, 2);
 
-  pspec = gx_object_find_property (scene, name);
-  if (unlikely (pspec == NULL))
-    {
-      return error_throw_property_unknown (L, scene, name);
-    }
-
-  if (unlikely ((!(pspec->flags & G_PARAM_WRITABLE))
-                || (pspec->flags & G_PARAM_CONSTRUCT_ONLY)))
-    {
-      return error_throw_property_not_writable (L, scene, name);
-    }
-
-  switch (G_PARAM_SPEC_VALUE_TYPE (pspec))
-    {
-    case G_TYPE_BOOLEAN:
-      g_object_set (scene, name, lua_toboolean (L, 3), NULL);
-      break;
-    case G_TYPE_INT:            /* fall through */
-    case G_TYPE_UINT:
-      g_object_set (scene, name, luaL_checkinteger (L, 3), NULL);
-      break;
-    case G_TYPE_UINT64:
-      g_object_set (scene, name, luaL_checkinteger (L, 3), NULL);
-      break;
-    case G_TYPE_STRING:
-      g_object_set (scene, name, luaL_optstring (L, 3, NULL), NULL);
-      break;
-    default:
-      g_assert_not_reached ();
-    }
+  play_set_property (L, G_OBJECT (scene), name);
 
   return 0;
 }
@@ -643,7 +694,7 @@ l_scene_set (lua_State *L)
  *      -> nil
  *
  * Receives an event from scene.
- * This call may block if block parameter is given.
+ * This call may block if @block is true.
  *
  * Returns a table representing the event or nil (no event).
  */
@@ -705,7 +756,7 @@ l_scene_quit (lua_State *L)
  *      -> media:Media; or
  *      -> nil, errmsg:string
  *
- * Creates a new media with the given parent scene and content URI.
+ * Creates a new media with parent @scene and content @uri.
  *
  * Returns the new media if successful, or nil plus error message.
  */
@@ -787,6 +838,45 @@ __l_media_tostring (lua_State *L)
 }
 
 /*-
+ * media:get (name:string)
+ *      -> value:any
+ *
+ * Gets media property @name.
+ */
+static int
+l_media_get (lua_State *L)
+{
+  lp_Media *media;
+  const char *name;
+
+  media_check (L, 1, &media);
+  name = luaL_checkstring (L, 2);
+
+  play_get_property (L, G_OBJECT (media), name);
+
+  return 1;
+}
+
+/*-
+ * media:set (name:string, value:any)
+ *
+ * Sets media property @name to @value.
+ */
+static int
+l_media_set (lua_State *L)
+{
+  lp_Media *media;
+  const char *name;
+
+  media_check (L, 1, &media);
+  name = luaL_checkstring (L, 2);
+
+  play_set_property (L, G_OBJECT (media), name);
+
+  return 0;
+}
+
+/*-
  * media:start ()
  *      -> b:boolean
  *
@@ -825,10 +915,16 @@ l_media_stop (lua_State *L)
 }
 
 /*-
- * media:seek (relative:boolean, offset:number)
+ * media:seek ([relative:boolean], [offset:number])
  *      -> b:boolean
  *
- * Seeks in media asynchronously by offset nanoseconds.
+ * Seeks in media asynchronously by @offset nanoseconds.
+ *
+ * If @relative is true (or not given), the function assumes that @offset is
+ * relative to current media time.  Otherwise, it assumes that @offset is an
+ * absolute offset time in media.
+ *
+ * If @offset is not given, the function assumes 0.
  *
  * Returns true if successful, or false otherwise.
  */
@@ -840,8 +936,17 @@ l_media_seek (lua_State *L)
   lua_Integer offset;
 
   media_check (L, 1, &media);
-  relative = lua_toboolean (L, 2);
-  offset = luaL_checkinteger (L, 3);
+  if (lua_type (L, 2) == LUA_TBOOLEAN)
+    {
+      relative = lua_toboolean (L, 2);
+      offset = luaL_optinteger (L, 3, 0);
+    }
+  else
+    {
+      relative = TRUE;
+      offset = luaL_optinteger (L, 2, 0);
+    }
+
   lua_pushboolean (L, lp_media_seek (media, relative, offset));
 
   return 1;

@@ -2,6 +2,11 @@ LibPlay TODO -- Tasks that need implementing.
 
 * KNOWN BUGS
 
+  + play/play0.c: Fix play_get_property when property stores an object.
+
+    We need to add a new test for property "scene" of media.  And after
+    fixing this we need to update 'tests/test-lua-play0-media-get.lua'.
+
   + lib/lp-scene.c: Handle window closing gracefully.
 
     When the video sink window is closed the sink posts an error to

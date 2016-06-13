@@ -84,16 +84,19 @@ scripts=
 if WITH_LUA
 scripts+= test-lua-play0-scene-api.lua
 scripts+= test-lua-play0-scene-new.lua
+scripts+= test-lua-play0-scene-tostring.lua
 scripts+= test-lua-play0-scene-get.lua
 scripts+= test-lua-play0-scene-set.lua
 scripts+= test-lua-play0-scene-receive.lua
 scripts+= test-lua-play0-scene-quit.lua
-scripts+= test-lua-play0-scene-tostring.lua
 scripts+= test-lua-play0-media-api.lua
 scripts+= test-lua-play0-media-new.lua
 scripts+= test-lua-play0-media-tostring.lua
+scripts+= test-lua-play0-media-get.lua
+scripts+= test-lua-play0-media-set.lua
 scripts+= test-lua-play0-media-start.lua
 scripts+= test-lua-play0-media-stop.lua
+scripts+= test-lua-play0-media-seek.lua
 endif
 check_SCRIPTS= $(scripts)
 

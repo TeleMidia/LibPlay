@@ -29,6 +29,7 @@ struct _lp_Clock
   GstClockTime time;            /* clock time */
   GstClockTime unlock_time;     /* clock time when lock-step was disabled */
   GstClockTime unlock_systime;  /* systime when lock-step was disabled */
+  GstClockTime init_systime;    /* systeme when the clock is instantiated */
 };
 
 /* Clock properties. */
@@ -62,6 +63,7 @@ lp_clock_init (lp_Clock *clock)
   clock->time = 0;
   clock->unlock_time = 0;
   clock->unlock_systime = 0;
+  clock->init_systime = clock_get_systime (clock);
 }
 
 static void
@@ -143,7 +145,8 @@ lp_clock_get_internal_time (GstClock *gst_clock)
   if (!clock->lockstep)
     {
       GstClockTime now = clock_get_systime (clock);
-      clock->time = (now - clock->unlock_systime) + clock->unlock_time;
+      clock->time = (now - clock->unlock_systime) + clock->unlock_time -
+        clock->init_systime;
     }
   result = clock->time;
 

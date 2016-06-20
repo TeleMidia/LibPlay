@@ -29,7 +29,7 @@ struct _lp_Clock
   GstClockTime time;            /* clock time */
   GstClockTime unlock_time;     /* clock time when lock-step was disabled */
   GstClockTime unlock_systime;  /* systime when lock-step was disabled */
-  GstClockTime init_systime;    /* systeme when the clock is instantiated */
+  GstClockTime init_systime;    /* systime when the clock is instantiated */
 };
 
 /* Clock properties. */

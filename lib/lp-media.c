@@ -613,12 +613,6 @@ lp_media_no_more_pads_callback (GstElement *dec, lp_Media *media)
   g_signal_handler_disconnect (dec, media->callback.no_more_pads);
   g_signal_handler_disconnect (dec, media->callback.autoplug_continue);
 
-  /* This seems to be the latest time to initialize the media start offset.
-     It is set to the pads in lp_media_pad_added_block_probe_callback().  */
-
-  media->offset = _lp_scene_get_running_time (media->prop.scene);
-  g_assert (GST_CLOCK_TIME_IS_VALID (media->offset));
-
   media_unlock (media);
 }
 
@@ -1424,6 +1418,13 @@ lp_media_start (lp_Media *media)
       media_release_run_time_data (media);
       goto fail;
     }
+
+  /* To properly synchronize multiple media objects we need to save the 
+   * offset at this point */
+
+  media->offset = _lp_scene_get_running_time (media->prop.scene);
+  g_assert (GST_CLOCK_TIME_IS_VALID (media->offset));
+
 
   media_unlock (media);
   return TRUE;

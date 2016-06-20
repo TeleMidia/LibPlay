@@ -1609,3 +1609,33 @@ seek (%s) %p\n\
   media_unlock (media);
   return FALSE;
 }
+
+/**
+ * lp_media_get_runnint_time:
+ * @media: an #lp_Media
+ *
+ * Returns the running time of @media.
+ *
+ * Returns: @media running time
+ */
+guint64
+lp_media_get_running_time (lp_Media *media)
+{
+  GstClockTime time;
+
+  media_lock (media);
+
+  if (unlikely (!media_state_started (media)))
+    goto fail;                  /* nothing to do */
+
+  time = gstx_element_get_clock_time (
+      _lp_scene_get_pipeline(media->prop.scene));
+  time = time - media->offset;
+
+  media_unlock (media);
+  return time;
+
+ fail:
+  media_unlock (media);
+  return GST_CLOCK_TIME_NONE;
+}

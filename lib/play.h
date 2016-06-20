@@ -203,6 +203,9 @@ lp_media_stop (lp_Media *);
 LP_API gboolean
 lp_media_seek (lp_Media *, gboolean, gint64);
 
+LP_API guint64
+lp_media_get_running_time (lp_Media *);
+
 /* scene */
 
 LP_API lp_Scene *

@@ -1,0 +1,6 @@
+{
+  "name": "Libplay",
+  "tagline": "A sane multimedia library",
+  "body": "# LibPlay\r\n\r\nA sane multimedia library.\r\n\r\nDependencies\r\n------------\r\n\r\nRequired:\r\n* GLib >= 2.44, https://developer.gnome.org/glib\r\n* GStreamer >= 1.8, https://gstreamer.freedesktop.org/\r\n\r\nOptional:\r\n* Lua >= 5.2, http://www.lua.org\r\n\r\n---\r\nCopyright (C) 2015-2016 PUC-Rio/Laboratorio TeleMidia\r\n\r\nPermission is granted to copy, distribute and/or modify this document under\r\nthe terms of the GNU Free Documentation License, Version 1.3 or any later\r\nversion published by the Free Software Foundation; with no Invariant\r\nSections, with no Front-Cover Texts, and with no Back-Cover Texts.  A copy\r\nof the license is included in the \"GNU Free Documentation License\" file as\r\npart of this distribution.\r\n",
+  "note": "Don't delete this file! It's used internally to help with page regeneration."
+}

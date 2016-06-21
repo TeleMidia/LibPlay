@@ -26,6 +26,7 @@ typedef enum
   STARTED = 0,                  /* scene is playing (has started) */
   STARTING,                     /* scene is preparing to play (start) */
   STOPPED,                      /* scene is stopped */
+  PAUSED,                       /* scene is paused */
   STOPPING,                     /* scene is preparing to stop */
   DISPOSED                      /* scene has been disposed */
 } lp_SceneState;
@@ -145,6 +146,7 @@ GX_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
 #define scene_state_started(s)   ((s)->state == STARTED)
 #define scene_state_starting(s)  ((s)->state == STARTING)
 #define scene_state_stopped(s)   ((s)->state == STOPPED)
+#define scene_state_paused(s)    ((s)->state == PAUSED)
 #define scene_state_stopping(s)  ((s)->state == STOPPING)
 #define scene_state_disposed(s)  ((s)->state == DISPOSED)
 
@@ -1516,6 +1518,7 @@ lp_scene_pause (lp_Scene *scene)
   }
 
   gst_element_set_state (scene->pipeline, GST_STATE_PAUSED);
+  scene->state = PAUSED;
 
 finish:
   scene_unlock (scene);

@@ -60,7 +60,6 @@ struct _lp_Media
   GstClockTime offset;          /* start time offset */
   lp_MediaState state;          /* current state */
   lp_MediaFlag flags;           /* media flags */
-  gchar *final_uri;             /* final URI */
   struct
   {                             /* callback handlers: */
     gulong pad_added;           /* pad-added callback id */
@@ -93,6 +92,7 @@ struct _lp_Media
   {                             /* properties: */
     lp_Scene *scene;            /* parent scene */
     gchar *uri;                 /* content URI */
+    gchar *final_uri;           /* final URI */
     gint x;                     /* cached x */
     gint y;                     /* cached y */
     gint z;                     /* cached z */
@@ -136,6 +136,7 @@ enum
   PROP_0,
   PROP_SCENE,
   PROP_URI,
+  PROP_FINAL_URI,
   PROP_X,
   PROP_Y,
   PROP_Z,
@@ -229,7 +230,7 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
     (m)->offset = GST_CLOCK_TIME_NONE;          \
     (m)->state = STOPPED;                       \
     (m)->flags = FLAG_NONE;                     \
-    (m)->final_uri = NULL;                      \
+    (m)->prop.final_uri = NULL;                 \
     (m)->callback.pad_added = 0;                \
     (m)->callback.no_more_pads = 0;             \
     (m)->callback.autoplug_continue = 0;        \
@@ -258,7 +259,7 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
         gst_object_unref ((m)->video.pad);                      \
       }                                                         \
     gst_object_unref ((m)->bin);                                \
-    g_free ((m)->final_uri);                                    \
+    g_free ((m)->prop.final_uri);                               \
     media_reset_run_time_data ((m));                            \
   }                                                             \
   STMT_END
@@ -269,6 +270,7 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
   {                                             \
     (m)->prop.scene = DEFAULT_SCENE;            \
     (m)->prop.uri = DEFAULT_URI;                \
+    (m)->prop.final_uri = DEFAULT_URI;          \
     (m)->prop.x = DEFAULT_X;                    \
     (m)->prop.y = DEFAULT_Y;                    \
     (m)->prop.z = DEFAULT_Z;                    \
@@ -784,6 +786,9 @@ lp_media_get_property (GObject *object, guint prop_id,
     case PROP_URI:
       g_value_set_string (value, media->prop.uri);
       break;
+    case PROP_FINAL_URI:
+      g_value_set_string (value, media->prop.final_uri);
+      break;
     case PROP_X:
       g_value_set_int (value, media->prop.x);
       break;
@@ -1095,6 +1100,12 @@ lp_media_class_init (lp_MediaClass *cls)
       (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
+    (gobject_class, PROP_FINAL_URI, g_param_spec_string
+     ("final-uri", "final-uri", "final URI after resolving relative path",
+      DEFAULT_URI,
+      (GParamFlags)(G_PARAM_READABLE)));
+
+  g_object_class_install_property
     (gobject_class, PROP_X, g_param_spec_int
      ("x", "x", "horizontal position",
       G_MININT, G_MAXINT, DEFAULT_X,
@@ -1363,7 +1374,7 @@ lp_media_start (lp_Media *media)
 
   if (gst_uri_is_valid (media->prop.uri))
     {
-      media->final_uri = g_strdup (media->prop.uri);
+      media->prop.final_uri = g_strdup (media->prop.uri);
     }
   else
     {
@@ -1375,7 +1386,7 @@ lp_media_start (lp_Media *media)
           g_error_free (error);
           goto fail;
         }
-      media->final_uri = final_uri;
+      media->prop.final_uri = final_uri;
     }
 
   _lp_eltmap_alloc_check (media, lp_media_eltmap);
@@ -1401,7 +1412,7 @@ lp_media_start (lp_Media *media)
   g_assert (media->callback.drained > 0);
 
   g_object_set_data (G_OBJECT (media->bin), "lp_Media", media);
-  g_object_set (media->decoder, "uri", media->final_uri, NULL);
+  g_object_set (media->decoder, "uri", media->prop.final_uri, NULL);
   gstx_bin_add (media->bin, media->decoder);
 
   pipeline = _lp_scene_get_pipeline (media->prop.scene);

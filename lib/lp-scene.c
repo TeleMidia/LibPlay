@@ -1493,3 +1493,31 @@ lp_scene_quit (lp_Scene *scene)
   scene_unlock (scene);
   g_assert (scene_stop_unlocked (scene));
 }
+
+
+/**
+ * lp_scene_pause:
+ * @scene: an #lp_Scene
+ *
+ * Pauses @scene 
+ *
+ * Returns: TRUE if success or FALSE otherwise 
+ */
+gboolean
+lp_scene_pause (lp_Scene *scene)
+{
+  gboolean ret = TRUE;
+  scene_lock (scene);
+
+  if (unlikely (!scene_state_started (scene)))
+  {
+    ret = FALSE;
+    goto finish;
+  }
+
+  gst_element_set_state (scene->pipeline, GST_STATE_PAUSED);
+
+finish:
+  scene_unlock (scene);
+  return ret;
+}

@@ -226,6 +226,9 @@ lp_scene_receive (lp_Scene *, gboolean);
 LP_API void
 lp_scene_quit (lp_Scene *);
 
+LP_API gboolean
+lp_scene_pause (lp_Scene *);
+
 LP_END_DECLS
 
 #endif /* PLAY_H */

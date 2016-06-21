@@ -103,7 +103,8 @@ AU_VERSION_BREAK([gstreamer], gstreamer_required_version)
 AU_CHECK_PKG([GSTREAMER],
   gstreamer-1.0 >= gstreamer_required_version
   gstreamer-video-1.0 >= gstreamer_required_version
-  gstreamer-audio-1.0 >= gstreamer_required_version,
+  gstreamer-audio-1.0 >= gstreamer_required_version
+  gstreamer-app-1.0 >= gstreamer_required_version,
  [AC_LANG_PROGRAM([[
 #include <gst/gst.h>
 #if !GST_CHECK_VERSION  \

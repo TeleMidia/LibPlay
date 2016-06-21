@@ -18,6 +18,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
 #include "play-internal.h"
+#include <gst/app/gstappsrc.h>
 PRAGMA_DIAG_IGNORE (-Wunused-macros)
 
 /* Media state.  */
@@ -28,6 +29,8 @@ typedef enum
   STOPPED,                      /* media is stopped */
   STOPPING,                     /* media is preparing to stop */
   SEEKING,                      /* media is seeking */
+  PAUSING,                      /* media is pausing */
+  PAUSED,                       /* media is paused */
   DISPOSED                      /* media has been disposed */
 } lp_MediaState;
 
@@ -73,6 +76,14 @@ struct _lp_Media
     gint64 sum;                 /* accumulated offset */
     gint64 last;                /* last offset */
   } seek;
+  struct
+  {
+    GstElement *appsrc;         /* pushes paused video buffer */
+    GstElement *freeze;         /* repeats paused video  buffer */
+    GstElement *audiosrc;       /* pushes silence */
+    GstBuffer *video_buffer;    /* paused video buffer */
+    GstClockTime time;          /* pause time */
+  } pause;
   struct
   {                             /* audio output: */
     GstElement *convert;        /* audio convert */
@@ -180,6 +191,8 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 #define media_state_stopped(m)    ((m)->state == STOPPED)
 #define media_state_stopping(m)   ((m)->state == STOPPING)
 #define media_state_seeking(m)    ((m)->state == SEEKING)
+#define media_state_pausing(m)    ((m)->state == PAUSING)
+#define media_state_paused(m)     ((m)->state == PAUSED)
 #define media_state_disposed(m)   ((m)->state == DISPOSED)
 
 /* Media flag access.  */
@@ -390,6 +403,112 @@ lp_media_pad_added_block_probe_callback (GstPad *pad, GstPadProbeInfo *info,
   media_unlock (media);
   return GST_PAD_PROBE_REMOVE;
 }
+
+static GstPadProbeReturn
+lp_media_pausing_block_probe_callback (GstPad *pad, 
+                                       GstPadProbeInfo *info,
+                                       arg_unused(lp_Media *media))
+{
+  GstCaps *caps = NULL; 
+  GstPad *peer = NULL;
+  const char *name = NULL;
+
+  media_lock (media);
+
+  caps = gst_pad_get_current_caps (pad);
+  peer = gst_pad_get_peer (pad);
+
+  /* Do we really need to post flush events? */
+  g_assert (gst_pad_send_event (peer, gst_event_new_flush_start ()));
+  g_assert (gst_pad_send_event (peer, gst_event_new_flush_stop (FALSE)));
+  
+  g_assert (gst_pad_unlink (pad, peer));
+  
+  name = gst_structure_get_name (gst_caps_get_structure (caps, 0));
+
+  if (g_str_equal (name, "video/x-raw"))
+  {
+    GstPad *appsrc_pad = NULL;
+
+    media->pause.freeze = gst_element_factory_make ("imagefreeze", 
+        NULL);
+    media->pause.appsrc = gst_element_factory_make ("appsrc", NULL);
+
+    gst_bin_add_many (GST_BIN(media->bin), media->pause.appsrc, 
+        media->pause.freeze, NULL);
+
+    gst_app_src_set_caps (GST_APP_SRC(media->pause.appsrc), caps);
+    gst_app_src_push_buffer(GST_APP_SRC(media->pause.appsrc), 
+        media->pause.video_buffer);
+
+    g_assert (gst_element_link (media->pause.appsrc, media->pause.freeze));
+
+    appsrc_pad = gst_element_get_static_pad (media->pause.freeze, "src");
+    g_assert(gst_pad_link (appsrc_pad, peer) == GST_PAD_LINK_OK);
+
+    gst_object_unref (appsrc_pad);
+
+    gst_element_set_state (media->pause.appsrc, GST_STATE_PLAYING);
+    gst_element_set_state (media->pause.freeze, GST_STATE_PLAYING);
+  }
+  else if (g_str_equal (name, "audio/x-raw"))
+  {
+    GstPad *audiosrc_pad = NULL;
+
+    media->pause.audiosrc = gst_element_factory_make ("audiotestsrc", NULL);
+    g_object_set (media->pause.audiosrc, "wave", 4 /*silence*/, NULL);
+
+    gst_bin_add_many (GST_BIN(media->bin), media->pause.audiosrc, NULL);
+
+    audiosrc_pad = gst_element_get_static_pad (media->pause.audiosrc, "src");
+    g_assert(gst_pad_link (audiosrc_pad, peer) == GST_PAD_LINK_OK);
+
+    gst_object_unref (audiosrc_pad);
+
+    gst_element_set_state (media->pause.audiosrc, GST_STATE_PLAYING);
+  }
+
+  media->state = PAUSED;
+
+  gst_element_set_state (media->decoder, GST_STATE_PAUSED);
+  gst_caps_unref(caps);
+  gst_object_unref(peer);
+
+  media_unlock (media);
+   
+  return GST_PAD_PROBE_REMOVE;
+}
+
+static GstPadProbeReturn
+lp_media_have_data_probe_callback (GstPad *pad, 
+                                   GstPadProbeInfo *info,
+                                   arg_unused(lp_Media *media))
+{
+  GstCaps *caps = NULL;
+  const char *name = NULL;
+
+  media_lock (media);
+  g_assert (media_state_pausing(media));
+
+  caps = gst_pad_query_caps (pad, NULL);
+  name = gst_structure_get_name (gst_caps_get_structure (caps, 0));
+  gst_caps_unref (caps);
+
+  if (g_str_equal (name, "video/x-raw"))
+  {
+    media->pause.video_buffer = 
+      gst_buffer_copy (GST_PAD_PROBE_INFO_BUFFER (info));
+  }
+
+  gst_pad_add_probe (pad, 
+      GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM, 
+      (GstPadProbeCallback) lp_media_pausing_block_probe_callback, 
+      media, NULL);
+  
+  media_unlock (media);
+  return GST_PAD_PROBE_REMOVE;
+}
+
 
 /* Signals that a new pad has been added to media decoder.  Here we build,
    link, and pre-roll the necessary audio and video elements.  */
@@ -1649,4 +1768,41 @@ lp_media_get_running_time (lp_Media *media)
  fail:
   media_unlock (media);
   return GST_CLOCK_TIME_NONE;
+}
+
+gboolean
+lp_media_pause (lp_Media *media)
+{
+  GstIterator *it = NULL;
+  GValue value = G_VALUE_INIT;
+  gboolean ret = TRUE;
+
+  g_assert (media);
+
+  media_lock(media);
+  if (!media_state_started (media))
+  {
+    ret = FALSE;
+    goto finish;
+  }
+
+  media->state = PAUSING;
+  media->pause.time = _lp_scene_get_running_time (media->prop.scene);
+  
+  it = gst_element_iterate_src_pads (media->decoder);
+  while (gst_iterator_next (it, &value) == GST_ITERATOR_OK)
+  {
+    GstPad *p = NULL; 
+
+    p = GST_PAD (g_value_get_object (&value));
+    gst_pad_add_probe (p, GST_PAD_PROBE_TYPE_BUFFER, 
+        (GstPadProbeCallback) lp_media_have_data_probe_callback, 
+        media, NULL);
+  }
+  gst_iterator_free (it);
+
+finish:
+  media_unlock(media);
+
+  return ret;
 }

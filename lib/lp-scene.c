@@ -540,7 +540,8 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
             }
           case LP_EVENT_MASK_KEY:           /* fall through */
           case LP_EVENT_MASK_POINTER_CLICK: /* fall through */
-          case LP_EVENT_MASK_POINTER_MOVE:
+          case LP_EVENT_MASK_POINTER_MOVE:  /* fall through */
+          case LP_EVENT_MASK_PAUSE:
             {
               break;            /* nothing to do */
             }

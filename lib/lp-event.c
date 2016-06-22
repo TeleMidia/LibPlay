@@ -222,7 +222,7 @@ lp_event_get_mask (lp_Event *event)
   lp_EventMask mask;
 
   g_object_get (event, "mask", &mask, NULL);
-  g_assert (mask > LP_EVENT_MASK_NONE && mask <= LP_EVENT_MASK_SEEK);
+  g_assert (mask > LP_EVENT_MASK_NONE && mask <= LP_EVENT_MASK_PAUSE);
 
   return mask;
 }

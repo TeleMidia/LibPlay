@@ -469,6 +469,8 @@ lp_media_pausing_block_probe_callback (GstPad *pad,
   }
 
   media->state = PAUSED;
+  _lp_scene_dispatch (media->prop.scene, 
+      LP_EVENT (_lp_event_pause_new (G_OBJECT(media))));
 
   gst_element_set_state (media->decoder, GST_STATE_PAUSED);
   gst_caps_unref(caps);

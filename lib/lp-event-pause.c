@@ -40,12 +40,10 @@ static void
 lp_event_pause_constructed (GObject *object)
 {
   lp_Event *event;
-  GObject *source;
   lp_EventMask mask;
 
   event = LP_EVENT (object);
-  g_object_get (event, "source", &source, "mask", &mask, NULL);
-  g_assert (LP_IS_SCENE (source));
+  g_object_get (event, "mask", &mask, NULL);
   g_assert (mask == LP_EVENT_MASK_PAUSE);
 
   G_OBJECT_CLASS (lp_event_pause_parent_class)->constructed (object);

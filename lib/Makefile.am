@@ -55,6 +55,7 @@ libplay_la_SOURCES=\
   lp-event-start.c\
   lp-event-stop.c\
   lp-event-tick.c\
+  lp-event-pause.c\
   lp-event.c\
   lp-media.c\
   lp-scene.c\

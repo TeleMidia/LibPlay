@@ -24,9 +24,9 @@ PRAGMA_DIAG_IGNORE (-Wunused-macros)
 typedef enum
 {
   STARTED = 0,                  /* scene is playing (has started) */
+  PAUSED,                       /* scene is paused */
   STARTING,                     /* scene is preparing to play (start) */
   STOPPED,                      /* scene is stopped */
-  PAUSED,                       /* scene is paused */
   STOPPING,                     /* scene is preparing to stop */
   DISPOSED                      /* scene has been disposed */
 } lp_SceneState;
@@ -143,12 +143,14 @@ GX_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
 #define scene_unlock(sc)  g_rec_mutex_unlock (&(sc)->mutex)
 
 /* Scene state queries.  */
-#define scene_state_started(s)   ((s)->state == STARTED)
-#define scene_state_starting(s)  ((s)->state == STARTING)
-#define scene_state_stopped(s)   ((s)->state == STOPPED)
-#define scene_state_paused(s)    ((s)->state == PAUSED)
-#define scene_state_stopping(s)  ((s)->state == STOPPING)
-#define scene_state_disposed(s)  ((s)->state == DISPOSED)
+#define scene_state_started(s)           ((s)->state == STARTED)
+#define scene_state_starting(s)          ((s)->state == STARTING)
+#define scene_state_stopped(s)           ((s)->state == STOPPED)
+#define scene_state_paused(s)            ((s)->state == PAUSED)
+#define scene_state_stopping(s)          ((s)->state == STOPPING)
+#define scene_state_disposed(s)          ((s)->state == DISPOSED)
+#define scene_state_started_or_paused(s) ((s)->state <= PAUSED)
+
 
 /* Scene run-time data.  */
 #define scene_reset_run_time_data(s)            \
@@ -420,7 +422,7 @@ scene_step_unlocked (lp_Scene *scene, gboolean block)
   GMainContext *ctx;
 
   scene_lock (scene);
-  if (unlikely (!scene_state_started (scene)))
+  if (unlikely (!scene_state_started_or_paused (scene)))
     {
       scene_unlock (scene);
       return FALSE;
@@ -484,6 +486,9 @@ lp_scene_tick_callback (arg_unused (GstClock *clock),
   guint64 ticks;
 
   scene_lock (scene);
+  if (scene_state_paused (scene))
+    goto fail;
+
   g_assert (scene_state_started (scene));
   ticks = scene->prop.ticks;
   scene_unlock (scene);
@@ -493,6 +498,9 @@ lp_scene_tick_callback (arg_unused (GstClock *clock),
   _lp_scene_dispatch (scene, event);
 
   return TRUE;
+fail:
+  scene_unlock (scene);
+  return FALSE;
 }
 
 /* Signals that scene pipeline has received a message.  */
@@ -877,7 +885,7 @@ lp_scene_set_property (GObject *object, guint prop_id,
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
 
-  if (!scene_state_started (scene))
+  if (!scene_state_started_or_paused (scene))
     goto done;                  /* nothing to do */
 
   switch (prop_id)
@@ -1422,33 +1430,32 @@ lp_Event *
 lp_scene_receive (lp_Scene *scene, gboolean block)
 {
   lp_Event *event = NULL;
-  gboolean started;
+  gboolean flag;
 
   scene_lock (scene);
-  if (unlikely (!scene_state_started (scene)))
+  if (unlikely (!scene_state_started_or_paused (scene)))
     goto quitted;               /* nothing to do */
 
-  g_assert (scene_state_started (scene));
-  started = TRUE;
+  flag = TRUE;
 
- retry:
+retry:
   if (block)
     {
-      while (started && scene->events == NULL)
+      while (flag && scene->events == NULL)
         {
           scene_unlock (scene);
-          started = scene_step_unlocked (scene, TRUE);
+          flag = scene_step_unlocked (scene, TRUE);
           scene_lock (scene);
         }
     }
   else
     {
       scene_unlock (scene);
-      started = scene_step_unlocked (scene, FALSE);
+      flag = scene_step_unlocked (scene, FALSE);
       scene_lock (scene);
     }
 
-  if (unlikely (!started))
+  if (unlikely (!flag))
     goto quitted;               /* scene quitted */
 
   if (unlikely (scene->events == NULL))
@@ -1496,7 +1503,6 @@ lp_scene_quit (lp_Scene *scene)
   g_assert (scene_stop_unlocked (scene));
 }
 
-
 /**
  * lp_scene_pause:
  * @scene: an #lp_Scene
@@ -1508,6 +1514,7 @@ lp_scene_quit (lp_Scene *scene)
 gboolean
 lp_scene_pause (lp_Scene *scene)
 {
+  lp_Event *event;
   gboolean ret = TRUE;
   scene_lock (scene);
 
@@ -1519,6 +1526,38 @@ lp_scene_pause (lp_Scene *scene)
 
   gst_element_set_state (scene->pipeline, GST_STATE_PAUSED);
   scene->state = PAUSED;
+
+  event = LP_EVENT (_lp_event_pause_new (G_OBJECT(scene)));
+  g_assert_nonnull (event);
+  _lp_scene_dispatch (scene, event);
+
+finish:
+  scene_unlock (scene);
+  return ret;
+}
+
+/**
+ * lp_scene_resume:
+ * @scene: an #lp_Scene
+ *
+ * Resumes  @scene 
+ *
+ * Returns: TRUE if success or FALSE otherwise 
+ */
+gboolean
+lp_scene_resume (lp_Scene *scene)
+{
+  gboolean ret = TRUE;
+  scene_lock (scene);
+
+  if (unlikely (!scene_state_paused (scene)))
+  {
+    ret = FALSE;
+    goto finish;
+  }
+
+  gst_element_set_state (scene->pipeline, GST_STATE_PLAYING);
+  scene->state = STARTED;
 
 finish:
   scene_unlock (scene);

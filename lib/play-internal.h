@@ -120,6 +120,8 @@ _lp_event_stop_new (lp_Media *, gboolean);
 lp_EventSeek *
 _lp_event_seek_new (lp_Media *, gboolean, gint64);
 
+lp_EventPause *
+_lp_event_pause_new (GObject *);
 /* media */
 
 lp_Media *

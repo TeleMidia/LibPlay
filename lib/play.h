@@ -119,7 +119,8 @@ typedef enum
   LP_EVENT_MASK_START         = (1 << 6),
   LP_EVENT_MASK_STOP          = (1 << 7),
   LP_EVENT_MASK_SEEK          = (1 << 8),
-  LP_EVENT_MASK_ANY           = (gint)(0xffffffff)
+  LP_EVENT_MASK_PAUSE         = (1 << 9),
+  LP_EVENT_MASK_ANY           = (gint)(0xfffffffff)
 } lp_EventMask;
 
 #define LP_TYPE_EVENT_QUIT (lp_event_quit_get_type ())
@@ -157,11 +158,16 @@ LP_API G_DECLARE_FINAL_TYPE (lp_EventStop, lp_event_stop,
 #define LP_TYPE_EVENT_SEEK (lp_event_seek_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_EventSeek, lp_event_seek,
                              LP, EVENT_SEEK, lp_Event)
+
+#define LP_TYPE_EVENT_PAUSE (lp_event_pause_get_type ())
+LP_API G_DECLARE_FINAL_TYPE (lp_EventPause, lp_event_pause,
+                             LP, EVENT_PAUSE, lp_Event)
 typedef enum
 {
   LP_ERROR_START = 0,           /* error while starting */
   LP_ERROR_STOP,                /* error while stopping */
   LP_ERROR_SEEK,                /* error while seeking */
+  LP_ERROR_PAUSE,               /* error while pausing */
   LP_ERROR_LAST,                /* total number of error codes */
 } lp_Error;
 
@@ -228,6 +234,9 @@ lp_scene_quit (lp_Scene *);
 
 LP_API gboolean
 lp_scene_pause (lp_Scene *);
+
+LP_API gboolean
+lp_scene_resume (lp_Scene *);
 
 LP_END_DECLS
 

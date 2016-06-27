@@ -372,7 +372,7 @@ scene_stop_unlocked (lp_Scene *scene)
 
   scene_lock (scene);
 
-  if (unlikely (!scene_state_started (scene)))
+  if (unlikely (!scene_state_started_or_paused (scene)))
     goto fail;                  /* nothing to do */
 
   if (likely (scene->clock.id != NULL)) /* disable ticks */
@@ -577,7 +577,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           }
 
         scene_lock (scene);
-        if (likely (scene_state_started (scene)))
+        if (likely (scene_state_started_or_paused (scene)))
           {
             scene->events = g_list_append (scene->events, event);
             g_assert_nonnull (scene->events);
@@ -956,6 +956,8 @@ lp_scene_dispose (GObject *object)
       scene_unlock (scene);
       return;                   /* drop residual calls */
     }
+  if (scene_state_paused (scene))
+    gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
 
   while (!scene_state_stopped (scene))
     {
@@ -1117,10 +1119,9 @@ _lp_scene_get_pipeline (lp_Scene *scene)
 
   scene_lock (scene);
 
-  if (unlikely (!scene_state_started (scene)))
+  if (unlikely (!scene_state_started_or_paused (scene)))
     goto fail;                  /* nothing to do */
 
-  g_assert (scene_state_started (scene));
   pipeline = scene->pipeline;
 
   scene_unlock (scene);
@@ -1271,7 +1272,7 @@ void
 _lp_scene_step (lp_Scene *scene, gboolean block)
 {
   scene_lock (scene);
-  if (unlikely (!scene_state_started (scene)))
+  if (unlikely (!scene_state_started_or_paused (scene)))
     {
       scene_unlock (scene);
       return;                   /* nothing to do */
@@ -1291,7 +1292,7 @@ _lp_scene_dispatch (lp_Scene *scene, lp_Event *event)
   GstElement *pipeline;
 
   scene_lock (scene);
-  if (unlikely (!scene_state_started (scene)))
+  if (unlikely (!scene_state_started_or_paused (scene)))
     {
       scene_unlock (scene);
       return;                   /* nothing to do */
@@ -1563,4 +1564,15 @@ lp_scene_resume (lp_Scene *scene)
 finish:
   scene_unlock (scene);
   return ret;
+}
+
+/**
+ *
+ * Returns whether a scene is paused or not
+ *
+ */
+gboolean
+_lp_scene_is_paused (lp_Scene *scene)
+{
+  return scene_state_paused (scene);
 }

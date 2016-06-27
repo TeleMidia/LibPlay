@@ -63,6 +63,7 @@ struct _lp_Media
   GstClockTime offset;          /* start time offset */
   lp_MediaState state;          /* current state */
   lp_MediaFlag flags;           /* media flags */
+  guint linked_pads;            /* number of linked pads */
   struct
   {                             /* callback handlers: */
     gulong pad_added;           /* pad-added callback id */
@@ -83,6 +84,7 @@ struct _lp_Media
     GstElement *audiosrc;       /* pushes silence */
     GstBuffer *video_buffer;    /* paused video buffer */
     GstClockTime time;          /* pause time */
+    guint paused_pads;          /* pads paused */
   } pause;
   struct
   {                             /* audio output: */
@@ -243,6 +245,7 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
     (m)->offset = GST_CLOCK_TIME_NONE;          \
     (m)->state = STOPPED;                       \
     (m)->flags = FLAG_NONE;                     \
+    (m)->linked_pads = 0;                       \
     (m)->prop.final_uri = NULL;                 \
     (m)->callback.pad_added = 0;                \
     (m)->callback.no_more_pads = 0;             \
@@ -255,6 +258,8 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
     (m)->audio.flags = PAD_FLAG_NONE;           \
     (m)->video.pad = NULL;                      \
     (m)->video.flags = PAD_FLAG_NONE;           \
+    (m)->pause.paused_pads = 0;                 \
+    (m)->pause.time = 0;                        \
   }                                             \
   STMT_END
 
@@ -468,9 +473,14 @@ lp_media_pausing_block_probe_callback (GstPad *pad,
     gst_element_set_state (media->pause.audiosrc, GST_STATE_PLAYING);
   }
 
-  media->state = PAUSED;
-  _lp_scene_dispatch (media->prop.scene, 
-      LP_EVENT (_lp_event_pause_new (G_OBJECT(media))));
+  media->pause.paused_pads++;
+
+  if (media->pause.paused_pads == media->linked_pads)
+  {
+    media->state = PAUSED;
+    _lp_scene_dispatch (media->prop.scene, 
+        LP_EVENT (_lp_event_pause_new (G_OBJECT(media))));
+  }
 
   gst_element_set_state (media->decoder, GST_STATE_PAUSED);
   gst_caps_unref(caps);
@@ -489,7 +499,11 @@ lp_media_have_data_probe_callback (GstPad *pad,
   GstCaps *caps = NULL;
   const char *name = NULL;
 
+  gst_pad_remove_probe (pad, GST_PAD_PROBE_INFO_ID (info));
   media_lock (media);
+  if (media_state_paused (media))
+    goto finish;
+
   g_assert (media_state_pausing(media));
 
   caps = gst_pad_query_caps (pad, NULL);
@@ -507,8 +521,9 @@ lp_media_have_data_probe_callback (GstPad *pad,
       (GstPadProbeCallback) lp_media_pausing_block_probe_callback, 
       media, NULL);
   
+finish:
   media_unlock (media);
-  return GST_PAD_PROBE_REMOVE;
+  return GST_PAD_PROBE_OK;
 }
 
 
@@ -702,7 +717,10 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
   else
     {
       _lp_warn ("unknown stream type: %s", name);
+      goto done;
     }
+
+  media->linked_pads++;
 
  done:
   media_unlock (media);
@@ -1370,6 +1388,7 @@ _lp_media_finish_stop (lp_Media *media)
   g_assert (media->audio.flags == PAD_FLAG_NONE);
   g_assert (media->video.flags == PAD_FLAG_NONE);
 
+
   if (media_has_audio (media))
     g_clear_pointer (&media->audio.pad, gst_object_unref);
 
@@ -1579,13 +1598,39 @@ lp_media_stop (lp_Media *media)
 {
   media_lock (media);
 
-  if (unlikely (!media_state_started (media)))
+  if (unlikely (!(media_state_started (media) || 
+                  media_state_paused (media))))
     goto fail;                  /* nothing to do */
 
   media->state = STOPPING;
-  media_install_probe
-    (media, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
-     (GstPadProbeCallback) lp_media_stop_block_probe_callback, NULL, NULL);
+  if (_lp_scene_is_paused (media->prop.scene))
+  {                             
+    /* 
+     * Installing a block probe has no effect because pads are already 
+     * blocked. We need to iterate through pads and manually call 
+     * lp_media_stop_block_probe_callback () function. Posting an 
+     * lp_EventStop directly from here causes deadlock when calling
+     * gstx_element_set_state_sync (media->bin, GST_STATE_NULL) from 
+     * _lp_media_finish_stop () function.
+     */ 
+    GstIterator *it = NULL;
+    GValue value = G_VALUE_INIT;
+    it = gst_element_iterate_src_pads (media->bin);
+    while (gst_iterator_next (it, &value) == GST_ITERATOR_OK)
+    {
+      GstPad *p = NULL; 
+
+      p = GST_PAD (g_value_get_object (&value));
+      lp_media_stop_block_probe_callback (p, NULL, media);
+    }
+    gst_iterator_free (it);
+  }
+  else
+  {
+    media_install_probe
+      (media, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
+       (GstPadProbeCallback) lp_media_stop_block_probe_callback, NULL, NULL);
+  }
 
   media_unlock (media);
   return TRUE;
@@ -1790,6 +1835,13 @@ lp_media_pause (lp_Media *media)
 
   media->state = PAUSING;
   media->pause.time = _lp_scene_get_running_time (media->prop.scene);
+  if (media_is_frozen (media))
+  {
+    media->state = PAUSED;
+    _lp_scene_dispatch (media->prop.scene, 
+        LP_EVENT (_lp_event_pause_new (G_OBJECT(media))));
+    goto finish; /* nothing to do  */
+  }
   
   it = gst_element_iterate_src_pads (media->decoder);
   while (gst_iterator_next (it, &value) == GST_ITERATOR_OK)

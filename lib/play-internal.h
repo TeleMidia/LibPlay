@@ -171,4 +171,7 @@ _lp_scene_step (lp_Scene *, gboolean);
 void
 _lp_scene_dispatch (lp_Scene *, lp_Event *);
 
+gboolean
+_lp_scene_is_paused (lp_Scene *);
+
 #endif /* PLAY_INTERNAL_H */

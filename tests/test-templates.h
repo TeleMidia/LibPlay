@@ -78,4 +78,26 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
   }                                                     \
   STMT_END
 
+#define TEST_TEMPLATE_PAUSE_FORMAT(uri)                         \
+  STMT_BEGIN                                                    \
+  {                                                             \
+    lp_Scene *scene;                                            \
+    lp_Media *media;                                            \
+    lp_Event *event;                                            \
+                                                                \
+    scene = SCENE_NEW (800, 600, 0);                            \
+    media = lp_media_new (scene, (uri));                        \
+    g_assert_nonnull (media);                                   \
+    g_assert (lp_media_start (media));                          \
+    event = await_filtered (scene, 1, LP_EVENT_MASK_START);     \
+    g_assert_nonnull (event);                                   \
+    g_object_unref (event);                                     \
+    await_ticks (scene, 1);                                     \
+    g_assert (lp_media_pause (media));                          \
+    event = await_filtered (scene, 1, LP_EVENT_MASK_PAUSE);     \
+    g_assert_nonnull (event);                                   \
+    g_object_unref (event);                                     \
+    g_object_unref (scene);                                     \
+  }                                                             \
+  STMT_END
 #endif /* TEST_TEMPLATES_H */

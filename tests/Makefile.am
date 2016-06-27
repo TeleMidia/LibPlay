@@ -192,6 +192,14 @@ programs+= test-lp-media-prop-volume
 programs+= test-lp-media-prop-text
 programs+= test-lp-media-prop-text-font
 programs+= test-lp-media-prop-text-color
+programs+= test-lp-scene-pause
+programs+= test-lp-media-pause-jpg
+programs+= test-lp-media-pause-png
+programs+= test-lp-media-pause-avi
+programs+= test-lp-media-pause-m4v
+programs+= test-lp-media-pause-mp3
+programs+= test-lp-media-pause-oga
+programs+= test-lp-media-pause-ogv
 check_PROGRAMS= $(programs)
 
 TESTS=\
@@ -229,7 +237,6 @@ XFAIL_TESTS=\
   test-lp-scene-xfail-get\
   test-lp-scene-xfail-set\
   $(NULL)
-
 EXTRA_DIST=\
   $(check_SCRIPTS)\
   gst.supp\

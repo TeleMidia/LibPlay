@@ -294,8 +294,6 @@ scene_start_unlocked (lp_Scene *scene)
   scene->loop = g_main_loop_new (NULL, FALSE);
   g_assert_nonnull (scene->loop);
 
-  scene->clock.clock = GST_CLOCK (g_object_new (LP_TYPE_CLOCK, NULL));
-  g_assert_nonnull (scene->clock.clock);
   gst_pipeline_use_clock (GST_PIPELINE (pipeline), scene->clock.clock);
 
   bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
@@ -765,6 +763,14 @@ lp_scene_init (lp_Scene *scene)
   g_rec_mutex_init (&scene->mutex);
   scene_reset_run_time_data (scene);
   scene_reset_property_cache (scene);
+
+  /* 
+   * If we ceate the clock only on lp_scene_constructed(),  
+   * lp_scene_set_property() fails when the 'lockstep' property is set on 
+   * constructor. 
+   */
+  scene->clock.clock = GST_CLOCK (g_object_new (LP_TYPE_CLOCK, NULL));
+  g_assert_nonnull (scene->clock.clock);
 }
 
 static void
@@ -1051,7 +1057,7 @@ lp_scene_class_init (lp_SceneClass *cls)
     (gobject_class, PROP_LOCKSTEP, g_param_spec_boolean
      ("lockstep", "lock-step mode ", "enable lock-step mode",
       DEFAULT_LOCKSTEP,
-      (GParamFlags)(G_PARAM_READWRITE)));
+      (GParamFlags)(G_PARAM_CONSTRUCT | G_PARAM_READWRITE)));
 
   g_object_class_install_property
     (gobject_class, PROP_SLAVE_AUDIO, g_param_spec_boolean

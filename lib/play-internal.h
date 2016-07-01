@@ -159,6 +159,9 @@ _lp_scene_get_real_video_sink (lp_Scene *); /* transfer-full */
 GstClockTime
 _lp_scene_get_running_time (lp_Scene *);
 
+GstClockTime
+_lp_scene_get_start_time (lp_Scene *);
+
 gboolean
 _lp_scene_has_video (lp_Scene *);
 

@@ -1788,7 +1788,7 @@ seek (%s) %p\n\
 }
 
 /**
- * lp_media_get_runnint_time:
+ * lp_media_get_running_time:
  * @media: an #lp_Media
  *
  * Returns the running time of @media.
@@ -1859,4 +1859,25 @@ finish:
   media_unlock(media);
 
   return ret;
+}
+
+/**
+ * lp_media_get_start_time:
+ * @media: an #lp_Media
+ *
+ * Returns the start time of @media.
+ *
+ * Returns: @media start time
+ */
+guint64
+lp_media_get_start_time (lp_Media *media)
+{
+  guint64 time;
+  g_assert (media);
+
+  media_lock (media);
+  time = _lp_scene_get_start_time (media->prop.scene) - media->offset;
+  media_unlock (media);
+
+  return time;
 }

@@ -1156,6 +1156,20 @@ _lp_scene_get_running_time (lp_Scene *scene)
   return GST_CLOCK_TIME_NONE;
 }
 
+GstClockTime
+_lp_scene_get_start_time (lp_Scene *scene)
+{
+  GstClockTime time = GST_CLOCK_TIME_NONE;
+
+  scene_lock (scene);
+
+  if (scene_state_started_or_paused (scene))
+    time = scene->clock.offset;
+
+  scene_unlock (scene);
+  return time;
+}
+
 /* Returns @scene audio mixer.  */
 
 GstElement *

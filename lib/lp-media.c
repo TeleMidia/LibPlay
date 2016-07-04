@@ -40,6 +40,7 @@ typedef enum
   FLAG_NONE     = 0,                 /* no flags set */
   FLAG_DRAINED  = (1 << 0),          /* media has drained */
   FLAG_FROZEN   = (1 << 1),          /* media is a still image */
+  FLAG_TEXT     = (1 << 2),          /* media is a text */
   FLAG_ALL      = (gint)(0xffffffff) /* all flags set */
 } lp_MediaFlag;
 
@@ -59,6 +60,7 @@ struct _lp_Media
   GObject parent;               /* parent object */
   GRecMutex mutex;              /* sync access to media */
   GstElement *bin;              /* container */
+  GstElement *source;           /* source element (for text) */
   GstElement *decoder;          /* content decoder */
   GstClockTime offset;          /* start time offset */
   lp_MediaState state;          /* current state */
@@ -206,6 +208,8 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
 #define media_toggle_drained(m)   (media_flag_toggle (m, FLAG_DRAINED))
 #define media_is_frozen(m)        ((m)->flags & FLAG_FROZEN)
 #define media_toggle_frozen(m)    (media_flag_toggle (m, FLAG_FROZEN))
+#define media_is_text(m)          ((m)->flags & FLAG_TEXT)
+#define media_toggle_text(m)      (media_flag_toggle (m, FLAG_TEXT))
 
 /* Media pad queries and pad-flag access.  */
 #define MEDIA_PAD_FLAGS_INIT(p, f)   ((p) = (lp_MediaPadFlag)(f))
@@ -241,6 +245,7 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
   STMT_BEGIN                                    \
   {                                             \
     (m)->bin = NULL;                            \
+    (m)->source = NULL;                         \
     (m)->decoder = NULL;                        \
     (m)->offset = GST_CLOCK_TIME_NONE;          \
     (m)->state = STOPPED;                       \
@@ -1388,7 +1393,6 @@ _lp_media_finish_stop (lp_Media *media)
   g_assert (media->audio.flags == PAD_FLAG_NONE);
   g_assert (media->video.flags == PAD_FLAG_NONE);
 
-
   if (media_has_audio (media))
     g_clear_pointer (&media->audio.pad, gst_object_unref);
 
@@ -1514,7 +1518,51 @@ lp_media_start (lp_Media *media)
 
   if (gst_uri_is_valid (media->prop.uri))
     {
-      media->prop.final_uri = g_strdup (media->prop.uri);
+      gboolean ok = TRUE;
+      char *urischeme = gst_uri_get_protocol (media->prop.uri);
+      if (g_str_equal ("data", urischeme))
+      {
+        /* URI is: data://<...>  */
+        char *tmp = media->prop.uri + 4;
+        char *endptr = NULL;
+
+        if (!tmp || *tmp != ':')
+          ok = FALSE;
+        else
+          while (*(++tmp))
+          {
+            if (*tmp == ',')
+            {
+              endptr = tmp;
+              break;
+            }
+          }
+
+        if (endptr != NULL)
+        {
+          char *type;
+          tmp = media->prop.uri + 5;
+          type = g_strndup (tmp, endptr - tmp);
+
+          /* If type isn't specified, the default is text */
+          if (strlen (type) == 0 ||  g_str_has_prefix(type, "text"))
+          {
+            char *text = (endptr + 1);
+            g_object_set (media, "text", text, NULL);
+
+            media_flag_set (media, FLAG_TEXT); 
+          }
+          g_free (type);
+        }
+        else
+          ok = FALSE;
+      }
+      else
+        media->prop.final_uri = g_strdup (media->prop.uri);
+
+      g_free (urischeme);
+      if (!ok)
+        goto fail;
     }
   else
     {
@@ -1529,7 +1577,30 @@ lp_media_start (lp_Media *media)
       media->prop.final_uri = final_uri;
     }
 
-  _lp_eltmap_alloc_check (media, lp_media_eltmap);
+  if (media_is_text(media))
+  {
+    const gstx_eltmap_t lp_media_text_eltmap[] = {
+      {"bin",           offsetof (lp_Media, bin)},
+      {"videotestsrc",  offsetof (lp_Media, source)},
+      {"decodebin",     offsetof (lp_Media, decoder)},
+      {NULL, 0},
+    };
+
+    _lp_eltmap_alloc_check (media, lp_media_text_eltmap);
+    
+    gstx_bin_add (media->bin, media->source);
+    gstx_bin_add (media->bin, media->decoder);
+
+    g_object_set (media->source, "pattern", 2 /* black */, NULL);
+        
+    g_assert (gst_element_link (media->source, media->decoder));
+  }
+  else
+  {
+    _lp_eltmap_alloc_check (media, lp_media_eltmap);
+    g_object_set (media->decoder, "uri", media->prop.final_uri, NULL);
+    gstx_bin_add (media->bin, media->decoder);
+  }
 
   media->callback.pad_added = g_signal_connect
     (media->decoder, "pad-added", /* GstElement */
@@ -1552,8 +1623,6 @@ lp_media_start (lp_Media *media)
   g_assert (media->callback.drained > 0);
 
   g_object_set_data (G_OBJECT (media->bin), "lp_Media", media);
-  g_object_set (media->decoder, "uri", media->prop.final_uri, NULL);
-  gstx_bin_add (media->bin, media->decoder);
 
   pipeline = _lp_scene_get_pipeline (media->prop.scene);
   g_assert_nonnull (pipeline);

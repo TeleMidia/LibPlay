@@ -40,16 +40,16 @@ do
 
    assert (pcall (sc.set, sc, 'width', {}) == false)             -- bad type
    assert (pcall (sc.set, sc, 'height', function()end) == false) -- bad type
-   assert (pcall (sc.set, sc, 'pattern', {}) == false)           -- bad type
+   assert (pcall (sc.set, sc, 'background', {}) == false)        -- bad type
    assert (pcall (sc.set, sc, 'wave', nil) == false)             -- bad type
    assert (pcall (sc.set, sc, 'interval', {}) == false)          -- bad type
    assert (pcall (sc.set, sc, 'text', function()end) == false)   -- bad type
    assert (pcall (sc.set, sc, 'text-color', {}) == false)        -- bad type
    assert (pcall (sc.set, sc, 'text-font', {}) == false)         -- bad type
 
-   assert (sc:get ('pattern') == 2)
-   sc:set ('pattern', 3)
-   assert (sc:get ('pattern') == 3)
+   assert (sc:get ('background') == 3)
+   sc:set ('background', 2)
+   assert (sc:get ('background') == 2)
 
    assert (sc:get ('wave') == 4)
    sc:set ('wave', 0)

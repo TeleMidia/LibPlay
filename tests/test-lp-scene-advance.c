@@ -26,11 +26,11 @@ main (void)
   guint64 last;
   gint i, j;
 
-  scene = SCENE_NEW (800, 600, 4);
+  scene = SCENE_NEW (800, 600, 3);
   g_object_get (scene, "lockstep", &lockstep, NULL);
   g_assert (!lockstep);
 
-  g_object_set (scene, "pattern", 18, "wave", 0, NULL);
+  g_object_set (scene, "background", 0, "wave", 0, NULL);
   await_ticks (scene, 2);
 
   g_assert (!lp_scene_advance (scene, GST_SECOND));

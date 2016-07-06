@@ -32,7 +32,7 @@ do
 
    assert (sc:get ('width') == 0)
    assert (sc:get ('height') == 0)
-   assert (sc:get ('pattern') == 2)
+   assert (sc:get ('background') == 3)
    assert (sc:get ('wave') == 4)
    assert (sc:get ('ticks') == 0)
    assert (sc:get ('interval') == 1000000000)

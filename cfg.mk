@@ -89,45 +89,131 @@ fetch-remote-local:
 	  $(FETCH) -dir="$$dir" "$(nclua)/$$path" || exit 1;\
 	done
 
-# Build dependencies.
+# Build dependencies locally.
+glib_dir:= deps/glib
 glib_git:= git://git.gnome.org/glib
 glib_configure:=\
   --prefix=$(PWD)/deps/tree\
-  --enable-debug\
+  --enable-debug=yes\
   --enable-gc-friendly\
   --disable-mem-pools\
-  --disable-gtk-doc\
+  --disable-installed-tests\
+  --disable-always-build-tests\
   --disable-man\
-  --disable-dtrace\
-  --with-libiconv=gnu\
-  CFLAGS="-O0 -g"\
+  --disable-compile-warnings\
+  CFLAGS='-O0 -g'\
   $(NULL)
-GLIB_CLONE= test -d deps/glib || git clone $(deps_git_glib) deps/glib
-GLIB_SYNC= (cd deps/glib && git pull) || exit 1
-GLIB_CONFIGURE= (cd deps/glib && ./autogen.sh $(glib_configure)) || exit 1
-GLIB_MAKE= $(MAKE) -C deps/glib
 
+gstreamer_dir:= deps/gstreamer
+gstreamer_git_root:= git://anongit.freedesktop.org/gstreamer
+gstreamer_git:= $(gstreamer_git_root)/gstreamer
+gstreamer_configure:=\
+  --prefix=$(PWD)/deps/tree\
+  --disable-fatal-warnings\
+  --disable-examples\
+  --disable-tests\
+  --disable-failing-tests\
+  --disable-benchmarks\
+  --disable-docbook\
+  --disable-gtk-doc\
+  --disable-check\
+  --with-pkg-config-path=$(PWD)/deps/tree/lib/pkgconfig\
+  $(NULL)
+gstreamer_build:=\
+  CFLAGS='-O0 -g'\
+  $(NULL)
+
+gstbase_dir:= deps/gstbase
+gstbase_git:= $(gstreamer_git_root)/gst-plugins-base
+gstbase_configure= $(gstreamer_configure)
+gstbase_build= $(gstreamer_build)
+
+gstgood_dir:= deps/gstgood
+gstgood_git:= $(gstreamer_git_root)/gst-plugins-good
+gstgood_configure= $(gstreamer_configure)
+gstgood_build= $(gstreamer_build)
+
+gstbad_dir:= deps/gstbad
+gstbad_git:= $(gstreamer_git_root)/gst-plugins-bad
+gstbad_configure= $(gstreamer_configure)
+gstbad_build= $(gstreamer_build)
+
+DEPS= glib gstreamer gstbase gstgood gstbad
+
+# Bootstraps project with local deps.
+.PHONY: deps-bootstrap
+deps-bootstrap:
+	$(V_at)./$(BOOTSTRAP)
+	$(V_at)./configure $(bootstrap_default_options) $(BOOTSTRAP_EXTRA)\
+	  PKG_CONFIG_PATH=$(PWD)/deps/tree/lib/pkgconfig
+
+# Sync (cloning, if necessary) local deps.
 .PHONY: deps-sync
-deps-sync:
-	$(GLIB_TRY_CLONE)
-	$(GLIB_SYNC)
+deps-sync: $(foreach dep,$(DEPS),deps-sync-$(dep))
 
+define deps_sync_tpl=
+.PHONY: deps-sync-$(1)
+deps-sync-$(1):
+	test -d $(2) || git clone $(3) $(2)
+	(cd $(2) && git pull) || exit 1
+endef
+$(foreach dep,$(DEPS),\
+  $(eval $(call deps_sync_tpl,$(dep),$($(dep)_dir),$($(dep)_git))))
+
+# Configure (forcefully) local deps.
 .PHONY: deps-force-configure
-deps-force-configure:
+deps-force-configure: $(foreach dep,$(DEPS),deps-force-configure-$(dep))
 	$(GLIB_CONFIGURE)
+	$(GSTREAMER_CONFIGURE)
 
+define deps_force_configure_tpl=
+.PHONY: deps-force-configure-$(1)
+deps-force-configure-$(1):
+	cd $(2) && ./autogen.sh $(3)
+endef
+$(foreach dep,$(DEPS),\
+  $(eval $(call deps_force_configure_tpl,$(dep),$($(dep)_dir),$($(dep)_configure))))
+
+# Configure local deps.
 .PHONY: deps-configure
-deps-configure:
-	test -f deps/glib/configure || { $(GLIB_CONFIGURE); } && :
+deps-configure: $(foreach dep,$(DEPS),deps-configure-$(dep))
+define deps_configure_tpl=
+.PHONY: deps-configure-$(1)
+deps-configure-$(1):
+	test -f $(2)/configure || (cd $(2) && ./autogen.sh $(3))
+endef
+$(foreach dep,$(DEPS),\
+  $(eval $(call deps_configure_tpl,$(dep),$($(dep)_dir),$($(dep)_configure))))
 
+# Build local deps.
 .PHONY: deps-build
-deps-build: deps-configure
-	$(GLIB_MAKE)
+deps-build: deps-configure $(foreach dep,$(DEPS),deps-build-$(dep))
+define deps_build_tpl=
+.PHONY: deps-build-$(1)
+deps-build-$(1):
+	$(MAKE) -C $(2) $(3)
+endef
+$(foreach dep,$(DEPS),\
+  $(eval $(call deps_build_tpl,$(dep),$($(dep)_dir),$($(dep)_build))))
 
+# Clean local deps.
 .PHONY: deps-clean
-deps-clean:
-	$(GLIB_MAKE) clean
+deps-clean: $(foreach dep,$(DEPS),deps-clean-$(dep))
+define deps_clean_tpl=
+.PHONY: deps-clean-$(1)
+deps-clean-$(1):
+	$(MAKE) -C $(2) $(3) clean
+endef
+$(foreach dep,$(DEPS),\
+  $(eval $(call deps_clean_tpl,$(dep),$($(dep)_dir),$($(dep)_clean))))
 
+# Install local deps.
 .PHONY: deps-install
-deps-install: deps-build
-	$(GLIB_MAKE) install
+deps-install: deps-build $(foreach dep,$(DEPS),deps-install-$(dep))
+define deps_install_tpl=
+.PHONY: deps-install-$(1)
+deps-install-$(1):
+	$(MAKE) -C $(2) $(3) install
+endef
+$(foreach dep,$(DEPS),\
+  $(eval $(call deps_install_tpl,$(dep),$($(dep)_dir),$($(dep)_install))))

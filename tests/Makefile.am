@@ -72,11 +72,11 @@ AM_TESTS_ENVIRONMENT=\
   export GST_DEBUG="*:WARN";\
   export G_DEBUG="all";\
   export G_SLICE="always-malloc";\
-  export LD_LIBRARY_PATH="$(top_builddir)/deps/tree/lib:$(top_builddir)/lib/.libs:$(top_builddir)/play:$$LD_LIBRARY_PATH";\
-  export MALLOC_CHECK_=1;\
+  export LD_LIBRARY_PATH="$(top_builddir)/deps/tree/lib:$(top_builddir)/lib/.libs:$(top_builddir)/play";\
   export LD_PRELOAD="$(LD_PRELOAD)";\
   export LUA_CPATH="$(builddir)/.libs/?$(SOEXT);$(top_builddir)/?$(SOEXT);;";\
   export LUA_PATH="$(top_srcdir)/?.lua;$(top_srcdir)/?/init.lua;$(top_srcdir)/tests/?.lua;;";\
+  export MALLOC_CHECK_=1;\
   $(NULL)
 
 # Test scripts.

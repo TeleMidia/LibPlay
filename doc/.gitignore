@@ -1,0 +1,13 @@
+*.args
+*.stamp
+*.stamp
+*.txt
+/html
+/libplay.hierarchy
+/libplay.interfaces
+/libplay.prerequisites
+/libplay.signals
+/libplay.types
+/tmpl
+/version.xml
+/xml

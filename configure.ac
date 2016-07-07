@@ -30,7 +30,7 @@ AC_CONFIG_SRCDIR([lib/play.h])
 AC_CONFIG_HEADERS([lib/config.h])
 AU_GITLOG_TO_CHANGELOG([2015-11-05])
 
-AM_INIT_AUTOMAKE([1.14 -Wall -Werror dist-xz gnu no-dist-gzip])
+AM_INIT_AUTOMAKE([1.14 -Wall dist-xz gnu no-dist-gzip])
 AM_SILENT_RULES([yes])
 AM_PROG_AR
 
@@ -78,6 +78,11 @@ nw="$nw -Wsystem-headers"     # Suppress system headers warnings
 nw="$nw -Wpadded"             # Our structs are not packed
 nw="$nw -Wshift-overflow=2"   # Triggered by Glib and GStreamer headers
 AU_ARG_ENABLE_WARNINGS([$nw])
+
+# API documentation.
+m4_ifdef([GTK_DOC_CHECK],[
+GTK_DOC_CHECK([1.20], [--flavour no-tmpl])
+],[AM_CONDITIONAL([ENABLE_GTK_DOC],[false])])
 
 # Library functions.
 AC_CHECK_LIBM
@@ -136,6 +141,8 @@ AC_SUBST([luaplaylibdir], ["${lualibdir}/play"])
 
 AC_CONFIG_FILES([
 Makefile
+doc/Makefile
+doc/version.xml
 examples/Makefile
 lib/Makefile
 lib/play.pc
@@ -157,5 +164,7 @@ AC_MSG_NOTICE([summary of main build options:
   Warning flags:      ${WERROR_CFLAGS} ${WARN_CFLAGS}
   Library types:      Shared=${enable_shared}, Static=${enable_static}
   Valgrind:           ${VALGRIND}
+
   Lua bindings:       ${au_check_lua}
+  API documentation:  ${enable_gtk_doc}
 ])

@@ -22,9 +22,25 @@ SUBDIRS= lib src
 if WITH_LUA
 SUBDIRS+= play
 endif
+if ENABLE_GTK_DOC
+SUBDIRS+= doc
+endif
 SUBDIRS+= examples tests
 
 ACLOCAL_AMFLAGS= -I build-aux ${ACLOCAL_FLAGS}
+
+# Generate API documentation.
+if ENABLE_GTK_DOC
+GTK_DOC_DEPENDENCIES= all
+GTK_DOC_RECURSIVE= cd doc && $(MAKE) $(AM_MAKEFLAGS) $@
+else
+GTK_DOC_DEPENDENCIES=
+GTK_DOC_RECURSIVE=
+endif
+
+.PHONY: doc docs
+doc docs: $(GTK_DOC_DEPENDENCIES)
+	@$(GTK_DOC_RECURSIVE)
 
 # Setup code coverage.
 include $(top_srcdir)/build-aux/Makefile.am.coverage
@@ -86,7 +102,6 @@ DISTCLEANFILES+=\
 
 MAINTAINERCLEANFILES+=\
   .version\
-  ChangeLog\
   INSTALL\
   aclocal.m4\
   build-aux/ar-lib\
@@ -94,6 +109,7 @@ MAINTAINERCLEANFILES+=\
   build-aux/config.guess\
   build-aux/config.sub\
   build-aux/depcomp\
+  build-aux/gtk-doc.m4\
   build-aux/install-sh\
   build-aux/libtool.m4\
   build-aux/ltmain.sh\
@@ -105,6 +121,7 @@ MAINTAINERCLEANFILES+=\
   build-aux/mkinstalldirs\
   build-aux/test-driver\
   configure\
+  gtk-doc.make\
   lib/config.h.in\
   lib/config.h.in~\
   $(NULL)

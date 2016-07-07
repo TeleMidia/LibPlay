@@ -63,6 +63,7 @@
 /dist-deb
 /examples/dump
 /examples/seek
+/gtk-doc.make
 /lib/config.h
 /lib/config.h.in
 /lib/play.pc

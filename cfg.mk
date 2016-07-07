@@ -209,7 +209,7 @@ $(foreach dep,$(DEPS),\
 
 # Install local deps.
 .PHONY: deps-install
-deps-install: deps-build $(foreach dep,$(DEPS),deps-install-$(dep))
+deps-install: $(foreach dep,$(DEPS),deps-install-$(dep))
 define deps_install_tpl=
 .PHONY: deps-install-$(1)
 deps-install-$(1):

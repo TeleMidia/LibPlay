@@ -410,11 +410,11 @@ lp_media_pad_added_block_probe_callback (GstPad *pad, GstPadProbeInfo *info,
 }
 
 static GstPadProbeReturn
-lp_media_pausing_block_probe_callback (GstPad *pad, 
-                                       GstPadProbeInfo *info,
-                                       arg_unused(lp_Media *media))
+lp_media_pausing_block_probe_callback (GstPad *pad,
+                                       arg_unused (GstPadProbeInfo *info),
+                                       arg_unused (lp_Media *media))
 {
-  GstCaps *caps = NULL; 
+  GstCaps *caps = NULL;
   GstPad *peer = NULL;
   const char *name = NULL;
 

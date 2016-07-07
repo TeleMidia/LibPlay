@@ -177,4 +177,8 @@ _lp_scene_dispatch (lp_Scene *, lp_Event *);
 gboolean
 _lp_scene_is_paused (lp_Scene *);
 
+/* common */
+void
+_lp_common_appsrc_transparent_data (GstElement *, guint, gpointer);
+
 #endif /* PLAY_INTERNAL_H */

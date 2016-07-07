@@ -267,33 +267,6 @@ scene_get_real_sink (lp_Scene *scene, ptrdiff_t offset)
   return sink;
 }
 
-static void
-lp_scene_video_blank_data (GstElement *src, guint size, gpointer data)
-{
-  static gboolean white = FALSE;
-  static GstClockTime timestamp = 0;
-  GstBuffer *buffer;
-  GstFlowReturn ret;
-  lp_Scene *scene;
-
-  scene = LP_SCENE (data);
-
-  size = scene->prop.width * scene->prop.height * 32;
-
-  buffer = gst_buffer_new_allocate (NULL, size, NULL);
-
-  /* transparent buffer */
-  gst_buffer_memset (buffer, 0, 0x0, size);
-
-  GST_BUFFER_PTS (buffer) = timestamp;
-  GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 2);
-
-  timestamp += GST_BUFFER_DURATION (buffer);
-
-  g_signal_emit_by_name (src, "push-buffer", buffer, &ret);
-  gst_buffer_unref (buffer);
-}
-
 /* Creates scene pipeline and starts @scene.
    Returns %TRUE if successful, or %FALSE otherwise.
 
@@ -347,11 +320,6 @@ scene_start_unlocked (lp_Scene *scene)
           "framerate", GST_TYPE_FRACTION, 0, 1,
           NULL);
 
-      g_object_set (G_OBJECT (scene->video.blank), "caps", caps,  NULL);
-      gst_caps_unref (caps);
-      g_signal_connect (scene->video.blank, "need-data", 
-          G_CALLBACK (lp_scene_video_blank_data), scene);
-
       gstx_bin_add (pipeline, scene->video.blank);
       gstx_bin_add (pipeline, scene->video.mixer);
       gstx_bin_add (pipeline, scene->video.text);
@@ -362,9 +330,15 @@ scene_start_unlocked (lp_Scene *scene)
       gstx_element_link (scene->video.text, scene->video.convert);
       gstx_element_link (scene->video.convert, scene->video.sink);
       g_object_set (scene->video.blank,
-                  "format", GST_FORMAT_TIME, NULL);
+                  "format", GST_FORMAT_TIME, 
+                  "caps", caps,
+                  NULL);
       g_object_set (scene->video.mixer,
                   "background", scene->prop.background, NULL);
+      g_signal_connect (scene->video.blank, "need-data", 
+          G_CALLBACK (_lp_common_appsrc_transparent_data), scene);
+
+      gst_caps_unref (caps);
 
     }
 

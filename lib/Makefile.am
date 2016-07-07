@@ -59,6 +59,7 @@ libplay_la_SOURCES=\
   lp-event.c\
   lp-media.c\
   lp-scene.c\
+	lp-common.c\
   lp-version.c\
   play.h\
   playconf.h\

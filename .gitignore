@@ -32,6 +32,7 @@
 /ChangeLog
 /INSTALL
 /README
+/TAGS
 /aclocal.m4
 /build-aux/*
 !/build-aux/Makefile.am.common

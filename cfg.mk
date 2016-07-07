@@ -147,9 +147,10 @@ deps-bootstrap:
 	$(V_at)./configure $(bootstrap_default_options) $(BOOTSTRAP_EXTRA)\
 	  PKG_CONFIG_PATH=$(PWD)/deps/tree/lib/pkgconfig
 
-# Sync (cloning, if necessary) local deps.
+# Syncs (cloning, if necessary) local deps.
 .PHONY: deps-sync
 deps-sync: $(foreach dep,$(DEPS),deps-sync-$(dep))
+	find . ./deps -name '*.[ch]' -print0 | xargs -0 etags
 
 define deps_sync_tpl=
 .PHONY: deps-sync-$(1)
@@ -160,7 +161,7 @@ endef
 $(foreach dep,$(DEPS),\
   $(eval $(call deps_sync_tpl,$(dep),$($(dep)_dir),$($(dep)_git))))
 
-# Configure (forcefully) local deps.
+# Configures (forcefully) local deps.
 .PHONY: deps-force-configure
 deps-force-configure: $(foreach dep,$(DEPS),deps-force-configure-$(dep))
 	$(GLIB_CONFIGURE)
@@ -174,7 +175,7 @@ endef
 $(foreach dep,$(DEPS),\
   $(eval $(call deps_force_configure_tpl,$(dep),$($(dep)_dir),$($(dep)_configure))))
 
-# Configure local deps.
+# Configures local deps.
 .PHONY: deps-configure
 deps-configure: $(foreach dep,$(DEPS),deps-configure-$(dep))
 define deps_configure_tpl=
@@ -185,7 +186,7 @@ endef
 $(foreach dep,$(DEPS),\
   $(eval $(call deps_configure_tpl,$(dep),$($(dep)_dir),$($(dep)_configure))))
 
-# Build local deps.
+# Builds local deps.
 .PHONY: deps-build
 deps-build: deps-configure $(foreach dep,$(DEPS),deps-build-$(dep))
 define deps_build_tpl=
@@ -196,7 +197,7 @@ endef
 $(foreach dep,$(DEPS),\
   $(eval $(call deps_build_tpl,$(dep),$($(dep)_dir),$($(dep)_build))))
 
-# Clean local deps.
+# Cleans local deps.
 .PHONY: deps-clean
 deps-clean: $(foreach dep,$(DEPS),deps-clean-$(dep))
 define deps_clean_tpl=
@@ -207,7 +208,7 @@ endef
 $(foreach dep,$(DEPS),\
   $(eval $(call deps_clean_tpl,$(dep),$($(dep)_dir),$($(dep)_clean))))
 
-# Install local deps.
+# Installs local deps.
 .PHONY: deps-install
 deps-install: $(foreach dep,$(DEPS),deps-install-$(dep))
 define deps_install_tpl=

@@ -74,12 +74,13 @@ NCLUA_FILES+= lib/luax-macros.h
 NCLUA_FILES+= lib/macros.h
 NCLUA_FILES+= maint.mk
 NCLUA_FILES+= tests/lua.c
-NCLUA_SCRIPTS+= bootstrap
 NCLUA_SCRIPTS+= build-aux/syntax-check
 NCLUA_SCRIPTS+= build-aux/syntax-check-copyright
 REMOTE_FILES+= $(NCLUA_FILES)
 REMOTE_SCRIPTS+= $(NCLUA_SCRIPTS)
-fetch-remote-local:
+
+.PHONY: fetch-remote-local-nclua
+fetch-remote-local-nclua:
 	$(V_at)for path in $(NCLUA_FILES) $(NCLUA_SCRIPTS); do\
 	  if test "$$path" = "lib/luax-macros.h"; then\
 	    dir=play;\
@@ -88,6 +89,15 @@ fetch-remote-local:
 	  fi;\
 	  $(FETCH) -dir="$$dir" "$(nclua)/$$path" || exit 1;\
 	done
+
+glib:= https://git.gnome.org/browse/glib/plain
+REMOTE_SCRIPTS+= bootstrap
+
+.PHONY: fetch-remote-local-glib
+fetch-remote-local-glib: fetch-remote-local-nclua
+	$(V_at)$(FETCH) -dir=. $(glib)/autogen.sh && mv autogen.sh bootstrap
+
+fetch-remote-local: fetch-remote-local-nclua fetch-remote-local-glib
 
 # Build dependencies locally.
 glib_dir:= deps/glib

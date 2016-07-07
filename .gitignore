@@ -107,6 +107,13 @@
 /tests/test-lp-media-new
 /tests/test-lp-media-new-xfail-bad-scene
 /tests/test-lp-media-new-xfail-bad-uri
+/tests/test-lp-media-pause-avi
+/tests/test-lp-media-pause-jpg
+/tests/test-lp-media-pause-m4v
+/tests/test-lp-media-pause-mp3
+/tests/test-lp-media-pause-oga
+/tests/test-lp-media-pause-ogv
+/tests/test-lp-media-pause-png
 /tests/test-lp-media-prop-alpha
 /tests/test-lp-media-prop-mute
 /tests/test-lp-media-prop-text
@@ -142,8 +149,9 @@
 /tests/test-lp-media-xfail-set
 /tests/test-lp-scene-advance
 /tests/test-lp-scene-advance-quitted
-/tests/test-lp-scene-new
 /tests/test-lp-scene-get-quitted
+/tests/test-lp-scene-new
+/tests/test-lp-scene-pause
 /tests/test-lp-scene-prop-interval
 /tests/test-lp-scene-prop-lockstep
 /tests/test-lp-scene-prop-mask

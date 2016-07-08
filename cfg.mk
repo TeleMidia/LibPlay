@@ -170,7 +170,7 @@ deps-bootstrap:
 # Syncs (cloning, if necessary) local deps.
 .PHONY: deps-sync
 deps-sync: $(foreach dep,$(DEPS),deps-sync-$(dep))
-	find . ./deps -name '*.[ch]' -print0 | xargs -0 etags
+	find . -name '*.[ch]' -print0 | xargs -0 etags
 
 define deps_sync_tpl=
 .PHONY: deps-sync-$(1)
@@ -208,10 +208,10 @@ $(foreach dep,$(DEPS),\
 
 # Builds local deps.
 .PHONY: deps-build
-deps-build: deps-configure $(foreach dep,$(DEPS),deps-build-$(dep))
+deps-build: $(foreach dep,$(DEPS),deps-build-$(dep))
 define deps_build_tpl=
 .PHONY: deps-build-$(1)
-deps-build-$(1):
+deps-build-$(1): deps-configure-$(1)
 	$(MAKE) -C $(2) $(3)
 endef
 $(foreach dep,$(DEPS),\
@@ -233,7 +233,7 @@ $(foreach dep,$(DEPS),\
 deps-install: $(foreach dep,$(DEPS),deps-install-$(dep))
 define deps_install_tpl=
 .PHONY: deps-install-$(1)
-deps-install-$(1):
+deps-install-$(1): deps-configure-$(1)
 	$(MAKE) -C $(2) $(3) install
 endef
 $(foreach dep,$(DEPS),\

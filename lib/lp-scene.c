@@ -121,7 +121,7 @@ enum
 #define DEFAULT_MASK         LP_EVENT_MASK_ANY /* any event */
 #define DEFAULT_WIDTH        0                 /* no video output */
 #define DEFAULT_HEIGHT       0                 /* no video output */
-#define DEFAULT_BACKGROUND   3                 /* transparent */
+#define DEFAULT_BACKGROUND   0                 /* transparent */
 #define DEFAULT_WAVE         4                 /* silence */
 #define DEFAULT_TICKS        0                 /* no ticks */
 #define DEFAULT_INTERVAL     GST_SECOND        /* one tick per second */

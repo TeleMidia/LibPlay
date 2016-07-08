@@ -19,6 +19,9 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <config.h>
 #include "play-internal.h"
 
+#define DEFAULT_VIDEO_BUFFER_DUR      33 /* ≅ 30 fps */
+#define VIDEO_FORMAT_ARGB_SIZE         4 /* 8 bits per channel == 4 bytes */
+
 /* Callback called whenever an appsrc needs to push a transparent buffer */
 void
 _lp_common_appsrc_transparent_data (GstElement *src, guint size, gpointer data)
@@ -27,8 +30,14 @@ _lp_common_appsrc_transparent_data (GstElement *src, guint size, gpointer data)
   GstBuffer *buffer;
   GstFlowReturn ret;
   GObject *object;
+  GstCaps *caps;
+  GstStructure *structure;
+  const GValue *framerate;
   guint width;
   guint height;
+  guint64 duration;
+  gint numerator;
+  gint denominator;
 
   object = G_OBJECT (data);
 
@@ -37,7 +46,32 @@ _lp_common_appsrc_transparent_data (GstElement *src, guint size, gpointer data)
                 "height", &height,
                 NULL);
 
-  size = width * height * 32;
+  g_object_get (src, 
+                "caps", &caps,
+                NULL);
+
+  g_assert_nonnull (caps);
+  structure = gst_caps_get_structure (caps, 0);
+  gst_caps_unref (caps);
+
+  framerate = gst_structure_get_value (structure, "framerate");
+
+  if (framerate == NULL || 
+      (numerator =  gst_value_get_fraction_numerator (framerate), 
+       denominator = gst_value_get_fraction_denominator(framerate),
+       numerator == 0 || denominator == 0))
+  {
+    /* 
+     * We consider 30 fps as default framerate. Note this only works 
+     * if the appsrc is generating video buffers.
+     */
+    duration = DEFAULT_VIDEO_BUFFER_DUR * GST_MSECOND; 
+  }
+  else
+    duration = numerator / denominator * GST_MSECOND; 
+  
+  /* We assume the video format ARGB (4 bytes) */
+  size = width * height * VIDEO_FORMAT_ARGB_SIZE;
 
   buffer = gst_buffer_new_allocate (NULL, size, NULL);
 
@@ -45,7 +79,7 @@ _lp_common_appsrc_transparent_data (GstElement *src, guint size, gpointer data)
   gst_buffer_memset (buffer, 0, 0x0, size);
 
   GST_BUFFER_PTS (buffer) = timestamp;
-  GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 2);
+  GST_BUFFER_DURATION (buffer) = duration;
 
   timestamp += GST_BUFFER_DURATION (buffer);
 

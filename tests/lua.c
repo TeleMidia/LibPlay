@@ -44,7 +44,7 @@ main (int argc, const char **argv)
   for (i = 0; i < argc; i++)
     {
       lua_pushstring (L, argv[i]);
-      lua_rawseti (L, -2, i);
+      lua_rawseti (L, -2, (int) i);
     }
   lua_setglobal (L, "arg");
 

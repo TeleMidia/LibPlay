@@ -28,13 +28,13 @@ main (void)
   guint64 interval = G_MAXUINT64;
   guint64 ticks = G_MAXUINT64;
 
-  scene = SCENE_NEW (640, 480, 4);
+  scene = SCENE_NEW (640, 480, 3);
   g_object_get (scene, "interval", &interval, NULL);
   g_assert (interval == GST_SECOND);
 
   for (i = 0; i < nelementsof (v); i++)
     {
-      gint pattern = 0;
+      gint background = 0;
       gint wave = 0;
       gint n;
 
@@ -49,7 +49,7 @@ main (void)
           await_ticks (scene, 1);
           t++;
           g_object_set (scene,
-                        "pattern", pattern++ % 25,
+                        "background", background++ % 4,
                         "wave", wave++ % 13, NULL);
         }
     }

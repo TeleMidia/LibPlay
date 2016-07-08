@@ -21,22 +21,22 @@ int
 main (void)
 {
   lp_Scene *scene;
-  gint pattern = -1;
+  gint background = -1;
 
   scene = lp_scene_new (800, 600);
   g_assert_nonnull (scene);
 
-  g_object_get (scene, "pattern", &pattern, NULL);
-  g_assert (pattern == 2);
+  g_object_get (scene, "background", &background, NULL);
+  g_assert (background == 0);
 
   await_ticks (scene, 1);
-  g_object_set (scene, "pattern", 8, NULL);
-  g_object_get (scene, "pattern", &pattern, NULL);
-  g_assert (pattern == 8);
+  g_object_set (scene, "background", 2, NULL);
+  g_object_get (scene, "background", &background, NULL);
+  g_assert (background == 2);
 
   await_ticks (scene, 1);
-  g_object_get (scene, "pattern", &pattern, NULL);
-  g_assert (pattern == 8);
+  g_object_get (scene, "background", &background, NULL);
+  g_assert (background == 2);
   g_object_unref (scene);
 
   exit (EXIT_SUCCESS);

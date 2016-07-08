@@ -35,18 +35,18 @@ PRAGMA_DIAG_IGNORE (-Winline)
 #include "test-samples.h"
 
 /* Creates a test scene.   */
-#define SCENE_NEW(width, height, pattern)\
-  _SCENE_NEW (width, height, pattern, __FILE__)
+#define SCENE_NEW(width, height, background)\
+  _SCENE_NEW (width, height, background, __FILE__)
 
 static ATTR_UNUSED lp_Scene *
-_SCENE_NEW (gint width, gint height, gint pattern, const gchar *text)
+_SCENE_NEW (gint width, gint height, gint background, const gchar *text)
 {
   lp_Scene *scene;
 
   scene = LP_SCENE (g_object_new (LP_TYPE_SCENE,
                                   "width", width,
                                   "height", height,
-                                  "pattern", pattern,
+                                  "background", background,
                                   "text", text,
                                   "text-color", 0xffffff00,
                                   "text-font", "sans italic bold 16",

@@ -40,7 +40,7 @@ end
 
 do
    local sc = tests.scene_new (800, 600, nil, ME)
-   sc:set ('pattern', 0)
+   sc:set ('background', 0)
    sc:set ('wave', 0)
 
    assert (pcall (sc.receive, nil) == false) -- bad scene
@@ -51,7 +51,7 @@ do
       assert (t.source == sc)
       if t.type == 'tick' then
          assert (type (t.serial) == 'number')
-         sc:set ('pattern', sc:get ('pattern') + 1)
+         sc:set ('background', (sc:get ('background') + 1) % 4)
          sc:set ('wave', sc:get ('wave') + 1)
          await = await - 1
       elseif t.type == 'key' then

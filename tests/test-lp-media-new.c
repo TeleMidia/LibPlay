@@ -30,7 +30,8 @@ main (void)
   scene = SCENE_NEW (0, 0, 0);
   media = LP_MEDIA (g_object_new (LP_TYPE_MEDIA,
                                   "scene", scene,
-                                  "uri", SAMPLE_GNU));
+                                  "uri", SAMPLE_GNU,
+                                  NULL));
   g_assert_nonnull (media);
 
   str = lp_media_to_string (media);
@@ -62,6 +63,12 @@ main (void)
   g_assert (g_str_equal (uri, "test"));
   g_free (uri);
   g_object_unref (scene);
+
+  scene = SCENE_NEW (0, 0, 0);
+  media = lp_media_new (scene, NULL);
+  g_assert_nonnull (media);
+  g_object_get (media, "uri", &uri, NULL);
+  g_assert_null (uri);
 
   exit (EXIT_SUCCESS);
 }

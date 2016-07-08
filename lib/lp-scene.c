@@ -56,7 +56,6 @@ struct _lp_Scene
   struct
   {
     GstElement *blank;          /* blank video source */
-    GstElement *filter;         /* video filter */
     GstElement *mixer;          /* video mixer */
     GstElement *text;           /* text overlay */
     GstElement *convert;        /* video convert */
@@ -67,7 +66,7 @@ struct _lp_Scene
     gint mask;                  /* event mask */
     gint width;                 /* cached width */
     gint height;                /* cached height */
-    gint pattern;               /* cached pattern */
+    gint background;            /* cached background */
     gint wave;                  /* cached wave */
     guint64 ticks;              /* total number of ticks */
     guint64 interval;           /* interval between ticks (nanoseconds) */
@@ -90,8 +89,7 @@ static const gstx_eltmap_t lp_scene_eltmap[] = {
 };
 
 static const gstx_eltmap_t lp_scene_eltmap_video[] = {
-  {"videotestsrc",  offsetof (lp_Scene, video.blank)},
-  {"capsfilter",    offsetof (lp_Scene, video.filter)},
+  {"appsrc",        offsetof (lp_Scene, video.blank)},
   {"compositor",    offsetof (lp_Scene, video.mixer)},
   {"textoverlay",   offsetof (lp_Scene, video.text)},
   {"videoconvert",  offsetof (lp_Scene, video.convert)},
@@ -106,7 +104,7 @@ enum
   PROP_MASK,
   PROP_WIDTH,
   PROP_HEIGHT,
-  PROP_PATTERN,
+  PROP_BACKGROUND,
   PROP_WAVE,
   PROP_TICKS,
   PROP_INTERVAL,
@@ -123,7 +121,7 @@ enum
 #define DEFAULT_MASK         LP_EVENT_MASK_ANY /* any event */
 #define DEFAULT_WIDTH        0                 /* no video output */
 #define DEFAULT_HEIGHT       0                 /* no video output */
-#define DEFAULT_PATTERN      2                 /* black */
+#define DEFAULT_BACKGROUND   0                 /* transparent */
 #define DEFAULT_WAVE         4                 /* silence */
 #define DEFAULT_TICKS        0                 /* no ticks */
 #define DEFAULT_INTERVAL     GST_SECOND        /* one tick per second */
@@ -188,7 +186,7 @@ GX_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
     (s)->prop.mask = DEFAULT_MASK;                      \
     (s)->prop.width = DEFAULT_WIDTH;                    \
     (s)->prop.height = DEFAULT_HEIGHT;                  \
-    (s)->prop.pattern = DEFAULT_PATTERN;                \
+    (s)->prop.background = DEFAULT_BACKGROUND;          \
     (s)->prop.wave = DEFAULT_WAVE;                      \
     (s)->prop.ticks = DEFAULT_TICKS;                    \
     (s)->prop.interval= DEFAULT_INTERVAL;               \
@@ -314,27 +312,34 @@ scene_start_unlocked (lp_Scene *scene)
       GstCaps *caps;
 
       _lp_eltmap_alloc_check (scene, lp_scene_eltmap_video);
+
+      caps = gst_caps_new_simple ("video/x-raw",
+          "format", G_TYPE_STRING, "ARGB",
+          "width", G_TYPE_INT, scene->prop.width,
+          "height", G_TYPE_INT, scene->prop.height,
+          "framerate", GST_TYPE_FRACTION, 0, 1,
+          NULL);
+
       gstx_bin_add (pipeline, scene->video.blank);
-      gstx_bin_add (pipeline, scene->video.filter);
       gstx_bin_add (pipeline, scene->video.mixer);
       gstx_bin_add (pipeline, scene->video.text);
       gstx_bin_add (pipeline, scene->video.convert);
       gstx_bin_add (pipeline, scene->video.sink);
-      gstx_element_link (scene->video.blank, scene->video.filter);
-      gstx_element_link (scene->video.filter, scene->video.mixer);
+      gstx_element_link (scene->video.blank, scene->video.mixer);
       gstx_element_link (scene->video.mixer, scene->video.text);
       gstx_element_link (scene->video.text, scene->video.convert);
       gstx_element_link (scene->video.convert, scene->video.sink);
       g_object_set (scene->video.blank,
-                    "pattern", scene->prop.pattern, NULL);
+                  "format", GST_FORMAT_TIME, 
+                  "caps", caps,
+                  NULL);
+      g_object_set (scene->video.mixer,
+                  "background", scene->prop.background, NULL);
+      g_signal_connect (scene->video.blank, "need-data", 
+          G_CALLBACK (_lp_common_appsrc_transparent_data), scene);
 
-      caps = gst_caps_new_empty_simple ("video/x-raw");
-      g_assert_nonnull (caps);
-      gst_caps_set_simple (caps,
-                           "width", G_TYPE_INT, scene->prop.width,
-                           "height", G_TYPE_INT, scene->prop.height, NULL);
-      g_object_set (scene->video.filter, "caps", caps, NULL);
       gst_caps_unref (caps);
+
     }
 
   scene->state = STARTING;
@@ -793,8 +798,8 @@ lp_scene_get_property (GObject *object, guint prop_id,
     case PROP_HEIGHT:
       g_value_set_int (value, scene->prop.height);
       break;
-    case PROP_PATTERN:
-      g_value_set_int (value, scene->prop.pattern);
+    case PROP_BACKGROUND:
+      g_value_set_int (value, scene->prop.background);
       break;
     case PROP_WAVE:
       g_value_set_int (value, scene->prop.wave);
@@ -852,8 +857,8 @@ lp_scene_set_property (GObject *object, guint prop_id,
     case PROP_HEIGHT:
       scene->prop.height = g_value_get_int (value);
       break;
-    case PROP_PATTERN:
-      scene->prop.pattern = g_value_get_int (value);
+    case PROP_BACKGROUND:
+      scene->prop.background = g_value_get_int (value);
       break;
     case PROP_WAVE:
       scene->prop.wave = g_value_get_int (value);
@@ -902,7 +907,7 @@ lp_scene_set_property (GObject *object, guint prop_id,
         scene_update_clock_id (scene);
         break;
       }
-    case PROP_PATTERN:          /* fall through */
+    case PROP_BACKGROUND:       /* fall through */
     case PROP_TEXT:             /* fall through */
     case PROP_TEXT_COLOR:       /* fall through */
     case PROP_TEXT_FONT:
@@ -912,9 +917,9 @@ lp_scene_set_property (GObject *object, guint prop_id,
 
         switch (prop_id)
           {
-          case PROP_PATTERN:
-            g_object_set (scene->video.blank, "pattern",
-                          scene->prop.pattern, NULL);
+          case PROP_BACKGROUND:
+            g_object_set (scene->video.mixer, "background",
+                          scene->prop.background, NULL);
             break;
           case PROP_TEXT:
             g_object_set (scene->video.text, "text",
@@ -1024,9 +1029,9 @@ lp_scene_class_init (lp_SceneClass *cls)
       (GParamFlags)(G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE)));
 
   g_object_class_install_property
-    (gobject_class, PROP_PATTERN, g_param_spec_int
-     ("pattern", "pattern", "background video pattern",
-      0, 24, DEFAULT_PATTERN,
+    (gobject_class, PROP_BACKGROUND, g_param_spec_int
+     ("background", "background", "background scene type",
+      0, 4, DEFAULT_BACKGROUND,
       (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
@@ -1374,7 +1379,7 @@ lp_scene_to_string (lp_Scene *scene)
   mask: 0x%x\n\
   width: %d\n\
   height: %d\n\
-  pattern: %d\n\
+  background: %d\n\
   wave: %d\n\
   ticks: %" G_GUINT64_FORMAT "\n\
   interval: %" GST_TIME_FORMAT "\n\
@@ -1390,7 +1395,7 @@ lp_scene_to_string (lp_Scene *scene)
                          (guint) scene->prop.mask,
                          scene->prop.width,
                          scene->prop.height,
-                         scene->prop.pattern,
+                         scene->prop.background,
                          scene->prop.wave,
                          scene->prop.ticks,
                          GST_TIME_ARGS (scene->prop.interval),

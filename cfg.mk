@@ -153,7 +153,12 @@ gstugly_git:= $(gstreamer_git_root)/gst-plugins-ugly
 gstugly_configure= $(gstreamer_configure)
 gstugly_build= $(gstreamer_build)
 
-DEPS= glib gstreamer gstbase gstgood gstbad gstugly
+gstffmpeg_dir:= deps/gstffmpeg
+gstffmpeg_git:= $(gstreamer_git_root)/gst-ffmpeg
+gstffmpeg_configure= $(gstreamer_configure)
+gstffmpeg_build= $(gstreamer_build)
+
+DEPS= glib gstreamer gstbase gstgood gstbad gstugly gstffmpeg
 
 # Bootstraps project with local deps.
 .PHONY: deps-bootstrap

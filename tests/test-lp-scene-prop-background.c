@@ -27,7 +27,7 @@ main (void)
   g_assert_nonnull (scene);
 
   g_object_get (scene, "background", &background, NULL);
-  g_assert (background == 3);
+  g_assert (background == 0);
 
   await_ticks (scene, 1);
   g_object_set (scene, "background", 2, NULL);

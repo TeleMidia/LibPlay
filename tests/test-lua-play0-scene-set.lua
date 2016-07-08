@@ -47,7 +47,7 @@ do
    assert (pcall (sc.set, sc, 'text-color', {}) == false)        -- bad type
    assert (pcall (sc.set, sc, 'text-font', {}) == false)         -- bad type
 
-   assert (sc:get ('background') == 3)
+   assert (sc:get ('background') == 0)
    sc:set ('background', 2)
    assert (sc:get ('background') == 2)
 

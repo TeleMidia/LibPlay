@@ -154,10 +154,10 @@
 /tests/test-lp-scene-get-quitted
 /tests/test-lp-scene-new
 /tests/test-lp-scene-pause
+/tests/test-lp-scene-prop-background
 /tests/test-lp-scene-prop-interval
 /tests/test-lp-scene-prop-lockstep
 /tests/test-lp-scene-prop-mask
-/tests/test-lp-scene-prop-pattern
 /tests/test-lp-scene-prop-ticks
 /tests/test-lp-scene-prop-time
 /tests/test-lp-scene-prop-wave

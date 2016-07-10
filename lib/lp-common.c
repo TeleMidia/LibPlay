@@ -68,7 +68,8 @@ _lp_common_appsrc_transparent_data (GstElement *src, guint size, gpointer data)
     duration = DEFAULT_VIDEO_BUFFER_DUR * GST_MSECOND; 
   }
   else
-    duration = numerator / denominator * GST_MSECOND; 
+    duration = (guint64)(((double) denominator /  numerator) * 1000)
+      * GST_MSECOND;
   
   /* We assume the video format ARGB (4 bytes) */
   size = width * height * VIDEO_FORMAT_ARGB_SIZE;

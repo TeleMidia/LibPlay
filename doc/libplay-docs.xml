@@ -22,6 +22,7 @@
   <chapter id="api-reference">
     <title>API Reference</title>
     <xi:include href="xml/play.xml"/>
+    <!-- <xi:include href="xml/lp-scene.xml"/> -->
   </chapter>
 
   <chapter id="object-hierarchy">

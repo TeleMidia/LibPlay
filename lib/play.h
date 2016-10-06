@@ -164,6 +164,17 @@ LP_API G_DECLARE_FINAL_TYPE (lp_EventSeek, lp_event_seek,
 #define LP_TYPE_EVENT_PAUSE (lp_event_pause_get_type ())
 LP_API G_DECLARE_FINAL_TYPE (lp_EventPause, lp_event_pause,
                              LP, EVENT_PAUSE, lp_Event)
+
+/**
+ * lp_Error:
+ * @LP_ERROR_START: Error while starting.
+ * @LP_ERROR_STOP: Error while stopping.
+ * @LP_ERROR_SEEK: Error while seeking.
+ * @LP_ERROR_PAUSE: Error while pausing.
+ * @LP_ERROR_LAST: Total number of #lp_Error types.
+ *
+ * Types of asynchronous errors.
+ */
 typedef enum
 {
   LP_ERROR_START = 0,           /* error while starting */

@@ -19,13 +19,14 @@
 DOC_MODULE= libplay
 DOC_MAIN_SGML_FILE= libplay-docs.xml
 DOC_SOURCE_DIR= $(top_srcdir)/lib
-HFILE_GLOB= $(top_srcdir)/lib/*.h
 CFILE_GLOB= $(top_srcdir)/lib/*.c
+HFILE_GLOB= $(top_srcdir)/lib/*.h
 IGNORE_HFILES=\
   config.h\
   gstx-macros.h\
   gx-macros.h\
   macros.h\
+  play-internal.h\
   $(NULL)
 
 # The CFLAGS and LDFLAGS for compiling scan program.

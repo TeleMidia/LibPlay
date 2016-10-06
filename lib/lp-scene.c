@@ -31,7 +31,21 @@ typedef enum
   DISPOSED                      /* scene has been disposed */
 } lp_SceneState;
 
-/* Scene object.  */
+/**
+ * SECTION: lp-scene
+ * @title: lp_Scene
+ * @short_description: A simple implementation of #lp_Scene
+ * @include: play.h
+ *
+ * #lp_Scene is a simple...
+ */
+
+/**
+ * lp_Scene:
+ *
+ * #lp_Scene is an opaque data structure and can only be accessed using the
+ * following functions.
+ */
 struct _lp_Scene
 {
   GObject parent;               /* parent object */
@@ -1591,11 +1605,6 @@ finish:
   return ret;
 }
 
-/**
- *
- * Returns whether a scene is paused or not
- *
- */
 gboolean
 _lp_scene_is_paused (lp_Scene *scene)
 {

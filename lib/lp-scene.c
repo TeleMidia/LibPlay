@@ -330,12 +330,12 @@ scene_start_unlocked (lp_Scene *scene)
       gstx_element_link (scene->video.text, scene->video.convert);
       gstx_element_link (scene->video.convert, scene->video.sink);
       g_object_set (scene->video.blank,
-                  "format", GST_FORMAT_TIME, 
+                  "format", GST_FORMAT_TIME,
                   "caps", caps,
                   NULL);
       g_object_set (scene->video.mixer,
                   "background", scene->prop.background, NULL);
-      g_signal_connect (scene->video.blank, "need-data", 
+      g_signal_connect (scene->video.blank, "need-data",
           G_CALLBACK (_lp_common_appsrc_transparent_data), scene);
 
       gst_caps_unref (caps);
@@ -555,7 +555,16 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
             {
               lp_Media *media;
 
-              media = LP_MEDIA (lp_event_get_source (event));
+              if (mask == LP_EVENT_MASK_ERROR)
+              {
+                GObject *source = lp_event_get_source(event);
+                if (LP_IS_MEDIA(source))
+                  media = LP_MEDIA(source);
+                else
+                  break;
+              }
+              else
+                media = LP_MEDIA (lp_event_get_source (event));
               switch (mask)
                 {
                 case LP_EVENT_MASK_ERROR:
@@ -674,6 +683,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
       {
         GstObject *obj = NULL;
         GError *error = NULL;
+        lp_Event *event = NULL;
         gchar *debug = NULL;
 
         obj = GST_MESSAGE_SRC (msg);
@@ -698,6 +708,11 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           {
             _lp_critical ("%s: %s", error->message, debug);
           }
+
+        event = LP_EVENT (_lp_event_error_new (G_OBJECT(scene),
+              LP_ERROR_DEFAULT, error->message));
+        g_assert_nonnull (event);
+        _lp_scene_dispatch (scene, event);
 
         g_free (debug);
         g_error_free (error);
@@ -769,10 +784,10 @@ lp_scene_init (lp_Scene *scene)
   scene_reset_run_time_data (scene);
   scene_reset_property_cache (scene);
 
-  /* 
-   * If we ceate the clock only on lp_scene_constructed(),  
-   * lp_scene_set_property() fails when the 'lockstep' property is set on 
-   * constructor. 
+  /*
+   * If we ceate the clock only on lp_scene_constructed(),
+   * lp_scene_set_property() fails when the 'lockstep' property is set on
+   * constructor.
    */
   scene->clock.clock = GST_CLOCK (g_object_new (LP_TYPE_CLOCK, NULL));
   g_assert_nonnull (scene->clock.clock);
@@ -1534,9 +1549,9 @@ lp_scene_quit (lp_Scene *scene)
  * lp_scene_pause:
  * @scene: an #lp_Scene
  *
- * Pauses @scene 
+ * Pauses @scene
  *
- * Returns: TRUE if success or FALSE otherwise 
+ * Returns: TRUE if success or FALSE otherwise
  */
 gboolean
 lp_scene_pause (lp_Scene *scene)
@@ -1567,9 +1582,9 @@ finish:
  * lp_scene_resume:
  * @scene: an #lp_Scene
  *
- * Resumes  @scene 
+ * Resumes  @scene
  *
- * Returns: TRUE if success or FALSE otherwise 
+ * Returns: TRUE if success or FALSE otherwise
  */
 gboolean
 lp_scene_resume (lp_Scene *scene)

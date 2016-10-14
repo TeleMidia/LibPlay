@@ -170,6 +170,7 @@ typedef enum
   LP_ERROR_STOP,                /* error while stopping */
   LP_ERROR_SEEK,                /* error while seeking */
   LP_ERROR_PAUSE,               /* error while pausing */
+  LP_ERROR_DEFAULT,             /* default error code */
   LP_ERROR_LAST,                /* total number of error codes */
 } lp_Error;
 

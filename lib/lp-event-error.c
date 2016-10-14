@@ -97,7 +97,6 @@ lp_event_error_constructed (GObject *object)
 
   event = LP_EVENT (object);
   g_object_get (event, "source", &source, "mask", &mask, NULL);
-  g_assert (LP_IS_MEDIA (source));
   g_assert (mask == LP_EVENT_MASK_ERROR);
 
   G_OBJECT_CLASS (lp_event_error_parent_class)->constructed (object);
@@ -153,7 +152,7 @@ lp_event_error_class_init (lp_EventErrorClass *cls)
 /* Creates a new error event.  */
 
 ATTR_PRINTF_FORMAT (3,4) lp_EventError *
-_lp_event_error_new (lp_Media *source, lp_Error code,
+_lp_event_error_new (GObject *source, lp_Error code,
                      const gchar *format, ...)
 {
   GError* error;
@@ -170,7 +169,7 @@ _lp_event_error_new (lp_Media *source, lp_Error code,
 /* Creates a custom error event.  */
 
 lp_EventError *
-_lp_event_error_new_custom (lp_Media *source, GError *error)
+_lp_event_error_new_custom (GObject *source, GError *error)
 {
   return LP_EVENT_ERROR (g_object_new (LP_TYPE_EVENT_ERROR,
                                        "source", source,

@@ -1969,9 +1969,7 @@ lp_media_get_running_time (lp_Media *media)
   if (unlikely (!media_state_started (media)))
     goto fail;                  /* nothing to do */
 
-  time = gstx_element_get_clock_time (
-      _lp_scene_get_pipeline(media->prop.scene));
-  time = time - media->offset;
+  gst_element_query_position (media->bin, GST_FORMAT_TIME, &time);
 
   media_unlock (media);
   return time;

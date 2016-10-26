@@ -94,10 +94,10 @@ lp_EventTick *
 _lp_event_tick_new (lp_Scene *, guint64);
 
 lp_EventError *
-_lp_event_error_new (lp_Media *, lp_Error, const gchar *, ...);
+_lp_event_error_new (GObject *, lp_Error, const gchar *, ...);
 
 lp_EventError *
-_lp_event_error_new_custom (lp_Media *, GError *);
+_lp_event_error_new_custom (GObject *, GError *);
 
 #define _lp_event_error_new_start_no_pads(media)\
   _lp_event_error_new ((media), LP_ERROR_START, "could not activate pads")

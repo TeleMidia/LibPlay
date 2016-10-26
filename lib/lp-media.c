@@ -771,7 +771,8 @@ lp_media_no_more_pads_callback (GstElement *dec, lp_Media *media)
 
   if (unlikely (!media_has_audio (media) && !media_has_video (media)))
     {
-      lp_EventError *event = _lp_event_error_new_start_no_pads (media);
+      lp_EventError *event = 
+        _lp_event_error_new_start_no_pads (G_OBJECT(media));
       g_assert_nonnull (event);
       _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
       goto done;
@@ -1968,9 +1969,7 @@ lp_media_get_running_time (lp_Media *media)
   if (unlikely (!media_state_started (media)))
     goto fail;                  /* nothing to do */
 
-  time = gstx_element_get_clock_time (
-      _lp_scene_get_pipeline(media->prop.scene));
-  time = time - media->offset;
+  gst_element_query_position (media->bin, GST_FORMAT_TIME, &time);
 
   media_unlock (media);
   return time;

@@ -38,7 +38,7 @@ main (void)
   error = g_error_new_literal (G_MARKUP_ERROR, G_MARKUP_ERROR_EMPTY, "e1");
   g_assert_nonnull (error);
 
-  event = _lp_event_error_new_custom (media, error);
+  event = _lp_event_error_new_custom (G_OBJECT(media), error);
   g_assert_nonnull (event);
   g_error_free (error);
 

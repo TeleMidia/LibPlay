@@ -21,6 +21,6 @@ int
 main (void)
 {
   TEST_TEMPLATE_EVENT_XFAIL_GET
-    (_lp_event_error_new (media, LP_ERROR_START, "test"));
+    (_lp_event_error_new (G_OBJECT(media), LP_ERROR_START, "test"));
   exit (EXIT_SUCCESS);
 }

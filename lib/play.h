@@ -221,6 +221,9 @@ lp_media_get_start_time (lp_Media *);
 LP_API gboolean
 lp_media_pause (lp_Media *);
 
+LP_API gboolean
+lp_media_resume (lp_Media *);
+
 /* scene */
 
 LP_API lp_Scene *

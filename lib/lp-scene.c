@@ -544,13 +544,13 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           case LP_EVENT_MASK_KEY:           /* fall through */
           case LP_EVENT_MASK_POINTER_CLICK: /* fall through */
           case LP_EVENT_MASK_POINTER_MOVE:  /* fall through */
-          case LP_EVENT_MASK_PAUSE:
             {
               break;            /* nothing to do */
             }
           case LP_EVENT_MASK_ERROR: /* fall through */
           case LP_EVENT_MASK_START: /* fall through */
           case LP_EVENT_MASK_STOP:  /* fall through */
+          case LP_EVENT_MASK_PAUSE: /* fall through */
           case LP_EVENT_MASK_SEEK:
             {
               lp_Media *media;
@@ -575,6 +575,9 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
                   break;
                 case LP_EVENT_MASK_STOP:
                   _lp_media_finish_stop (media);
+                  break;
+                case LP_EVENT_MASK_PAUSE:
+                  _lp_media_finish_pause (media);
                   break;
                 case LP_EVENT_MASK_SEEK:
                   _lp_media_finish_seek (media);

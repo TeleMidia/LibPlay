@@ -461,11 +461,20 @@ lp_media_pause_block_probe_callback (GstPad *pad,
   }
   if (pad == media->video.pad || pad == media->audio.pad)
   {
+    lp_MediaPadFlag *flags = NULL;
+
+    flags = media_get_pad_flags (media, pad);
+    g_assert_nonnull (flags);
+    g_assert (*flags == PAD_FLAG_ACTIVE);
+
     gst_pad_send_event (pad, gst_event_new_flush_start ());
     gst_pad_send_event (peer, gst_event_new_flush_start ());
 
     g_assert (gst_pad_unlink (pad, peer));
     gst_element_release_request_pad (peer_parent, peer);
+
+    g_assert (gst_pad_set_active (pad, FALSE));
+    MEDIA_PAD_FLAG_TOGGLE (*flags, PAD_FLAG_ACTIVE); /* deactivate */
 
     media->pause.paused_pads++;
     if (media->pause.paused_pads == media->linked_pads)
@@ -1777,7 +1786,6 @@ lp_media_stop (lp_Media *media)
                   media_state_paused (media))))
     goto fail;                  /* nothing to do */
 
-  media->state = STOPPING;
   if (_lp_scene_is_paused (media->prop.scene))
   {
     /*
@@ -1800,8 +1808,18 @@ lp_media_stop (lp_Media *media)
     }
     gst_iterator_free (it);
   }
+  else if (media_state_paused(media) || media_state_pausing(media))
+  {
+    lp_EventStop *event;
+    media->state = STOPPING;
+
+    event = _lp_event_stop_new (media, media_has_drained (media));
+    g_assert_nonnull (event);
+    _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
+  }
   else
   {
+    media->state = STOPPING;
     media_install_probe
       (media, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
        (GstPadProbeCallback) lp_media_stop_block_probe_callback, NULL, NULL);
@@ -2050,7 +2068,7 @@ void
 _lp_media_finish_pause (lp_Media *media)
 {
   media->state = PAUSED;
-  /* gst_element_set_state (media->bin, GST_STATE_READY); */
+  gst_element_set_state (media->bin, GST_STATE_READY);
 }
 
 /**

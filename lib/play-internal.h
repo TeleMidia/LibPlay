@@ -137,6 +137,9 @@ void
 _lp_media_finish_stop (lp_Media *);
 
 void
+_lp_media_finish_pause (lp_Media *);
+
+void
 _lp_media_finish_seek (lp_Media *);
 
 /* scene */

@@ -92,7 +92,6 @@ struct _lp_Media
   {                             /* audio output: */
     GstElement *convert;        /* audio convert */
     GstElement *resample;       /* audio resample */
-    GstElement *queue;          /* audio queue */
     GstPad *pad;                /* audio pad in bin */
     lp_MediaPadFlag flags;      /* audio pad flags */
   } audio;
@@ -100,7 +99,6 @@ struct _lp_Media
   {                             /* video output: */
     GstElement *freeze;         /* image freeze (optional) */
     GstElement *text;           /* text overlay */
-    GstElement *queue;          /* video queue */
     GstPad *pad;                /* video pad in bin */
     lp_MediaPadFlag flags;      /* video pad flags */
   } video;
@@ -133,13 +131,11 @@ static const gstx_eltmap_t lp_media_eltmap[] = {
 static const gstx_eltmap_t media_eltmap_audio[] = {
   {"audioconvert",  offsetof (lp_Media, audio.convert)},
   {"audioresample", offsetof (lp_Media, audio.resample)},
-  {"queue",         offsetof (lp_Media, audio.queue)},
   {NULL, 0}
 };
 
 static const gstx_eltmap_t media_eltmap_video[] = {
   {"textoverlay",   offsetof (lp_Media, video.text)},
-  {"queue",         offsetof (lp_Media, video.queue)},
   {NULL, 0}
 };
 
@@ -568,9 +564,7 @@ _lp_media_configure_audio_bin (lp_Media *media, GstPad *pad)
 
   gstx_bin_add (GST_BIN (media->bin), media->audio.convert);
   gstx_bin_add (GST_BIN (media->bin), media->audio.resample);
-  gstx_bin_add (GST_BIN (media->bin), media->audio.queue);
   gstx_element_link (media->audio.convert, media->audio.resample);
-  gstx_element_link (media->audio.resample, media->audio.queue);
 
   sink = gst_element_get_static_pad (media->audio.convert, "sink");
   g_assert_nonnull (sink);
@@ -578,7 +572,7 @@ _lp_media_configure_audio_bin (lp_Media *media, GstPad *pad)
   g_assert (gst_pad_link (pad, sink) == GST_PAD_LINK_OK);
   gst_object_unref (sink);
 
-  pad = gst_element_get_static_pad (media->audio.queue, "src");
+  pad = gst_element_get_static_pad (media->audio.resample, "src");
   g_assert_nonnull (pad);
 
   ghost = gst_ghost_pad_new (NULL, pad);
@@ -649,9 +643,6 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
 
   _lp_eltmap_alloc_check (media, media_eltmap_video);
   gstx_bin_add (media->bin, media->video.text);
-  gstx_bin_add (media->bin, media->video.queue);
-
-  gstx_element_link (media->video.text, media->video.queue);
 
   sink = gst_element_get_static_pad (media->video.text, "video_sink");
   g_assert_nonnull (sink);
@@ -662,7 +653,7 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
   if (media_is_frozen (media))
     gst_object_unref (pad);
 
-  pad = gst_element_get_static_pad (media->video.queue, "src");
+  pad = gst_element_get_static_pad (media->video.text, "src");
   g_assert_nonnull (pad);
 
   ghost = gst_ghost_pad_new (NULL, pad);

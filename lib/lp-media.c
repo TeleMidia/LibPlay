@@ -82,11 +82,12 @@ struct _lp_Media
   struct
   {
     GstElement *appsrc;         /* pushes paused video buffer */
-    GstElement *freeze;         /* repeats paused video  buffer */
-    GstElement *audiosrc;       /* pushes silence */
+    GstElement *convert;        /* video convert to adapt caps */
     GstBuffer *video_buffer;    /* paused video buffer */
+    GstCaps *caps;              /* current video caps */
     GstClockTime time;          /* pause time */
-    guint paused_pads;          /* pads paused */
+    GstClockTime duration;      /* pause buffer duration */
+    guint paused_pads;          /* number of paused pads */
   } pause;
   struct
   {                             /* audio output: */
@@ -264,6 +265,7 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
     (m)->video.flags = PAD_FLAG_NONE;           \
     (m)->pause.paused_pads = 0;                 \
     (m)->pause.time = 0;                        \
+    (m)->pause.caps= NULL;                      \
   }                                             \
   STMT_END
 
@@ -508,7 +510,7 @@ done:
 }
 
 static GstPadProbeReturn
-lp_media_have_data_probe_callback (GstPad *pad,
+lp_media_pause_have_data_probe_callback (GstPad *pad,
                                    GstPadProbeInfo *info,
                                    arg_unused(lp_Media *media))
 {
@@ -524,13 +526,18 @@ lp_media_have_data_probe_callback (GstPad *pad,
 
   caps = gst_pad_query_caps (pad, NULL);
   name = gst_structure_get_name (gst_caps_get_structure (caps, 0));
-  gst_caps_unref (caps);
 
   if (g_str_equal (name, "video/x-raw"))
   {
+    GstCaps *caps = NULL;
     media->pause.video_buffer =
       gst_buffer_copy (GST_PAD_PROBE_INFO_BUFFER (info));
+    caps = gst_pad_get_current_caps(pad);
+    media->pause.caps = gst_caps_copy (caps);
+
+    gst_caps_unref (caps);
   }
+  gst_caps_unref (caps);
 
   gst_pad_add_probe (pad,
       GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
@@ -2039,11 +2046,9 @@ lp_media_pause (lp_Media *media)
     GstPad *p = NULL;
 
     p = GST_PAD (g_value_get_object (&value));
-    gst_pad_add_probe (p,
-        GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
-        (GstPadProbeCallback) lp_media_pause_block_probe_callback,
+    gst_pad_add_probe (p, GST_PAD_PROBE_TYPE_BUFFER,
+        (GstPadProbeCallback) lp_media_pause_have_data_probe_callback,
         media, NULL);
-
   }
   gst_iterator_free (it);
 
@@ -2053,13 +2058,136 @@ finish:
   return ret;
 }
 
+/* Pushes the same video buffer while paused */
+void
+_lp_media_push_pause_buffer (GstElement *src, guint size_, gpointer data)
+{
+  static GstClockTime timestamp = 0;
+  GstBuffer *buffer = NULL;
+  GstFlowReturn ret;
+  lp_Media *media = NULL;
+  GstCaps *caps = NULL;
+
+  media = LP_MEDIA(data);
+  /* Do we need to lock media? 
+   * I've tried to lock here and it led to dead lock
+   */
+  if (timestamp == 0)
+    timestamp = _lp_scene_get_running_time (media->prop.scene);
+
+  g_object_get (src,
+                "caps", &caps,
+                NULL);
+
+  g_assert_nonnull (caps);
+
+  buffer = gst_buffer_copy (media->pause.video_buffer);
+  GST_BUFFER_PTS (buffer) = timestamp;
+  GST_BUFFER_DURATION (buffer) = media->pause.duration;
+
+  timestamp += GST_BUFFER_DURATION (buffer);
+
+  g_signal_emit_by_name (src, "push-buffer", buffer, &ret);
+  g_assert (ret == GST_FLOW_OK);
+
+  gst_buffer_unref (buffer);
+}
+
+
 /* Finishes async pause in @media.  */
 
 void
 _lp_media_finish_pause (lp_Media *media)
 {
+  media_lock (media);
   media->state = PAUSED;
-  gst_element_set_state (media->bin, GST_STATE_READY);
+  gst_element_set_state (media->bin, GST_STATE_PAUSED);
+
+  if (media->pause.video_buffer && media->pause.caps)
+  {
+    GstPad *source = NULL;
+    GstPad *sink = NULL;
+    GstElement *pipeline = NULL;
+    GstCaps *caps = NULL;
+    GstStructure *structure = NULL;
+    const GValue *framerate;
+    gint numerator;
+    gint denominator;
+
+    media->pause.appsrc = gst_element_factory_make ("appsrc", NULL);
+    media->pause.convert = gst_element_factory_make ("videoconvert", NULL);
+
+    g_object_set (G_OBJECT (media->pause.appsrc),
+        "caps", media->pause.caps,
+        NULL);
+
+    gst_caps_unref(media->pause.caps);
+
+    g_signal_connect (media->pause.appsrc, "need-data",
+        G_CALLBACK (_lp_media_push_pause_buffer), media);
+
+    pipeline = _lp_scene_get_pipeline (media->prop.scene);
+
+    gst_bin_add_many (GST_BIN(pipeline), media->pause.appsrc,
+        media->pause.convert, NULL);
+
+    g_assert (gst_element_link_many (media->pause.appsrc,
+          media->pause.convert, NULL));
+
+    source = gst_element_get_static_pad (media->pause.convert, "src");
+    sink = gst_element_get_request_pad (
+        _lp_scene_get_video_mixer (media->prop.scene), "sink_%u");
+
+    g_assert (gst_pad_link (source, sink) == GST_PAD_LINK_OK);
+
+    g_object_set (G_OBJECT (media->pause.appsrc),
+        "format", GST_FORMAT_TIME,
+        "stream-type", 0,
+        NULL);
+
+    g_object_set (sink,
+       "xpos", media->prop.x,
+       "ypos", media->prop.y,
+       "zorder", media->prop.z,
+       "alpha", media->prop.alpha, NULL);
+
+    if (media->prop.width > 0)
+      g_object_set (sink, "width", media->prop.width, NULL);
+
+    if (media->prop.height > 0)
+      g_object_set (sink, "height", media->prop.height, NULL);
+
+    gst_object_unref (source);
+    gst_object_unref (sink);
+
+    source = gst_element_get_static_pad (
+        _lp_scene_get_video_mixer (media->prop.scene), "src");
+
+    g_object_get (source,
+        "caps", &caps,
+        NULL);
+    g_assert_nonnull (caps);
+
+    gst_object_unref (source);
+
+    structure = gst_caps_get_structure (caps, 0);
+    gst_caps_unref (caps);
+
+    framerate = gst_structure_get_value (structure, "framerate");
+
+    if (framerate == NULL ||
+        (numerator = gst_value_get_fraction_numerator (framerate),
+         denominator = gst_value_get_fraction_denominator(framerate),
+         numerator == 0 || denominator == 0))
+      media->pause.duration = 33 * GST_MSECOND;
+    else
+      media->pause.duration = (denominator * 1000 /*ms*/ /  numerator)
+        * GST_MSECOND;
+
+    gstx_element_sync_state_with_parent (media->pause.appsrc);
+    gstx_element_sync_state_with_parent (media->pause.convert);
+  }
+  media_lock (media);
 }
 
 /**

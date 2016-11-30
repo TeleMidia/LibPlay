@@ -106,7 +106,7 @@ lp_EventKey *
 _lp_event_key_new (lp_Scene *, const gchar *, gboolean);
 
 lp_EventPointerClick *
-_lp_event_pointer_click_new (lp_Scene *, double, double, int, gboolean);
+_lp_event_pointer_click_new (GObject *, double, double, int, gboolean);
 
 lp_EventPointerMove *
 _lp_event_pointer_move_new (lp_Scene *, double, double);

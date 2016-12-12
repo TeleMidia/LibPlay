@@ -567,20 +567,17 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           case LP_EVENT_MASK_PAUSE: /* fall through */
           case LP_EVENT_MASK_SEEK:
             {
+              GObject *source;
               lp_Media *media;
 
-              if (mask == LP_EVENT_MASK_ERROR)
-              {
-                GObject *source = lp_event_get_source(event);
-                if (LP_IS_MEDIA(source))
-                  media = LP_MEDIA(source);
-                else
+              source = lp_event_get_source(event);
+              if (!LP_IS_MEDIA(source))
                   break;
-              }
-              else
-                media = LP_MEDIA (lp_event_get_source (event));
+
+              media = LP_MEDIA(source);
+
               switch (mask)
-                {
+              {
                 case LP_EVENT_MASK_ERROR:
                   _lp_media_finish_error (media);
                   break;
@@ -598,7 +595,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
                   break;
                 default:
                   g_assert_not_reached ();
-                }
+              }
               break;
             }
           default:

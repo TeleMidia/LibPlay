@@ -13,7 +13,7 @@ Optional:
 * Lua >= 5.2, http://www.lua.org
 
 ---
-Copyright (C) 2015-2016 PUC-Rio/Laboratorio TeleMidia
+Copyright (C) 2015-2017 PUC-Rio/Laboratorio TeleMidia
 
 Permission is granted to copy, distribute and/or modify this document under
 the terms of the GNU Free Documentation License, Version 1.3 or any later

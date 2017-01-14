@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2016 PUC-Rio/Laboratorio TeleMidia
+/* Copyright (C) 2015-2017 PUC-Rio/Laboratorio TeleMidia
 
 This file is part of LibPlay.
 
@@ -24,8 +24,9 @@ main (void)
   lp_Media *media;
 
   scene = SCENE_NEW (0, 0, 0);
-  media = lp_media_new (scene, NULL); /* missing URI */
+  media = lp_media_new (scene, NULL);
   g_assert_nonnull (media);
+  g_assert (lp_media_start(media)); /* width == height == 0 */
   g_object_unref (media);
 
   exit (EXIT_SUCCESS);

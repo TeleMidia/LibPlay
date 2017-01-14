@@ -1,5 +1,5 @@
 /* lp-event-error.c -- Error event.
-   Copyright (C) 2015-2016 PUC-Rio/Laboratorio TeleMidia
+   Copyright (C) 2015-2017 PUC-Rio/Laboratorio TeleMidia
 
 This file is part of LibPlay.
 

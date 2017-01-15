@@ -2187,7 +2187,7 @@ _lp_media_finish_pause (lp_Media *media)
     gstx_element_sync_state_with_parent (media->pause.appsrc);
     gstx_element_sync_state_with_parent (media->pause.convert);
   }
-  media_lock (media);
+  media_unlock (media);
 }
 
 /**

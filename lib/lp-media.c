@@ -88,6 +88,7 @@ struct _lp_Media
     GstClockTime time;          /* pause time */
     GstClockTime duration;      /* pause buffer duration */
     guint paused_pads;          /* number of paused pads */
+    GSList *block_probe_ids;    /* list of block probe ids */
   } pause;
   struct
   {                             /* audio output: */
@@ -121,6 +122,11 @@ struct _lp_Media
     gchar *text_font;           /* cached text font */
   } prop;
 };
+
+typedef struct _blocked_pad {
+  GstPad *pad;
+  gulong probe_id;
+} blocked_pad_info;
 
 /* Maps GStreamer elements to offsets in lp_Media.  */
 static const gstx_eltmap_t lp_media_eltmap[] = {
@@ -265,7 +271,8 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
     (m)->video.flags = PAD_FLAG_NONE;           \
     (m)->pause.paused_pads = 0;                 \
     (m)->pause.time = 0;                        \
-    (m)->pause.caps= NULL;                      \
+    (m)->pause.caps = NULL;                     \
+    (m)->pause.block_probe_ids = NULL;          \
   }                                             \
   STMT_END
 
@@ -422,91 +429,49 @@ lp_media_pause_block_probe_callback (GstPad *pad,
 {
   GstElement *peer_parent = NULL;
   GstPad *peer = NULL;
+  GstCaps *caps = NULL;
+  const char *name = NULL;
+  lp_MediaPadFlag *flags = NULL;
 
   media_lock (media);
+
+  caps = gst_pad_query_caps (pad, NULL);
+  g_assert_nonnull (caps);
+
+  name = gst_structure_get_name (gst_caps_get_structure (caps, 0));
+  g_assert_nonnull (name);
+
+  if (g_str_equal (name, "audio/x-raw"))
+    pad = media->audio.pad;
+  else if (g_str_equal (name, "video/x-raw"))
+    pad = media->video.pad;
+  else
+    goto done;
+
+  flags = media_get_pad_flags (media, pad);
 
   peer = gst_pad_get_peer (pad);
   peer_parent = gst_pad_get_parent_element (peer);
 
-  g_assert_nonnull (peer);
-  if (peer_parent == NULL) /* peer is a ghost pad */
-  {
-    GstCaps *caps = NULL;
-    const char *name = NULL;
+  g_assert (gst_pad_unlink (pad, peer));
+  gst_element_release_request_pad (peer_parent, peer);
 
-    caps = gst_pad_query_caps (pad, NULL);
-    g_assert_nonnull (caps);
-
-    name = gst_structure_get_name (gst_caps_get_structure (caps, 0));
-    g_assert_nonnull (name);
-    gst_caps_unref (caps);
-
-    gst_object_unref (peer);
-
-    if (g_str_equal (name, "audio/x-raw"))
-      peer = media->audio.pad;
-    else if (g_str_equal (name, "video/x-raw"))
-      peer = media->video.pad;
-    else
-      goto done;
-
-    gst_pad_add_probe (peer,
-        GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
-        (GstPadProbeCallback) lp_media_pause_block_probe_callback,
-        media, NULL);
-
-    goto done;
-  }
-  if (pad == media->video.pad || pad == media->audio.pad)
-  {
-    lp_MediaPadFlag *flags = NULL;
-
-    flags = media_get_pad_flags (media, pad);
-    g_assert_nonnull (flags);
-    g_assert (*flags == PAD_FLAG_ACTIVE);
-
-    gst_pad_send_event (pad, gst_event_new_flush_start ());
-    gst_pad_send_event (peer, gst_event_new_flush_start ());
-
-    g_assert (gst_pad_unlink (pad, peer));
-    gst_element_release_request_pad (peer_parent, peer);
-
-    g_assert (gst_pad_set_active (pad, FALSE));
-    MEDIA_PAD_FLAG_TOGGLE (*flags, PAD_FLAG_ACTIVE); /* deactivate */
-
-    media->pause.paused_pads++;
-    if (media->pause.paused_pads == media->linked_pads)
-    {
-      _lp_scene_dispatch (media->prop.scene,
-          LP_EVENT (_lp_event_pause_new (G_OBJECT(media))));
-    }
-  }
-  else
-  {
-    GValue value = G_VALUE_INIT;
-    GstIterator *it = NULL;
-
-    it = gst_element_iterate_src_pads (peer_parent);
-    while (gst_iterator_next (it, &value) == GST_ITERATOR_OK)
-    {
-      GstPad *p = NULL;
-
-      p = GST_PAD (g_value_get_object (&value));
-      gst_pad_add_probe (p,
-          GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
-          (GstPadProbeCallback) lp_media_pause_block_probe_callback,
-          media, NULL);
-    }
-    gst_iterator_free (it);
-  }
+  g_assert (gst_pad_set_active (pad, FALSE));
+  MEDIA_PAD_FLAG_TOGGLE (*flags, PAD_FLAG_ACTIVE); /* deactivate */
 
   gst_object_unref (peer);
-  gst_object_unref (peer_parent);
+
+  media->pause.paused_pads++;
+  if (media->pause.paused_pads == media->linked_pads)
+  {
+    _lp_scene_dispatch (media->prop.scene,
+        LP_EVENT (_lp_event_pause_new (G_OBJECT(media))));
+  }
 
 done:
   media_unlock (media);
 
-  return GST_PAD_PROBE_REMOVE;
+  return GST_PAD_PROBE_OK;
 }
 
 static GstPadProbeReturn
@@ -516,6 +481,8 @@ lp_media_pause_have_data_probe_callback (GstPad *pad,
 {
   GstCaps *caps = NULL;
   const char *name = NULL;
+  blocked_pad_info *blocked_pad = NULL; 
+  gulong probe_id = 0;
 
   gst_pad_remove_probe (pad, GST_PAD_PROBE_INFO_ID (info));
   media_lock (media);
@@ -539,10 +506,17 @@ lp_media_pause_have_data_probe_callback (GstPad *pad,
   }
   gst_caps_unref (caps);
 
-  gst_pad_add_probe (pad,
+  probe_id = gst_pad_add_probe (pad,
       GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
       (GstPadProbeCallback) lp_media_pause_block_probe_callback,
       media, NULL);
+
+  blocked_pad = g_new0(blocked_pad_info, 1);
+  blocked_pad->pad = (GstPad *) g_object_ref (pad);
+  blocked_pad->probe_id = probe_id;
+
+  media->pause.block_probe_ids = g_slist_prepend (
+      media->pause.block_probe_ids, blocked_pad);
 
 finish:
   media_unlock (media);
@@ -2044,9 +2018,10 @@ lp_media_pause (lp_Media *media)
   while (gst_iterator_next (it, &value) == GST_ITERATOR_OK)
   {
     GstPad *p = NULL;
+    gulong probe_id = 0;
 
     p = GST_PAD (g_value_get_object (&value));
-    gst_pad_add_probe (p, GST_PAD_PROBE_TYPE_BUFFER,
+    probe_id = gst_pad_add_probe (p, GST_PAD_PROBE_TYPE_BUFFER,
         (GstPadProbeCallback) lp_media_pause_have_data_probe_callback,
         media, NULL);
   }
@@ -2188,6 +2163,15 @@ _lp_media_finish_pause (lp_Media *media)
     gstx_element_sync_state_with_parent (media->pause.convert);
   }
   media_unlock (media);
+}
+
+
+/* Finishes async resume in @media.  */
+
+void
+_lp_media_finish_resume (lp_Media *media)
+{
+  /* TODO */
 }
 
 /**

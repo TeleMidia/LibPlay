@@ -596,7 +596,7 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
   GstPad *sink;
   GstPad *ghost = NULL;
   GstCaps *caps = NULL;
-  const GstStructure *str;
+  const GstStructure *str = NULL;
 
   if (!_lp_scene_has_video (media->prop.scene))
   {
@@ -604,9 +604,8 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
   }
 
   caps =  gst_pad_get_current_caps (pad);
-  g_assert_nonnull (caps);
-
-  str = gst_caps_get_structure (caps, 0);
+  if (caps != NULL) /* Media that are only text */
+    str = gst_caps_get_structure (caps, 0);
 
   if (unlikely (media_has_video (media)))
   {
@@ -672,7 +671,7 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
   else
   {
     gint width;
-    if (gst_structure_get_int (str, "width", &width))
+    if (str != NULL && gst_structure_get_int (str, "width", &width))
       g_object_set (media, "width", width, NULL);
   }
 
@@ -680,7 +679,7 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
     g_object_set (sink, "height", media->prop.height, NULL);
   {
     gint height;
-    if (gst_structure_get_int (str, "height", &height))
+    if (str != NULL && gst_structure_get_int (str, "height", &height))
       g_object_set (media, "height", height, NULL);
   }
 
@@ -705,7 +704,8 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
   gstx_element_sync_state_with_parent (media->video.text);
   MEDIA_PAD_FLAGS_INIT (media->video.flags, PAD_FLAG_ACTIVE);
 
-  gst_caps_unref (caps);
+  if (caps != NULL)
+    gst_caps_unref (caps);
 done:
 
   return ghost;
@@ -1581,12 +1581,15 @@ lp_media_start (lp_Media *media)
         "width", G_TYPE_INT, media->prop.width,
         "height", G_TYPE_INT, media->prop.height,
         "framerate", GST_TYPE_FRACTION, 30, 1,
+        "pixel-aspect-ration", GST_TYPE_FRACTION, 1,1,
         NULL);
     g_object_set (media->source,
         "caps", caps,
         "format", GST_FORMAT_TIME,
+        "stream-type", 0,
         NULL);
-    gst_caps_unref (caps);
+
+    gst_app_src_set_caps(GST_APP_SRC(media->source), caps);
 
     g_signal_connect (media->source, "need-data",
         G_CALLBACK (_lp_common_appsrc_transparent_data), media);
@@ -1594,7 +1597,7 @@ lp_media_start (lp_Media *media)
     g_assert (gst_element_link (media->source, media->decoder));
 
     flag = TRUE;
-    goto sourceset;
+    goto sourceok;
   }
 
   if (gst_uri_is_valid (media->prop.uri))
@@ -1675,7 +1678,7 @@ lp_media_start (lp_Media *media)
     /* g_object_set (media->source, "pattern", 2 /1* black *1/, NULL); */
 
     /* g_assert (gst_element_link (media->source, media->decoder)); */
-    /* goto sourceset; */
+    /* goto sourceok; */
     return FALSE;
   }
 
@@ -1703,7 +1706,7 @@ lp_media_start (lp_Media *media)
      G_CALLBACK (lp_media_drained_callback), media);
   g_assert (media->callback.drained > 0);
 
-sourceset:
+sourceok:
   g_object_set_data (G_OBJECT (media->bin), "lp_Media", media);
 
   pipeline = _lp_scene_get_pipeline (media->prop.scene);

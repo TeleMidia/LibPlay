@@ -595,11 +595,18 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
   GstElement *mixer;
   GstPad *sink;
   GstPad *ghost = NULL;
+  GstCaps *caps = NULL;
+  const GstStructure *str;
 
   if (!_lp_scene_has_video (media->prop.scene))
   {
     goto done;            /* nothing to do */
   }
+
+  caps =  gst_pad_get_current_caps (pad);
+  g_assert_nonnull (caps);
+
+  str = gst_caps_get_structure (caps, 0);
 
   if (unlikely (media_has_video (media)))
   {
@@ -662,9 +669,21 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
 
   if (media->prop.width > 0)
     g_object_set (sink, "width", media->prop.width, NULL);
+  else
+  {
+    gint width;
+    if (gst_structure_get_int (str, "width", &width))
+      g_object_set (media, "width", width, NULL);
+  }
 
   if (media->prop.height > 0)
     g_object_set (sink, "height", media->prop.height, NULL);
+  {
+    gint height;
+    if (gst_structure_get_int (str, "height", &height))
+      g_object_set (media, "height", height, NULL);
+  }
+
   gst_object_unref (sink);
 
   if (media->prop.text != NULL)
@@ -686,7 +705,9 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
   gstx_element_sync_state_with_parent (media->video.text);
   MEDIA_PAD_FLAGS_INIT (media->video.flags, PAD_FLAG_ACTIVE);
 
+  gst_caps_unref (caps);
 done:
+
   return ghost;
 }
 /* Signals that a new pad has been added to media decoder.  Here we build,

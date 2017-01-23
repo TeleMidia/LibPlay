@@ -125,7 +125,6 @@ lp_event_pointer_click_constructed (GObject *object)
 
   event = LP_EVENT (object);
   g_object_get (event, "source", &source, "mask", &mask, NULL);
-  g_assert (LP_IS_SCENE (source));
   g_assert (mask == LP_EVENT_MASK_POINTER_CLICK);
 
   G_OBJECT_CLASS (lp_event_pointer_click_parent_class)
@@ -201,7 +200,7 @@ lp_event_pointer_click_class_init (lp_EventPointerClickClass *cls)
 /* Creates a new pointer click event.  */
 
 lp_EventPointerClick *
-_lp_event_pointer_click_new (lp_Scene *source, gdouble x, gdouble y,
+_lp_event_pointer_click_new (GObject *source, gdouble x, gdouble y,
                              gint button, gboolean press)
 {
   return LP_EVENT_POINTER_CLICK

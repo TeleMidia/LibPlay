@@ -555,8 +555,84 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
               scene_unlock (scene);
               break;
             }
+          case LP_EVENT_MASK_POINTER_CLICK:
+            {
+              GList *l = NULL;
+              gdouble dx;
+              gdouble dy;
+              gint x;
+              gint y;
+              gint z = -1;
+              gint button;
+              gboolean press;
+              GObject *source =  NULL;
+              lp_Media *selected = NULL;
+
+              source = lp_event_get_source(event);
+
+              if (LP_IS_MEDIA(source))
+                break;
+
+              g_object_get (event,
+                  "x", &dx,
+                  "y", &dy,
+                  "button", &button,
+                  "press", &press,
+                  NULL);
+
+              x = (int) dx;
+              y = (int) dy;
+
+              for (l = scene->children; l != NULL; l = l->next)
+              {
+                lp_Media *media;
+                gint child_x;
+                gint child_y;
+                gint child_z;
+                gint child_width;
+                gint child_height;
+
+                media = LP_MEDIA (l->data);
+                g_assert_nonnull (media);
+
+                g_object_get (media,
+                    "x", &child_x,
+                    "y", &child_y,
+                    "z", &child_z,
+                    "width", &child_width,
+                    "height", &child_height,
+                    NULL);
+
+                if (x >= child_x  && y >= child_y &&
+                    x <= child_x + child_width    &&
+                    y <= child_y + child_height   &&
+                    z <= child_z)
+                {
+                  selected = media;
+                  z = child_z;
+                }
+              }
+
+              if (selected != NULL)
+              {
+                lp_Event *event = NULL;
+                gint media_x;
+                gint media_y;
+
+                g_object_get (selected,
+                    "x", &media_x,
+                    "y", &media_y,
+                    NULL);
+
+                event = LP_EVENT (_lp_event_pointer_click_new (
+                      G_OBJECT(selected), x - media_x, y - media_y,
+                      button, press));
+                _lp_scene_dispatch (scene, LP_EVENT (event));
+              }
+
+              break;
+            }
           case LP_EVENT_MASK_KEY:           /* fall through */
-          case LP_EVENT_MASK_POINTER_CLICK: /* fall through */
           case LP_EVENT_MASK_POINTER_MOVE:  /* fall through */
             {
               break;            /* nothing to do */
@@ -570,12 +646,16 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
               GObject *source;
               lp_Media *media;
 
-              source = lp_event_get_source(event);
-              if (!LP_IS_MEDIA(source))
+              if (mask == LP_EVENT_MASK_ERROR)
+              {
+                GObject *source = lp_event_get_source(event);
+                if (LP_IS_MEDIA(source))
+                  media = LP_MEDIA(source);
+                else
                   break;
-
-              media = LP_MEDIA(source);
-
+              }
+              else
+                media = LP_MEDIA (lp_event_get_source (event));
               switch (mask)
               {
                 case LP_EVENT_MASK_ERROR:
@@ -665,7 +745,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
               g_assert (gst_navigation_event_parse_mouse_button_event
                         (from, &button, &x, &y));
               press = type == GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS;
-              to = LP_EVENT (_lp_event_pointer_click_new (scene, x, y,
+              to = LP_EVENT (_lp_event_pointer_click_new (G_OBJECT(scene), x, y,
                                                           button, press));
               break;
             }
@@ -1620,6 +1700,11 @@ finish:
   return ret;
 }
 
+/**
+ *
+ * Returns whether a scene is paused or not
+ *
+ */
 gboolean
 _lp_scene_is_paused (lp_Scene *scene)
 {

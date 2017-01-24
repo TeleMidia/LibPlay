@@ -1747,10 +1747,6 @@ sourceok:
     g_assert (media_pad_flag_active (*flags));
     MEDIA_PAD_FLAG_TOGGLE (*flags, PAD_FLAG_FLUSHED); /* flush */
 
-    pad = gst_element_get_static_pad (media->source, "src");
-    gst_pad_set_offset (pad, (gint64) media->offset);
-    gst_object_unref (pad);
-
     event = _lp_event_start_new (media, FALSE);
     g_assert_nonnull (event);
     _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));

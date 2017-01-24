@@ -19,7 +19,7 @@ along with LibPlay.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <config.h>
 #include "play-internal.h"
 
-#define DEFAULT_VIDEO_BUFFER_DUR      33 /* ≅ 30 fps */
+#define DEFAULT_VIDEO_BUFFER_DUR      16 /* ≅ 60 fps */
 #define VIDEO_FORMAT_ARGB_SIZE         4 /* 8 bits per channel == 4 bytes */
 
 /* Callback called whenever an appsrc needs to push a transparent buffer */
@@ -62,7 +62,7 @@ _lp_common_appsrc_transparent_data (GstElement *src, guint size, gpointer data)
        numerator == 0 || denominator == 0))
   {
     /* 
-     * We consider 30 fps as default framerate. Note this only works 
+     * We consider 60 fps as default framerate. Note this only works 
      * if the appsrc is generating video buffers.
      */
     duration = DEFAULT_VIDEO_BUFFER_DUR * GST_MSECOND; 

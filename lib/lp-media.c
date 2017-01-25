@@ -100,6 +100,8 @@ struct _lp_Media
   struct
   {                             /* video output: */
     GstElement *freeze;         /* image freeze (optional) */
+    GstElement *convert;        /* video convert */
+    GstElement *crop;           /* video crop */
     GstElement *text;           /* text overlay */
     GstPad *pad;                /* video pad in bin */
     lp_MediaPadFlag flags;      /* video pad flags */
@@ -120,6 +122,10 @@ struct _lp_Media
     gchar *text;                /* cached text */
     guint text_color;           /* cached text color */
     gchar *text_font;           /* cached text font */
+    gint crop_top;              /* cached crop_top */
+    gint crop_left;             /* cached crop_left */
+    gint crop_right;            /* cached crop_right */
+    gint crop_bottom;           /* cached crop_bottom */
   } prop;
 };
 
@@ -142,6 +148,8 @@ static const gstx_eltmap_t media_eltmap_audio[] = {
 };
 
 static const gstx_eltmap_t media_eltmap_video[] = {
+  {"videoconvert",  offsetof (lp_Media, video.convert)},
+  {"videocrop",     offsetof (lp_Media, video.crop)},
   {"textoverlay",   offsetof (lp_Media, video.text)},
   {NULL, 0}
 };
@@ -169,23 +177,31 @@ enum
   PROP_TEXT,
   PROP_TEXT_COLOR,
   PROP_TEXT_FONT,
+  PROP_CROP_TOP,
+  PROP_CROP_LEFT,
+  PROP_CROP_RIGHT,
+  PROP_CROP_BOTTOM,
   PROP_LAST
 };
 
 /* Property defaults.  */
-#define DEFAULT_SCENE       NULL       /* not initialized */
-#define DEFAULT_URI         NULL       /* not initialized */
-#define DEFAULT_X           0          /* origin */
-#define DEFAULT_Y           0          /* origin */
-#define DEFAULT_Z           1          /* lowest order */
-#define DEFAULT_WIDTH       0          /* natural width */
-#define DEFAULT_HEIGHT      0          /* natural height */
-#define DEFAULT_ALPHA       1.0        /* natural alpha */
-#define DEFAULT_MUTE        FALSE      /* not muted */
-#define DEFAULT_VOLUME      1.0        /* natural volume */
-#define DEFAULT_TEXT        NULL       /* not initialized */
-#define DEFAULT_TEXT_COLOR  0xffffffff /* white */
-#define DEFAULT_TEXT_FONT   NULL       /* not initialized */
+#define DEFAULT_SCENE         NULL       /* not initialized */
+#define DEFAULT_URI           NULL       /* not initialized */
+#define DEFAULT_X             0          /* origin */
+#define DEFAULT_Y             0          /* origin */
+#define DEFAULT_Z             1          /* lowest order */
+#define DEFAULT_WIDTH         0          /* natural width */
+#define DEFAULT_HEIGHT        0          /* natural height */
+#define DEFAULT_ALPHA         1.0        /* natural alpha */
+#define DEFAULT_MUTE          FALSE      /* not muted */
+#define DEFAULT_VOLUME        1.0        /* natural volume */
+#define DEFAULT_TEXT          NULL       /* not initialized */
+#define DEFAULT_TEXT_COLOR    0xffffffff /* white */
+#define DEFAULT_TEXT_FONT     NULL       /* not initialized */
+#define DEFAULT_CROP_TOP      0          /* no crop */
+#define DEFAULT_CROP_LEFT     0          /* no crop */
+#define DEFAULT_CROP_RIGHT    0          /* no crop */
+#define DEFAULT_CROP_BOTTOM   0          /* no crop */
 
 /* Define the lp_Media type.  */
 GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
@@ -296,33 +312,37 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
   STMT_END
 
 /* Media property cache.  */
-#define media_reset_property_cache(m)           \
-  STMT_BEGIN                                    \
-  {                                             \
-    (m)->prop.scene = DEFAULT_SCENE;            \
-    (m)->prop.uri = DEFAULT_URI;                \
-    (m)->prop.final_uri = DEFAULT_URI;          \
-    (m)->prop.x = DEFAULT_X;                    \
-    (m)->prop.y = DEFAULT_Y;                    \
-    (m)->prop.z = DEFAULT_Z;                    \
-    (m)->prop.width = DEFAULT_WIDTH;            \
-    (m)->prop.height = DEFAULT_HEIGHT;          \
-    (m)->prop.alpha = DEFAULT_ALPHA;            \
-    (m)->prop.mute = DEFAULT_MUTE;              \
-    (m)->prop.volume = DEFAULT_VOLUME;          \
-    (m)->prop.text = DEFAULT_TEXT;              \
-    (m)->prop.text_color = DEFAULT_TEXT_COLOR;  \
-    (m)->prop.text_font = DEFAULT_TEXT_FONT;    \
-  }                                             \
+#define media_reset_property_cache(m)                           \
+  STMT_BEGIN                                                    \
+  {                                                             \
+    (m)->prop.scene = DEFAULT_SCENE;                            \
+    (m)->prop.uri = DEFAULT_URI;                                \
+    (m)->prop.final_uri = DEFAULT_URI;                          \
+    (m)->prop.x = DEFAULT_X;                                    \
+    (m)->prop.y = DEFAULT_Y;                                    \
+    (m)->prop.z = DEFAULT_Z;                                    \
+    (m)->prop.width = DEFAULT_WIDTH;                            \
+    (m)->prop.height = DEFAULT_HEIGHT;                          \
+    (m)->prop.alpha = DEFAULT_ALPHA;                            \
+    (m)->prop.mute = DEFAULT_MUTE;                              \
+    (m)->prop.volume = DEFAULT_VOLUME;                          \
+    (m)->prop.text = DEFAULT_TEXT;                              \
+    (m)->prop.text_color = DEFAULT_TEXT_COLOR;                  \
+    (m)->prop.text_font = DEFAULT_TEXT_FONT;                    \
+    (m)->prop.crop_top = DEFAULT_CROP_TOP;                      \
+    (m)->prop.crop_left = DEFAULT_CROP_LEFT;                    \
+    (m)->prop.crop_right = DEFAULT_CROP_RIGHT;                  \
+    (m)->prop.crop_bottom = DEFAULT_CROP_BOTTOM;                \
+  }                                                             \
   STMT_END
 
-#define media_release_property_cache(m)         \
-  STMT_BEGIN                                    \
-  {                                             \
-    g_free ((m)->prop.uri);                     \
-    g_free ((m)->prop.text);                    \
-    g_free ((m)->prop.text_font);               \
-  }                                             \
+#define media_release_property_cache(m)                         \
+  STMT_BEGIN                                                    \
+  {                                                             \
+    g_free ((m)->prop.uri);                                     \
+    g_free ((m)->prop.text);                                    \
+    g_free ((m)->prop.text_font);                               \
+  }                                                             \
   STMT_END
 
 
@@ -481,7 +501,7 @@ lp_media_pause_have_data_probe_callback (GstPad *pad,
 {
   GstCaps *caps = NULL;
   const char *name = NULL;
-  blocked_pad_info *blocked_pad = NULL; 
+  blocked_pad_info *blocked_pad = NULL;
   gulong probe_id = 0;
 
   gst_pad_remove_probe (pad, GST_PAD_PROBE_INFO_ID (info));
@@ -629,9 +649,14 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
   }
 
   _lp_eltmap_alloc_check (media, media_eltmap_video);
+  gstx_bin_add (media->bin, media->video.convert);
+  gstx_bin_add (media->bin, media->video.crop);
   gstx_bin_add (media->bin, media->video.text);
 
-  sink = gst_element_get_static_pad (media->video.text, "video_sink");
+  g_assert (gst_element_link_many (media->video.convert, media->video.crop,
+      media->video.text, NULL));
+
+  sink = gst_element_get_static_pad (media->video.convert, "sink");
   g_assert_nonnull (sink);
 
   g_assert (gst_pad_link (pad, sink) == GST_PAD_LINK_OK);
@@ -665,6 +690,14 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
      "ypos", media->prop.y,
      "zorder", media->prop.z,
      "alpha", media->prop.alpha, NULL);
+
+  g_object_set
+    (media->video.crop,
+     "top", media->prop.crop_top,
+     "left", media->prop.crop_left,
+     "right", media->prop.crop_right,
+     "bottom", media->prop.crop_bottom,
+     NULL);
 
   if (media->prop.width > 0)
     g_object_set (sink, "width", media->prop.width, NULL);
@@ -701,6 +734,8 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
   if (media_is_frozen (media))
     gstx_element_sync_state_with_parent (media->video.freeze);
 
+  gstx_element_sync_state_with_parent (media->video.convert);
+  gstx_element_sync_state_with_parent (media->video.crop);
   gstx_element_sync_state_with_parent (media->video.text);
   MEDIA_PAD_FLAGS_INIT (media->video.flags, PAD_FLAG_ACTIVE);
 
@@ -1007,6 +1042,14 @@ lp_media_get_property (GObject *object, guint prop_id,
     case PROP_TEXT_FONT:
       g_value_set_string (value, media->prop.text_font);
       break;
+    case PROP_CROP_TOP:
+      g_value_set_int (value, media->prop.crop_top);
+    case PROP_CROP_LEFT:
+      g_value_set_int (value, media->prop.crop_left);
+    case PROP_CROP_RIGHT:
+      g_value_set_int (value, media->prop.crop_right);
+    case PROP_CROP_BOTTOM:
+      g_value_set_int (value, media->prop.crop_bottom);
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -1068,6 +1111,18 @@ lp_media_set_property (GObject *object, guint prop_id,
     case PROP_TEXT_FONT:
       g_free (media->prop.text_font);
       media->prop.text_font = g_value_dup_string (value);
+      break;
+    case PROP_CROP_TOP:
+      media->prop.crop_top = g_value_get_int (value);
+      break;
+    case PROP_CROP_LEFT:
+      media->prop.crop_left = g_value_get_int (value);
+      break;
+    case PROP_CROP_RIGHT:
+      media->prop.crop_right = g_value_get_int (value);
+      break;
+    case PROP_CROP_BOTTOM:
+      media->prop.crop_bottom = g_value_get_int (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1189,6 +1244,26 @@ lp_media_set_property (GObject *object, guint prop_id,
             g_assert_not_reached ();
           }
         g_object_unref (sink);
+        break;
+      }
+    case PROP_CROP_TOP:
+    case PROP_CROP_LEFT:
+    case PROP_CROP_RIGHT:
+    case PROP_CROP_BOTTOM:
+      {
+        if (!_lp_scene_has_video (media->prop.scene))
+          break;                /* nothing to do */
+
+        if (!media_has_video (media))
+          break;                /* nothing to do */
+
+        g_object_set (media->video.crop,
+            "top", media->prop.crop_top,
+            "left", media->prop.crop_left,
+            "right", media->prop.crop_right,
+            "bottom", media->prop.crop_bottom,
+            NULL);
+
         break;
       }
     default:
@@ -1353,6 +1428,30 @@ lp_media_class_init (lp_MediaClass *cls)
     (gobject_class, PROP_TEXT_FONT, g_param_spec_string
      ("text-font", "text font", "overlay text font",
       DEFAULT_TEXT_FONT,
+      (GParamFlags)(G_PARAM_READWRITE)));
+
+  g_object_class_install_property
+    (gobject_class, PROP_CROP_TOP, g_param_spec_int
+     ("crop-top", "crop top", "pixels to crop at top",
+      0, G_MAXINT, DEFAULT_CROP_TOP,
+      (GParamFlags)(G_PARAM_READWRITE)));
+
+  g_object_class_install_property
+    (gobject_class, PROP_CROP_LEFT, g_param_spec_int
+     ("crop-left", "crop left", "pixels to crop at left",
+      0, G_MAXINT, DEFAULT_CROP_LEFT,
+      (GParamFlags)(G_PARAM_READWRITE)));
+
+  g_object_class_install_property
+    (gobject_class, PROP_CROP_RIGHT, g_param_spec_int
+     ("crop-right", "crop right", "pixels to crop at right",
+      0, G_MAXINT, DEFAULT_CROP_RIGHT,
+      (GParamFlags)(G_PARAM_READWRITE)));
+
+  g_object_class_install_property
+    (gobject_class, PROP_CROP_BOTTOM, g_param_spec_int
+     ("crop-bottom", "crop bottom", "pixels to crop at bottom",
+      0, G_MAXINT, DEFAULT_CROP_BOTTOM,
       (GParamFlags)(G_PARAM_READWRITE)));
 }
 
@@ -2064,7 +2163,7 @@ _lp_media_push_pause_buffer (GstElement *src, guint size_, gpointer data)
   GstCaps *caps = NULL;
 
   media = LP_MEDIA(data);
-  /* Do we need to lock media? 
+  /* Do we need to lock media?
    * I've tried to lock here and it led to dead lock
    */
   if (timestamp == 0)

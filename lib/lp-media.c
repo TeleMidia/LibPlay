@@ -101,6 +101,8 @@ struct _lp_Media
   {                             /* video output: */
     GstElement *freeze;         /* image freeze (optional) */
     GstElement *convert;        /* video convert */
+    GstElement *scale;          /* video scale */
+    GstElement *capsfilter;     /* video capsfilter */
     GstElement *crop;           /* video crop */
     GstElement *text;           /* text overlay */
     GstPad *pad;                /* video pad in bin */
@@ -149,6 +151,8 @@ static const gstx_eltmap_t media_eltmap_audio[] = {
 
 static const gstx_eltmap_t media_eltmap_video[] = {
   {"videoconvert",  offsetof (lp_Media, video.convert)},
+  {"videoscale",    offsetof (lp_Media, video.scale)},
+  {"capsfilter",    offsetof (lp_Media, video.capsfilter)},
   {"videocrop",     offsetof (lp_Media, video.crop)},
   {"textoverlay",   offsetof (lp_Media, video.text)},
   {NULL, 0}
@@ -650,11 +654,13 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
 
   _lp_eltmap_alloc_check (media, media_eltmap_video);
   gstx_bin_add (media->bin, media->video.convert);
+  gstx_bin_add (media->bin, media->video.scale);
+  gstx_bin_add (media->bin, media->video.capsfilter);
   gstx_bin_add (media->bin, media->video.crop);
   gstx_bin_add (media->bin, media->video.text);
 
-  g_assert (gst_element_link_many (media->video.convert, media->video.crop,
-      media->video.text, NULL));
+  g_assert (gst_element_link_many (media->video.convert, media->video.scale,
+        media->video.capsfilter, media->video.crop, media->video.text, NULL));
 
   sink = gst_element_get_static_pad (media->video.convert, "sink");
   g_assert_nonnull (sink);
@@ -1138,11 +1144,43 @@ lp_media_set_property (GObject *object, guint prop_id,
       {
         break;                  /* nothing to do */
       }
+    case PROP_WIDTH:            /* fall through */
+    case PROP_HEIGHT:
+      {
+        GstCaps *caps = NULL;
+        GstStructure *capsstr = NULL;
+
+        if (!_lp_scene_has_video (media->prop.scene))
+          break;                /* nothing to do */
+
+        if (!media_has_video (media))
+          break;                /* nothing to do */
+
+        capsstr = gst_structure_new_empty ("video/x-raw");
+
+        if (media->prop.width > 0)
+          gst_structure_set (capsstr, "width",
+              G_TYPE_INT, media->prop.width,
+              NULL);
+
+        if (media->prop.height > 0)
+          gst_structure_set (capsstr, "height",
+              G_TYPE_INT, media->prop.height,
+              NULL);
+
+        caps = gst_caps_new_full(capsstr, NULL);
+        g_assert_nonnull (caps);
+
+        g_object_set (media->video.capsfilter,
+            "caps", caps,
+            NULL);
+
+        gst_caps_unref (caps);
+        break;
+      }
     case PROP_X:                /* fall through */
     case PROP_Y:                /* fall through */
     case PROP_Z:                /* fall through */
-    case PROP_WIDTH:            /* fall through */
-    case PROP_HEIGHT:           /* fall through */
     case PROP_ALPHA:
       {
         GstPad *sink;
@@ -1166,12 +1204,6 @@ lp_media_set_property (GObject *object, guint prop_id,
             break;
           case PROP_Z:
             g_object_set (sink, "zorder", media->prop.z, NULL);
-            break;
-          case PROP_WIDTH:
-            g_object_set (sink, "width", media->prop.width, NULL);
-            break;
-          case PROP_HEIGHT:
-            g_object_set (sink, "height", media->prop.height, NULL);
             break;
           case PROP_ALPHA:
             g_object_set (sink, "alpha", media->prop.alpha, NULL);

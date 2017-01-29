@@ -520,13 +520,13 @@ lp_media_pause_have_data_probe_callback (GstPad *pad,
 
   if (g_str_equal (name, "video/x-raw"))
   {
-    GstCaps *caps = NULL;
+    GstCaps *videocaps = NULL;
     media->pause.video_buffer =
       gst_buffer_copy (GST_PAD_PROBE_INFO_BUFFER (info));
-    caps = gst_pad_get_current_caps(pad);
-    media->pause.caps = gst_caps_copy (caps);
+    videocaps = gst_pad_get_current_caps(pad);
+    media->pause.caps = gst_caps_copy (videocaps);
 
-    gst_caps_unref (caps);
+    gst_caps_unref (videocaps);
   }
   gst_caps_unref (caps);
 
@@ -2113,10 +2113,10 @@ seek (%s) %p\n\
  *
  * Returns: @media running time
  */
-guint64
+gint64
 lp_media_get_running_time (lp_Media *media)
 {
-  GstClockTime time;
+  gint64 time;
 
   media_lock (media);
 
@@ -2171,10 +2171,9 @@ lp_media_pause (lp_Media *media)
   while (gst_iterator_next (it, &value) == GST_ITERATOR_OK)
   {
     GstPad *p = NULL;
-    gulong probe_id = 0;
 
     p = GST_PAD (g_value_get_object (&value));
-    probe_id = gst_pad_add_probe (p, GST_PAD_PROBE_TYPE_BUFFER,
+    gst_pad_add_probe (p, GST_PAD_PROBE_TYPE_BUFFER,
         (GstPadProbeCallback) lp_media_pause_have_data_probe_callback,
         media, NULL);
   }
@@ -2187,8 +2186,9 @@ finish:
 }
 
 /* Pushes the same video buffer while paused */
-void
-_lp_media_push_pause_buffer (GstElement *src, guint size_, gpointer data)
+static void
+_lp_media_push_pause_buffer (GstElement *src, arg_unused(guint size_),
+    gpointer data)
 {
   static GstClockTime timestamp = 0;
   GstBuffer *buffer = NULL;
@@ -2322,7 +2322,7 @@ _lp_media_finish_pause (lp_Media *media)
 /* Finishes async resume in @media.  */
 
 void
-_lp_media_finish_resume (lp_Media *media)
+_lp_media_finish_resume (arg_unused(lp_Media *media))
 {
   /* TODO */
 }
@@ -2336,9 +2336,10 @@ _lp_media_finish_resume (lp_Media *media)
  * Returns: %TRUE if successful, or %FALSE otherwise
  */
 gboolean
-lp_media_resume (lp_Media *media)
+lp_media_resume (arg_unused(lp_Media *media))
 {
   /* TODO */
+  return FALSE;
 }
 
 /**

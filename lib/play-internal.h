@@ -142,6 +142,8 @@ _lp_media_finish_pause (lp_Media *);
 void
 _lp_media_finish_seek (lp_Media *);
 
+void
+_lp_media_finish_resume (lp_Media *);
 /* scene */
 
 GstElement *

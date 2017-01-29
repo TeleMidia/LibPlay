@@ -370,7 +370,7 @@ scene_start_unlocked (lp_Scene *scene)
   scene_unlock (scene);
   return TRUE;
 
- fail:
+fail:
   scene_unlock (scene);
   return FALSE;
 }
@@ -615,7 +615,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
 
               if (selected != NULL)
               {
-                lp_Event *event = NULL;
+                lp_Event *clickevent = NULL;
                 gint media_x;
                 gint media_y;
 
@@ -624,10 +624,10 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
                     "y", &media_y,
                     NULL);
 
-                event = LP_EVENT (_lp_event_pointer_click_new (
+                clickevent = LP_EVENT (_lp_event_pointer_click_new (
                       G_OBJECT(selected), x - media_x, y - media_y,
                       button, press));
-                _lp_scene_dispatch (scene, LP_EVENT (event));
+                _lp_scene_dispatch (scene, LP_EVENT (clickevent));
               }
 
               break;
@@ -643,7 +643,6 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           case LP_EVENT_MASK_PAUSE: /* fall through */
           case LP_EVENT_MASK_SEEK:
             {
-              GObject *source;
               lp_Media *media;
 
               if (mask == LP_EVENT_MASK_ERROR)

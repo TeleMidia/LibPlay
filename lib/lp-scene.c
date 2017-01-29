@@ -322,39 +322,39 @@ scene_start_unlocked (lp_Scene *scene)
   g_object_set (scene->audio.blank, "wave", scene->prop.wave, NULL);
 
   if (_lp_scene_has_video (scene))
-    {
-      GstCaps *caps;
+  {
+    GstCaps *caps;
 
-      _lp_eltmap_alloc_check (scene, lp_scene_eltmap_video);
+    _lp_eltmap_alloc_check (scene, lp_scene_eltmap_video);
 
-      caps = gst_caps_new_simple ("video/x-raw",
-          "format", G_TYPE_STRING, "ARGB",
-          "width", G_TYPE_INT, scene->prop.width,
-          "height", G_TYPE_INT, scene->prop.height,
-          "framerate", GST_TYPE_FRACTION, 0, 1,
-          NULL);
+    caps = gst_caps_new_simple ("video/x-raw",
+        "format", G_TYPE_STRING, "ARGB",
+        "width", G_TYPE_INT, scene->prop.width,
+        "height", G_TYPE_INT, scene->prop.height,
+        "framerate", GST_TYPE_FRACTION, 0, 1,
+        NULL);
 
-      gstx_bin_add (pipeline, scene->video.blank);
-      gstx_bin_add (pipeline, scene->video.mixer);
-      gstx_bin_add (pipeline, scene->video.text);
-      gstx_bin_add (pipeline, scene->video.convert);
-      gstx_bin_add (pipeline, scene->video.sink);
-      gstx_element_link (scene->video.blank, scene->video.mixer);
-      gstx_element_link (scene->video.mixer, scene->video.text);
-      gstx_element_link (scene->video.text, scene->video.convert);
-      gstx_element_link (scene->video.convert, scene->video.sink);
-      g_object_set (scene->video.blank,
-                  "format", GST_FORMAT_TIME,
-                  "caps", caps,
-                  NULL);
-      g_object_set (scene->video.mixer,
-                  "background", scene->prop.background, NULL);
-      g_signal_connect (scene->video.blank, "need-data",
-          G_CALLBACK (_lp_common_appsrc_transparent_data), scene);
+    gstx_bin_add (pipeline, scene->video.blank);
+    gstx_bin_add (pipeline, scene->video.mixer);
+    gstx_bin_add (pipeline, scene->video.text);
+    gstx_bin_add (pipeline, scene->video.convert);
+    gstx_bin_add (pipeline, scene->video.sink);
+    gstx_element_link (scene->video.blank, scene->video.mixer);
+    gstx_element_link (scene->video.mixer, scene->video.text);
+    gstx_element_link (scene->video.text, scene->video.convert);
+    gstx_element_link (scene->video.convert, scene->video.sink);
+    g_object_set (scene->video.blank,
+        "format", GST_FORMAT_TIME,
+        "caps", caps,
+        NULL);
+    g_object_set (scene->video.mixer,
+        "background", scene->prop.background, NULL);
+    g_signal_connect (scene->video.blank, "need-data",
+        G_CALLBACK (_lp_common_appsrc_transparent_data), scene);
 
-      gst_caps_unref (caps);
+    gst_caps_unref (caps);
 
-    }
+  }
 
   scene->state = STARTING;
   scene_unlock (scene);

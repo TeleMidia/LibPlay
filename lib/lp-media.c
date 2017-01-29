@@ -741,6 +741,8 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
     gstx_element_sync_state_with_parent (media->video.freeze);
 
   gstx_element_sync_state_with_parent (media->video.convert);
+  gstx_element_sync_state_with_parent (media->video.capsfilter);
+  gstx_element_sync_state_with_parent (media->video.scale);
   gstx_element_sync_state_with_parent (media->video.crop);
   gstx_element_sync_state_with_parent (media->video.text);
   MEDIA_PAD_FLAGS_INIT (media->video.flags, PAD_FLAG_ACTIVE);
@@ -1411,7 +1413,7 @@ lp_media_class_init (lp_MediaClass *cls)
   g_object_class_install_property
     (gobject_class, PROP_Z, g_param_spec_int
      ("z", "z", "z-order",
-      0, G_MAXINT, DEFAULT_Z,
+      1, G_MAXINT, DEFAULT_Z,
       (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property

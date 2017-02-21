@@ -101,8 +101,6 @@ struct _lp_Media
   {                             /* video output: */
     GstElement *freeze;         /* image freeze (optional) */
     GstElement *convert;        /* video convert */
-    GstElement *scale;          /* video scale */
-    GstElement *capsfilter;     /* video capsfilter */
     GstElement *crop;           /* video crop */
     GstElement *text;           /* text overlay */
     GstPad *pad;                /* video pad in bin */
@@ -124,10 +122,10 @@ struct _lp_Media
     gchar *text;                /* cached text */
     guint text_color;           /* cached text color */
     gchar *text_font;           /* cached text font */
-    gint crop_top;              /* cached crop_top */
-    gint crop_left;             /* cached crop_left */
-    gint crop_right;            /* cached crop_right */
-    gint crop_bottom;           /* cached crop_bottom */
+    gdouble crop_top;           /* cached crop_top */
+    gdouble crop_left;          /* cached crop_left */
+    gdouble crop_right;         /* cached crop_right */
+    gdouble crop_bottom;        /* cached crop_bottom */
   } prop;
 };
 
@@ -151,8 +149,6 @@ static const gstx_eltmap_t media_eltmap_audio[] = {
 
 static const gstx_eltmap_t media_eltmap_video[] = {
   {"videoconvert",  offsetof (lp_Media, video.convert)},
-  {"videoscale",    offsetof (lp_Media, video.scale)},
-  {"capsfilter",    offsetof (lp_Media, video.capsfilter)},
   {"videocrop",     offsetof (lp_Media, video.crop)},
   {"textoverlay",   offsetof (lp_Media, video.text)},
   {NULL, 0}
@@ -202,10 +198,10 @@ enum
 #define DEFAULT_TEXT          NULL       /* not initialized */
 #define DEFAULT_TEXT_COLOR    0xffffffff /* white */
 #define DEFAULT_TEXT_FONT     NULL       /* not initialized */
-#define DEFAULT_CROP_TOP      0          /* no crop */
-#define DEFAULT_CROP_LEFT     0          /* no crop */
-#define DEFAULT_CROP_RIGHT    0          /* no crop */
-#define DEFAULT_CROP_BOTTOM   0          /* no crop */
+#define DEFAULT_CROP_TOP      0.0        /* no crop */
+#define DEFAULT_CROP_LEFT     0.0        /* no crop */
+#define DEFAULT_CROP_RIGHT    0.0        /* no crop */
+#define DEFAULT_CROP_BOTTOM   0.0        /* no crop */
 
 /* Define the lp_Media type.  */
 GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
@@ -654,13 +650,11 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
 
   _lp_eltmap_alloc_check (media, media_eltmap_video);
   gstx_bin_add (media->bin, media->video.convert);
-  gstx_bin_add (media->bin, media->video.scale);
-  gstx_bin_add (media->bin, media->video.capsfilter);
   gstx_bin_add (media->bin, media->video.crop);
   gstx_bin_add (media->bin, media->video.text);
 
-  g_assert (gst_element_link_many (media->video.convert, media->video.scale,
-        media->video.capsfilter, media->video.crop, media->video.text, NULL));
+  g_assert (gst_element_link_many (media->video.convert, media->video.crop,
+      media->video.text, NULL));
 
   sink = gst_element_get_static_pad (media->video.convert, "sink");
   g_assert_nonnull (sink);
@@ -697,14 +691,7 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
      "zorder", media->prop.z,
      "alpha", media->prop.alpha, NULL);
 
-  g_object_set
-    (media->video.crop,
-     "top", media->prop.crop_top,
-     "left", media->prop.crop_left,
-     "right", media->prop.crop_right,
-     "bottom", media->prop.crop_bottom,
-     NULL);
-
+  /* update dimensions */
   if (media->prop.width > 0)
     g_object_set (sink, "width", media->prop.width, NULL);
   else
@@ -724,6 +711,18 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
 
   gst_object_unref (sink);
 
+  /* crop video */
+  if (media_has_video (media))
+  {
+    g_object_set (media->video.crop,
+        "top", media->prop.crop_top * media->prop.height,
+        "left", media->prop.crop_left * media->prop.width,
+        "right", media->prop.crop_right * media->prop.width,
+        "bottom", media->prop.crop_bottom * media->prop.height,
+        NULL);
+  }
+
+  /* set text */
   if (media->prop.text != NULL)
   {
     g_object_set (media->video.text,
@@ -741,8 +740,6 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
     gstx_element_sync_state_with_parent (media->video.freeze);
 
   gstx_element_sync_state_with_parent (media->video.convert);
-  gstx_element_sync_state_with_parent (media->video.capsfilter);
-  gstx_element_sync_state_with_parent (media->video.scale);
   gstx_element_sync_state_with_parent (media->video.crop);
   gstx_element_sync_state_with_parent (media->video.text);
   MEDIA_PAD_FLAGS_INIT (media->video.flags, PAD_FLAG_ACTIVE);
@@ -762,7 +759,7 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
 {
   lp_Scene *scene;
   GstCaps *caps;
-  GstPad *ghost = NULL;
+  GstPad *ghost;
   gulong id;
   const gchar *name;
   lp_MediaPadFlag *flags;
@@ -791,12 +788,11 @@ lp_media_pad_added_callback (arg_unused (GstElement *dec),
     ghost = _lp_media_configure_video_bin (media, pad);
     flags = &media->video.flags;
   }
-
   else
-    {
-      _lp_warn ("unknown stream type: %s", name);
-      goto done;
-    }
+  {
+    _lp_warn ("unknown stream type: %s", name);
+    goto done;
+  }
 
   if (ghost != NULL)
   {
@@ -1051,13 +1047,17 @@ lp_media_get_property (GObject *object, guint prop_id,
       g_value_set_string (value, media->prop.text_font);
       break;
     case PROP_CROP_TOP:
-      g_value_set_int (value, media->prop.crop_top);
+      g_value_set_double (value, media->prop.crop_top);
+      break;
     case PROP_CROP_LEFT:
-      g_value_set_int (value, media->prop.crop_left);
+      g_value_set_double (value, media->prop.crop_left);
+      break;
     case PROP_CROP_RIGHT:
-      g_value_set_int (value, media->prop.crop_right);
+      g_value_set_double (value, media->prop.crop_right);
+      break;
     case PROP_CROP_BOTTOM:
-      g_value_set_int (value, media->prop.crop_bottom);
+      g_value_set_double (value, media->prop.crop_bottom);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -1121,16 +1121,16 @@ lp_media_set_property (GObject *object, guint prop_id,
       media->prop.text_font = g_value_dup_string (value);
       break;
     case PROP_CROP_TOP:
-      media->prop.crop_top = g_value_get_int (value);
+      media->prop.crop_top = g_value_get_double (value);
       break;
     case PROP_CROP_LEFT:
-      media->prop.crop_left = g_value_get_int (value);
+      media->prop.crop_left = g_value_get_double (value);
       break;
     case PROP_CROP_RIGHT:
-      media->prop.crop_right = g_value_get_int (value);
+      media->prop.crop_right = g_value_get_double (value);
       break;
     case PROP_CROP_BOTTOM:
-      media->prop.crop_bottom = g_value_get_int (value);
+      media->prop.crop_bottom = g_value_get_double (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1146,43 +1146,11 @@ lp_media_set_property (GObject *object, guint prop_id,
       {
         break;                  /* nothing to do */
       }
-    case PROP_WIDTH:            /* fall through */
-    case PROP_HEIGHT:
-      {
-        GstCaps *caps = NULL;
-        GstStructure *capsstr = NULL;
-
-        if (!_lp_scene_has_video (media->prop.scene))
-          break;                /* nothing to do */
-
-        if (!media_has_video (media))
-          break;                /* nothing to do */
-
-        capsstr = gst_structure_new_empty ("video/x-raw");
-
-        if (media->prop.width > 0)
-          gst_structure_set (capsstr, "width",
-              G_TYPE_INT, media->prop.width,
-              NULL);
-
-        if (media->prop.height > 0)
-          gst_structure_set (capsstr, "height",
-              G_TYPE_INT, media->prop.height,
-              NULL);
-
-        caps = gst_caps_new_full(capsstr, NULL);
-        g_assert_nonnull (caps);
-
-        g_object_set (media->video.capsfilter,
-            "caps", caps,
-            NULL);
-
-        gst_caps_unref (caps);
-        break;
-      }
     case PROP_X:                /* fall through */
     case PROP_Y:                /* fall through */
     case PROP_Z:                /* fall through */
+    case PROP_WIDTH:            /* fall through */
+    case PROP_HEIGHT:           /* fall through */
     case PROP_ALPHA:
       {
         GstPad *sink;
@@ -1206,6 +1174,12 @@ lp_media_set_property (GObject *object, guint prop_id,
             break;
           case PROP_Z:
             g_object_set (sink, "zorder", media->prop.z, NULL);
+            break;
+          case PROP_WIDTH:
+            g_object_set (sink, "width", media->prop.width, NULL);
+            break;
+          case PROP_HEIGHT:
+            g_object_set (sink, "height", media->prop.height, NULL);
             break;
           case PROP_ALPHA:
             g_object_set (sink, "alpha", media->prop.alpha, NULL);
@@ -1292,10 +1266,10 @@ lp_media_set_property (GObject *object, guint prop_id,
           break;                /* nothing to do */
 
         g_object_set (media->video.crop,
-            "top", media->prop.crop_top,
-            "left", media->prop.crop_left,
-            "right", media->prop.crop_right,
-            "bottom", media->prop.crop_bottom,
+            "top", media->prop.crop_top * media->prop.height,
+            "left", media->prop.crop_left * media->prop.width,
+            "right", media->prop.crop_right * media->prop.width,
+            "bottom", media->prop.crop_bottom * media->prop.height,
             NULL);
 
         break;
@@ -1328,7 +1302,7 @@ lp_media_constructed (GObject *object)
 static void
 lp_media_dispose (GObject *object)
 {
-  lp_Scene *scene;
+  /* lp_Scene *scene; */
   lp_Media *media;
 
   media = LP_MEDIA (object);
@@ -1340,16 +1314,16 @@ lp_media_dispose (GObject *object)
       return;                   /* drop residual calls */
     }
 
-  scene = media->prop.scene;
-  while (!media_state_stopped (media))
-    {
-      media_unlock (media);
-      lp_media_stop (media);
-      _lp_scene_step (scene, TRUE);
-      media_lock (media);
-    }
+  /* scene = media->prop.scene; */
+  /* while (!media_state_stopped (media)) */
+  /*   { */
+  /*     media_unlock (media); */
+  /*     lp_media_stop (media); */
+  /*     _lp_scene_step (scene, TRUE); */
+  /*     media_lock (media); */
+  /*   } */
 
-  g_assert (media_state_stopped (media));
+  /* g_assert (media_state_stopped (media)); */
   media_release_property_cache (media);
   media->state = DISPOSED;
   media_unlock (media);
@@ -1465,27 +1439,27 @@ lp_media_class_init (lp_MediaClass *cls)
       (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
-    (gobject_class, PROP_CROP_TOP, g_param_spec_int
+    (gobject_class, PROP_CROP_TOP, g_param_spec_double
      ("crop-top", "crop top", "pixels to crop at top",
-      0, G_MAXINT, DEFAULT_CROP_TOP,
+      0.0, 1.0, DEFAULT_CROP_TOP,
       (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
-    (gobject_class, PROP_CROP_LEFT, g_param_spec_int
+    (gobject_class, PROP_CROP_LEFT, g_param_spec_double
      ("crop-left", "crop left", "pixels to crop at left",
-      0, G_MAXINT, DEFAULT_CROP_LEFT,
+      0.0, 1.0, DEFAULT_CROP_LEFT,
       (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
-    (gobject_class, PROP_CROP_RIGHT, g_param_spec_int
+    (gobject_class, PROP_CROP_RIGHT, g_param_spec_double
      ("crop-right", "crop right", "pixels to crop at right",
-      0, G_MAXINT, DEFAULT_CROP_RIGHT,
+      0.0, 1.0, DEFAULT_CROP_RIGHT,
       (GParamFlags)(G_PARAM_READWRITE)));
 
   g_object_class_install_property
-    (gobject_class, PROP_CROP_BOTTOM, g_param_spec_int
+    (gobject_class, PROP_CROP_BOTTOM, g_param_spec_double
      ("crop-bottom", "crop bottom", "pixels to crop at bottom",
-      0, G_MAXINT, DEFAULT_CROP_BOTTOM,
+      0.0, 1.0, DEFAULT_CROP_BOTTOM,
       (GParamFlags)(G_PARAM_READWRITE)));
 }
 

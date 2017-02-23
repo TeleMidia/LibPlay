@@ -715,10 +715,10 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
   if (media_has_video (media))
   {
     g_object_set (media->video.crop,
-        "top", media->prop.crop_top * media->prop.height,
-        "left", media->prop.crop_left * media->prop.width,
-        "right", media->prop.crop_right * media->prop.width,
-        "bottom", media->prop.crop_bottom * media->prop.height,
+        "top", (gint) (media->prop.crop_top * media->prop.height),
+        "left", (gint) (media->prop.crop_left * media->prop.width),
+        "right", (gint) (media->prop.crop_right * media->prop.width),
+        "bottom", (gint) (media->prop.crop_bottom * media->prop.height),
         NULL);
   }
 
@@ -1266,10 +1266,10 @@ lp_media_set_property (GObject *object, guint prop_id,
           break;                /* nothing to do */
 
         g_object_set (media->video.crop,
-            "top", media->prop.crop_top * media->prop.height,
-            "left", media->prop.crop_left * media->prop.width,
-            "right", media->prop.crop_right * media->prop.width,
-            "bottom", media->prop.crop_bottom * media->prop.height,
+            "top", (gint) (media->prop.crop_top * media->prop.height),
+            "left", (gint) (media->prop.crop_left * media->prop.width),
+            "right", (gint) (media->prop.crop_right * media->prop.width),
+            "bottom", (gint) (media->prop.crop_bottom * media->prop.height),
             NULL);
 
         break;

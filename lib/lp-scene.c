@@ -644,14 +644,14 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           case LP_EVENT_MASK_SEEK:
             {
               lp_Media *media;
+              
+              if (!LP_IS_MEDIA(lp_event_get_source(event)))
+                break;
 
               if (mask == LP_EVENT_MASK_ERROR)
               {
                 GObject *source = lp_event_get_source(event);
-                if (LP_IS_MEDIA(source))
-                  media = LP_MEDIA(source);
-                else
-                  break;
+                media = LP_MEDIA(source);
               }
               else
                 media = LP_MEDIA (lp_event_get_source (event));

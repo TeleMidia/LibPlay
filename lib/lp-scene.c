@@ -644,7 +644,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
           case LP_EVENT_MASK_SEEK:
             {
               lp_Media *media;
-              
+
               if (!LP_IS_MEDIA(lp_event_get_source(event)))
                 break;
 
@@ -1708,4 +1708,24 @@ gboolean
 _lp_scene_is_paused (lp_Scene *scene)
 {
   return scene_state_paused (scene);
+}
+
+/**
+ * lp_scene_get_current_time:
+ * @scene: an #lp_Scene
+ *
+ * Resumes  @scene
+ *
+ * Returns: the current time
+ */
+guint64
+lp_scene_get_current_time (lp_Scene *scene)
+{
+  guint64 time;
+  scene_lock (scene);
+
+  time = gst_clock_get_time (scene->clock.clock) - scene->clock.offset;
+
+  scene_unlock (scene);
+  return time;
 }

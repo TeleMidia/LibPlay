@@ -258,6 +258,9 @@ lp_scene_pause (lp_Scene *);
 LP_API gboolean
 lp_scene_resume (lp_Scene *);
 
+LP_API guint64
+lp_scene_get_current_time (lp_Scene *);
+
 LP_END_DECLS
 
 #endif /* PLAY_H */

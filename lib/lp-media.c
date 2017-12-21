@@ -432,7 +432,7 @@ lp_media_pad_added_block_probe_callback (GstPad *pad, GstPadProbeInfo *info,
 
   if (media_is_flag_set_on_all_pads (media, PAD_FLAG_FLUSHED))
     {
-      lp_EventStart *event = _lp_event_start_new (media, FALSE);
+      lp_EventStart *event = _lp_event_start_new (G_OBJECT(media), FALSE);
       g_assert_nonnull (event);
       _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
     }
@@ -1854,7 +1854,7 @@ sourceok:
     g_assert (media_pad_flag_active (*flags));
     MEDIA_PAD_FLAG_TOGGLE (*flags, PAD_FLAG_FLUSHED); /* flush */
 
-    event = _lp_event_start_new (media, FALSE);
+    event = _lp_event_start_new (G_OBJECT(media), FALSE);
     g_assert_nonnull (event);
     _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
     media->linked_pads++;

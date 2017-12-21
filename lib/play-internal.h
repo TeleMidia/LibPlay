@@ -112,7 +112,7 @@ lp_EventPointerMove *
 _lp_event_pointer_move_new (lp_Scene *, double, double);
 
 lp_EventStart *
-_lp_event_start_new (lp_Media *, gboolean);
+_lp_event_start_new (GObject *, gboolean);
 
 lp_EventStop *
 _lp_event_stop_new (lp_Media *, gboolean);
@@ -122,6 +122,7 @@ _lp_event_seek_new (lp_Media *, gboolean, gint64);
 
 lp_EventPause *
 _lp_event_pause_new (GObject *);
+
 /* media */
 
 lp_Media *
@@ -144,6 +145,7 @@ _lp_media_finish_seek (lp_Media *);
 
 void
 _lp_media_finish_resume (lp_Media *);
+
 /* scene */
 
 GstElement *

@@ -146,7 +146,7 @@ lp_event_start_class_init (lp_EventStartClass *cls)
 /* Creates a new start event.  */
 
 lp_EventStart *
-_lp_event_start_new (lp_Media *source, gboolean resume)
+_lp_event_start_new (GObject *source, gboolean resume)
 {
   return LP_EVENT_START (g_object_new (LP_TYPE_EVENT_START,
                                        "source", source,

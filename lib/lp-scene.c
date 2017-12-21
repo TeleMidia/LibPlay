@@ -1682,6 +1682,7 @@ finish:
 gboolean
 lp_scene_resume (lp_Scene *scene)
 {
+  lp_Event *event;
   gboolean ret = TRUE;
   scene_lock (scene);
 
@@ -1693,6 +1694,10 @@ lp_scene_resume (lp_Scene *scene)
 
   gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
   scene->state = STARTED;
+
+  event = LP_EVENT (_lp_event_start_new (G_OBJECT(scene), TRUE));
+  g_assert_nonnull (event);
+  _lp_scene_dispatch (scene, event);
 
 finish:
   scene_unlock (scene);

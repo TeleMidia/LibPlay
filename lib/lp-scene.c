@@ -1659,7 +1659,7 @@ lp_scene_pause (lp_Scene *scene)
     goto finish;
   }
 
-  gst_element_set_state (scene->pipeline, GST_STATE_PAUSED);
+  gstx_element_set_state_sync (scene->pipeline, GST_STATE_PAUSED);
   scene->state = PAUSED;
 
   event = LP_EVENT (_lp_event_pause_new (G_OBJECT(scene)));
@@ -1691,7 +1691,7 @@ lp_scene_resume (lp_Scene *scene)
     goto finish;
   }
 
-  gst_element_set_state (scene->pipeline, GST_STATE_PLAYING);
+  gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
   scene->state = STARTED;
 
 finish:

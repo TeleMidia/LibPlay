@@ -367,6 +367,9 @@ scene_start_unlocked (lp_Scene *scene)
   scene->state = STARTED;
   scene->clock.offset = gstx_element_get_clock_time (scene->pipeline);
 
+  if (scene->prop.lockstep)
+    gstx_element_set_state_sync (scene->pipeline, GST_STATE_PAUSED);
+
   scene_unlock (scene);
   return TRUE;
 
@@ -531,165 +534,165 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
   g_assert (LP_IS_SCENE (scene));
 
   switch (GST_MESSAGE_TYPE (msg))
-    {
+  {
     case GST_MESSAGE_APPLICATION:
+    {
+      const GstStructure *st;
+      lp_Event *event;
+      lp_EventMask mask;
+
+      st = gst_message_get_structure (msg);
+      g_assert_nonnull (st);
+
+      event = LP_EVENT (gstx_structure_get_pointer (st, "lp_Event"));
+      g_assert_nonnull (st);
+
+      mask = lp_event_get_mask (event);
+      switch (mask)
       {
-        const GstStructure *st;
-        lp_Event *event;
-        lp_EventMask mask;
+        case LP_EVENT_MASK_TICK:
+        {
+          scene_lock (scene);
+          if (likely (scene_state_started (scene)))
+            scene->prop.ticks++;
+          scene_unlock (scene);
+          break;
+        }
+        case LP_EVENT_MASK_POINTER_CLICK:
+        {
+          GList *l = NULL;
+          gdouble dx;
+          gdouble dy;
+          gint x;
+          gint y;
+          gint z = -1;
+          gint button;
+          gboolean press;
+          GObject *source =  NULL;
+          lp_Media *selected = NULL;
 
-        st = gst_message_get_structure (msg);
-        g_assert_nonnull (st);
+          source = lp_event_get_source(event);
 
-        event = LP_EVENT (gstx_structure_get_pointer (st, "lp_Event"));
-        g_assert_nonnull (st);
+          if (LP_IS_MEDIA(source))
+            break;
 
-        mask = lp_event_get_mask (event);
-        switch (mask)
+          g_object_get (event,
+              "x", &dx,
+              "y", &dy,
+              "button", &button,
+              "press", &press,
+              NULL);
+
+          x = (int) dx;
+          y = (int) dy;
+
+          for (l = scene->children; l != NULL; l = l->next)
           {
-          case LP_EVENT_MASK_TICK:
+            lp_Media *media;
+            gint child_x;
+            gint child_y;
+            gint child_z;
+            gint child_width;
+            gint child_height;
+
+            media = LP_MEDIA (l->data);
+            g_assert_nonnull (media);
+
+            g_object_get (media,
+                "x", &child_x,
+                "y", &child_y,
+                "z", &child_z,
+                "width", &child_width,
+                "height", &child_height,
+                NULL);
+
+            if (x >= child_x  && y >= child_y &&
+                x <= child_x + child_width    &&
+                y <= child_y + child_height   &&
+                z <= child_z)
             {
-              scene_lock (scene);
-              if (likely (scene_state_started (scene)))
-                scene->prop.ticks++;
-              scene_unlock (scene);
-              break;
+              selected = media;
+              z = child_z;
             }
-          case LP_EVENT_MASK_POINTER_CLICK:
-            {
-              GList *l = NULL;
-              gdouble dx;
-              gdouble dy;
-              gint x;
-              gint y;
-              gint z = -1;
-              gint button;
-              gboolean press;
-              GObject *source =  NULL;
-              lp_Media *selected = NULL;
-
-              source = lp_event_get_source(event);
-
-              if (LP_IS_MEDIA(source))
-                break;
-
-              g_object_get (event,
-                  "x", &dx,
-                  "y", &dy,
-                  "button", &button,
-                  "press", &press,
-                  NULL);
-
-              x = (int) dx;
-              y = (int) dy;
-
-              for (l = scene->children; l != NULL; l = l->next)
-              {
-                lp_Media *media;
-                gint child_x;
-                gint child_y;
-                gint child_z;
-                gint child_width;
-                gint child_height;
-
-                media = LP_MEDIA (l->data);
-                g_assert_nonnull (media);
-
-                g_object_get (media,
-                    "x", &child_x,
-                    "y", &child_y,
-                    "z", &child_z,
-                    "width", &child_width,
-                    "height", &child_height,
-                    NULL);
-
-                if (x >= child_x  && y >= child_y &&
-                    x <= child_x + child_width    &&
-                    y <= child_y + child_height   &&
-                    z <= child_z)
-                {
-                  selected = media;
-                  z = child_z;
-                }
-              }
-
-              if (selected != NULL)
-              {
-                lp_Event *clickevent = NULL;
-                gint media_x;
-                gint media_y;
-
-                g_object_get (selected,
-                    "x", &media_x,
-                    "y", &media_y,
-                    NULL);
-
-                clickevent = LP_EVENT (_lp_event_pointer_click_new (
-                      G_OBJECT(selected), x - media_x, y - media_y,
-                      button, press));
-                _lp_scene_dispatch (scene, LP_EVENT (clickevent));
-              }
-
-              break;
-            }
-          case LP_EVENT_MASK_KEY:           /* fall through */
-          case LP_EVENT_MASK_POINTER_MOVE:  /* fall through */
-            {
-              break;            /* nothing to do */
-            }
-          case LP_EVENT_MASK_ERROR: /* fall through */
-          case LP_EVENT_MASK_START: /* fall through */
-          case LP_EVENT_MASK_STOP:  /* fall through */
-          case LP_EVENT_MASK_PAUSE: /* fall through */
-          case LP_EVENT_MASK_SEEK:
-            {
-              lp_Media *media;
-
-              if (!LP_IS_MEDIA(lp_event_get_source(event)))
-                break;
-
-              if (mask == LP_EVENT_MASK_ERROR)
-              {
-                GObject *source = lp_event_get_source(event);
-                media = LP_MEDIA(source);
-              }
-              else
-                media = LP_MEDIA (lp_event_get_source (event));
-              switch (mask)
-              {
-                case LP_EVENT_MASK_ERROR:
-                  _lp_media_finish_error (media);
-                  break;
-                case LP_EVENT_MASK_START:
-                  _lp_media_finish_start (media);
-                  break;
-                case LP_EVENT_MASK_STOP:
-                  _lp_media_finish_stop (media);
-                  break;
-                case LP_EVENT_MASK_PAUSE:
-                  _lp_media_finish_pause (media);
-                  break;
-                case LP_EVENT_MASK_SEEK:
-                  _lp_media_finish_seek (media);
-                  break;
-                default:
-                  g_assert_not_reached ();
-              }
-              break;
-            }
-          default:
-            g_assert_not_reached ();
           }
 
-        scene_lock (scene);
-        if (likely (scene_state_started_or_paused (scene)))
+          if (selected != NULL)
           {
-            scene->events = g_list_append (scene->events, event);
-            g_assert_nonnull (scene->events);
+            lp_Event *clickevent = NULL;
+            gint media_x;
+            gint media_y;
+
+            g_object_get (selected,
+                "x", &media_x,
+                "y", &media_y,
+                NULL);
+
+            clickevent = LP_EVENT (_lp_event_pointer_click_new (
+                  G_OBJECT(selected), x - media_x, y - media_y,
+                  button, press));
+            _lp_scene_dispatch (scene, LP_EVENT (clickevent));
           }
-        scene_unlock (scene);
-        break;
+
+          break;
+        }
+        case LP_EVENT_MASK_KEY:           /* fall through */
+        case LP_EVENT_MASK_POINTER_MOVE:  /* fall through */
+        {
+          break;            /* nothing to do */
+        }
+        case LP_EVENT_MASK_ERROR: /* fall through */
+        case LP_EVENT_MASK_START: /* fall through */
+        case LP_EVENT_MASK_STOP:  /* fall through */
+        case LP_EVENT_MASK_PAUSE: /* fall through */
+        case LP_EVENT_MASK_SEEK:
+        {
+          lp_Media *media;
+
+          if (!LP_IS_MEDIA(lp_event_get_source(event)))
+            break;
+
+          if (mask == LP_EVENT_MASK_ERROR)
+          {
+            GObject *source = lp_event_get_source(event);
+            media = LP_MEDIA(source);
+          }
+          else
+            media = LP_MEDIA (lp_event_get_source (event));
+          switch (mask)
+          {
+            case LP_EVENT_MASK_ERROR:
+              _lp_media_finish_error (media);
+              break;
+            case LP_EVENT_MASK_START:
+              _lp_media_finish_start (media);
+              break;
+            case LP_EVENT_MASK_STOP:
+              _lp_media_finish_stop (media);
+              break;
+            case LP_EVENT_MASK_PAUSE:
+              _lp_media_finish_pause (media);
+              break;
+            case LP_EVENT_MASK_SEEK:
+              _lp_media_finish_seek (media);
+              break;
+            default:
+              g_assert_not_reached ();
+          }
+          break;
+        }
+        default:
+          g_assert_not_reached ();
       }
+
+      scene_lock (scene);
+      if (likely (scene_state_started_or_paused (scene)))
+      {
+        scene->events = g_list_append (scene->events, event);
+        g_assert_nonnull (scene->events);
+      }
+      scene_unlock (scene);
+      break;
+    }
     case GST_MESSAGE_ASYNC_DONE:
       break;
     case GST_MESSAGE_ASYNC_START:
@@ -707,110 +710,110 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     case GST_MESSAGE_DURATION_CHANGED:
       break;
     case GST_MESSAGE_ELEMENT:
+    {
+      GstNavigationEventType type;
+      GstEvent *from = NULL;
+      lp_Event *to = NULL;
+
+      if (gst_navigation_message_get_type (msg)
+          != GST_NAVIGATION_MESSAGE_EVENT)
+        break;                /* nothing to do */
+
+      if (unlikely (!gst_navigation_message_parse_event (msg, &from)))
+        break;                /* nothing to do */
+
+      g_assert_nonnull (from);
+      type = gst_navigation_event_get_type (from);
+      switch (type)
       {
-        GstNavigationEventType type;
-        GstEvent *from = NULL;
-        lp_Event *to = NULL;
+        case GST_NAVIGATION_EVENT_KEY_PRESS: /* fall through */
+        case GST_NAVIGATION_EVENT_KEY_RELEASE:
+        {
+          const gchar *key;
+          gboolean press;
 
-        if (gst_navigation_message_get_type (msg)
-            != GST_NAVIGATION_MESSAGE_EVENT)
-          break;                /* nothing to do */
+          g_assert (gst_navigation_event_parse_key_event (from, &key));
+          press = type == GST_NAVIGATION_EVENT_KEY_PRESS;
+          to = LP_EVENT (_lp_event_key_new (scene, key, press));
+          break;
+        }
+        case GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS: /* fall through */
+        case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE:
+        {
+          gint button;
+          gdouble x, y;
+          gboolean press;
 
-        if (unlikely (!gst_navigation_message_parse_event (msg, &from)))
-          break;                /* nothing to do */
+          g_assert (gst_navigation_event_parse_mouse_button_event
+              (from, &button, &x, &y));
+          press = type == GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS;
+          to = LP_EVENT (_lp_event_pointer_click_new (G_OBJECT(scene), x, y,
+                button, press));
+          break;
+        }
+        case GST_NAVIGATION_EVENT_MOUSE_MOVE:
+        {
+          gdouble x, y;
 
-        g_assert_nonnull (from);
-        type = gst_navigation_event_get_type (from);
-        switch (type)
-          {
-          case GST_NAVIGATION_EVENT_KEY_PRESS: /* fall through */
-          case GST_NAVIGATION_EVENT_KEY_RELEASE:
-            {
-              const gchar *key;
-              gboolean press;
-
-              g_assert (gst_navigation_event_parse_key_event (from, &key));
-              press = type == GST_NAVIGATION_EVENT_KEY_PRESS;
-              to = LP_EVENT (_lp_event_key_new (scene, key, press));
-              break;
-            }
-          case GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS: /* fall through */
-          case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE:
-            {
-              gint button;
-              gdouble x, y;
-              gboolean press;
-
-              g_assert (gst_navigation_event_parse_mouse_button_event
-                        (from, &button, &x, &y));
-              press = type == GST_NAVIGATION_EVENT_MOUSE_BUTTON_PRESS;
-              to = LP_EVENT (_lp_event_pointer_click_new (G_OBJECT(scene), x, y,
-                                                          button, press));
-              break;
-            }
-          case GST_NAVIGATION_EVENT_MOUSE_MOVE:
-            {
-              gdouble x, y;
-
-              g_assert (gst_navigation_event_parse_mouse_move_event
-                        (from, &x, &y));
-              to = LP_EVENT (_lp_event_pointer_move_new (scene, x, y));
-              break;
-            }
-          default:
-            {
-              break;            /* ignore unknown events */
-            }
-          }
-
-        if (likely (to != NULL))
-          _lp_scene_dispatch (scene, LP_EVENT (to));
-
-        gst_event_unref (from);
-        break;
+          g_assert (gst_navigation_event_parse_mouse_move_event
+              (from, &x, &y));
+          to = LP_EVENT (_lp_event_pointer_move_new (scene, x, y));
+          break;
+        }
+        default:
+        {
+          break;            /* ignore unknown events */
+        }
       }
+
+      if (likely (to != NULL))
+        _lp_scene_dispatch (scene, LP_EVENT (to));
+
+      gst_event_unref (from);
+      break;
+    }
     case GST_MESSAGE_EOS:
       break;
     case GST_MESSAGE_ERROR:
     case GST_MESSAGE_WARNING:
+    {
+      GstObject *obj = NULL;
+      GError *error = NULL;
+      lp_Event *event = NULL;
+      gchar *debug = NULL;
+
+      obj = GST_MESSAGE_SRC (msg);
+      g_assert_nonnull (obj);
+
+      if (GST_MESSAGE_TYPE (msg) == GST_MESSAGE_ERROR)
+        gst_message_parse_error (msg, &error, NULL);
+      else
+        gst_message_parse_warning (msg, &error, NULL);
+      g_assert_nonnull (error);
+
+      debug = gst_error_get_message (error->domain, error->code);
+      g_assert_nonnull (debug);
+
+      if (GST_IS_BASE_SINK (obj) /* output closed, quit scene */
+          && error->domain == GST_RESOURCE_ERROR
+          && error->code == GST_RESOURCE_ERROR_NOT_FOUND)
       {
-        GstObject *obj = NULL;
-        GError *error = NULL;
-        lp_Event *event = NULL;
-        gchar *debug = NULL;
-
-        obj = GST_MESSAGE_SRC (msg);
-        g_assert_nonnull (obj);
-
-        if (GST_MESSAGE_TYPE (msg) == GST_MESSAGE_ERROR)
-          gst_message_parse_error (msg, &error, NULL);
-        else
-          gst_message_parse_warning (msg, &error, NULL);
-        g_assert_nonnull (error);
-
-        debug = gst_error_get_message (error->domain, error->code);
-        g_assert_nonnull (debug);
-
-        if (GST_IS_BASE_SINK (obj) /* output closed, quit scene */
-            && error->domain == GST_RESOURCE_ERROR
-            && error->code == GST_RESOURCE_ERROR_NOT_FOUND)
-          {
-            _lp_critical ("%s: %s", error->message, debug);
-          }
-        else                    /* unknown error */
-          {
-            _lp_critical ("%s: %s", error->message, debug);
-          }
-
-        event = LP_EVENT (_lp_event_error_new (G_OBJECT(scene),
-              LP_ERROR_DEFAULT, error->message));
-        g_assert_nonnull (event);
-        _lp_scene_dispatch (scene, event);
-
-        g_free (debug);
-        g_error_free (error);
-        break;
+        _lp_critical ("%s: %s", error->message, debug);
       }
+      else                    /* unknown error */
+      {
+        _lp_critical ("%s: %s", error->message, debug);
+      }
+
+      event = LP_EVENT (_lp_event_error_new (G_OBJECT(scene),
+            LP_ERROR_DEFAULT, error->message));
+      g_assert_nonnull (event);
+      _lp_scene_dispatch (scene, event);
+
+      g_free (debug);
+      g_error_free (error);
+      break;
+    }
     case GST_MESSAGE_EXTENDED:
       break;
     case GST_MESSAGE_HAVE_CONTEXT:
@@ -822,13 +825,13 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     case GST_MESSAGE_NEED_CONTEXT:
       break;
     case GST_MESSAGE_NEW_CLOCK:
-      {
-        scene_lock (scene);
-        if (scene_state_started (scene))
-          scene_update_clock_id (scene);
-        scene_unlock (scene);
-        break;
-      }
+    {
+      scene_lock (scene);
+      if (scene_state_started (scene))
+        scene_update_clock_id (scene);
+      scene_unlock (scene);
+      break;
+    }
     case GST_MESSAGE_PROGRESS:
       break;
     case GST_MESSAGE_QOS:
@@ -846,6 +849,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     case GST_MESSAGE_STATE_DIRTY:
       break;
     case GST_MESSAGE_STEP_DONE:
+      g_message ("bus: step done");
       break;
     case GST_MESSAGE_STEP_START:
       break;
@@ -862,7 +866,7 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
     case GST_MESSAGE_UNKNOWN:
     default:
       break;                    /* ignore unknown messages */
-    }
+  }
 
   return TRUE;
 }
@@ -874,6 +878,7 @@ static void
 lp_scene_init (lp_Scene *scene)
 {
   g_rec_mutex_init (&scene->mutex);
+
   scene_reset_run_time_data (scene);
   scene_reset_property_cache (scene);
 
@@ -896,7 +901,7 @@ lp_scene_get_property (GObject *object, guint prop_id,
   scene_lock (scene);
 
   switch (prop_id)
-    {
+  {
     case PROP_MASK:
       g_value_set_int (value, scene->prop.mask);
       break;
@@ -940,7 +945,7 @@ lp_scene_get_property (GObject *object, guint prop_id,
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-    }
+  }
 
   scene_unlock (scene);
 }
@@ -955,7 +960,7 @@ lp_scene_set_property (GObject *object, guint prop_id,
   scene_lock (scene);
 
   switch (prop_id)
-    {
+  {
     case PROP_MASK:
       scene->prop.mask = g_value_get_int (value);
       break;
@@ -985,6 +990,9 @@ lp_scene_set_property (GObject *object, guint prop_id,
       scene->prop.lockstep = g_value_get_boolean (value);
       g_object_set (scene->clock.clock, "lockstep",
                     scene->prop.lockstep, NULL);
+
+      if (scene->pipeline && !scene_state_paused (scene))
+        gstx_element_set_state_sync (scene->pipeline, GST_STATE_PAUSED);
       break;
     case PROP_SLAVE_AUDIO:
       scene->prop.slave_audio = g_value_get_boolean (value);
@@ -1003,50 +1011,50 @@ lp_scene_set_property (GObject *object, guint prop_id,
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-    }
+  }
 
   if (!scene_state_started_or_paused (scene))
     goto done;                  /* nothing to do */
 
   switch (prop_id)
-    {
+  {
     case PROP_INTERVAL:
-      {
-        scene_update_clock_id (scene);
-        break;
-      }
+    {
+      scene_update_clock_id (scene);
+      break;
+    }
     case PROP_BACKGROUND:       /* fall through */
     case PROP_TEXT:             /* fall through */
     case PROP_TEXT_COLOR:       /* fall through */
     case PROP_TEXT_FONT:
+    {
+      if (!_lp_scene_has_video (scene))
+        break;                /* nothing to do */
+
+      switch (prop_id)
       {
-        if (!_lp_scene_has_video (scene))
-          break;                /* nothing to do */
-
-        switch (prop_id)
-          {
-          case PROP_BACKGROUND:
-            g_object_set (scene->video.mixer, "background",
-                          scene->prop.background, NULL);
-            break;
-          case PROP_TEXT:
-            g_object_set (scene->video.text, "text",
-                          scene->prop.text, NULL);
-            break;
-          case PROP_TEXT_COLOR:
-            g_object_set (scene->video.text,
-                          "color", scene->prop.text_color, NULL);
-            break;
-          case PROP_TEXT_FONT:
-            g_object_set (scene->video.text,
-                          "font-desc", scene->prop.text_font, NULL);
-            break;
-          default:
-            g_assert_not_reached ();
-          }
-
-        break;
+        case PROP_BACKGROUND:
+          g_object_set (scene->video.mixer, "background",
+                        scene->prop.background, NULL);
+          break;
+        case PROP_TEXT:
+          g_object_set (scene->video.text, "text",
+                        scene->prop.text, NULL);
+          break;
+        case PROP_TEXT_COLOR:
+          g_object_set (scene->video.text,
+                        "color", scene->prop.text_color, NULL);
+          break;
+        case PROP_TEXT_FONT:
+          g_object_set (scene->video.text,
+                        "font-desc", scene->prop.text_font, NULL);
+          break;
+        default:
+          g_assert_not_reached ();
       }
+
+      break;
+    }
       default:
         break;                  /* nothing to do */
     }
@@ -1542,7 +1550,36 @@ lp_scene_advance (lp_Scene *scene, guint64 time)
   g_assert (scene_state_started (scene));
   status = _lp_clock_advance (LP_CLOCK (scene->clock.clock), time);
 
-  scene_unlock (scene);
+  if (scene->prop.lockstep)
+  {
+    GstBus *bus;
+    gboolean stepdone = FALSE;
+
+    bus = gst_pipeline_get_bus (GST_PIPELINE(scene->pipeline));
+    gst_bus_remove_watch (bus);
+    scene_unlock (scene);
+
+    if (scene->video.sink)
+    {
+
+      gst_element_send_event (scene->video.sink,
+          gst_event_new_step (GST_FORMAT_TIME, time, 1.0, TRUE, FALSE));
+    }
+
+    while (!stepdone)
+    {
+      GstMessage *msg = gst_bus_timed_pop (bus, GST_CLOCK_TIME_NONE);
+
+      stepdone = GST_MESSAGE_TYPE(msg) == GST_MESSAGE_STEP_DONE;
+      lp_scene_bus_callback (bus, msg, scene);
+      gst_message_unref(msg);
+    }
+    assert (gst_bus_add_watch (bus,
+          (GstBusFunc) lp_scene_bus_callback, scene) > 0);
+    g_message ("advance: step done");
+    gst_object_unref (bus);
+  }
+
   return status;
 
  fail:
@@ -1638,6 +1675,31 @@ lp_scene_quit (lp_Scene *scene)
   g_assert (scene_stop_unlocked (scene));
 }
 
+static ATTR_UNUSED void
+print_element_clock_info (GstElement *element, GstClock *reference)
+{
+  guint64 time;
+  GstClock *clock;
+
+  if (!element)
+    return;
+
+  clock = gst_element_get_clock (element);
+  time = gst_clock_get_time (clock);
+
+  printf ("sink: %s\n", G_OBJECT_TYPE_NAME (G_OBJECT(element)));
+  printf ("reference clock: %s\n", G_OBJECT_TYPE_NAME (G_OBJECT(reference)));
+  printf ("clock: %s\n", G_OBJECT_TYPE_NAME (G_OBJECT(clock)));
+  printf ("clock time: %lu\n", time);
+
+  time = gst_clock_get_time (reference);
+  printf ("reference time: %lu\n", time);
+
+  assert (clock == reference);
+
+  gst_object_unref (clock);
+}
+
 /**
  * lp_scene_pause:
  * @scene: an #lp_Scene
@@ -1659,7 +1721,9 @@ lp_scene_pause (lp_Scene *scene)
     goto finish;
   }
 
-  gstx_element_set_state_sync (scene->pipeline, GST_STATE_PAUSED);
+  if (!scene->prop.lockstep)
+    gstx_element_set_state_sync (scene->pipeline, GST_STATE_PAUSED);
+
   scene->state = PAUSED;
 
   event = LP_EVENT (_lp_event_pause_new (G_OBJECT(scene)));
@@ -1692,9 +1756,12 @@ lp_scene_resume (lp_Scene *scene)
     goto finish;
   }
 
-  gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
-  scene->state = STARTED;
+  if (!scene->prop.lockstep)
+  {
+    gstx_element_set_state_sync (scene->pipeline, GST_STATE_PLAYING);
+  }
 
+  scene->state = STARTED;
   event = LP_EVENT (_lp_event_start_new (G_OBJECT(scene), TRUE));
   g_assert_nonnull (event);
   _lp_scene_dispatch (scene, event);

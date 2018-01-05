@@ -90,6 +90,7 @@ struct _lp_Scene
     gchar *text;                /* cached text */
     guint text_color;           /* cached text color */
     gchar *text_font;           /* cached text font */
+    gboolean sync;              /* synchronous mode */
   } prop;
 };
 
@@ -128,6 +129,7 @@ enum
   PROP_TEXT,
   PROP_TEXT_COLOR,
   PROP_TEXT_FONT,
+  PROP_SYNCHRONOUS,
   PROP_LAST
 };
 
@@ -145,6 +147,7 @@ enum
 #define DEFAULT_TEXT         NULL              /* not initialized */
 #define DEFAULT_TEXT_COLOR   0xffffffff        /* white */
 #define DEFAULT_TEXT_FONT    NULL              /* not initialized */
+#define DEFAULT_SYNCHRONOUS  FALSE             /* synchronous mode */
 
 /* Define the lp_Scene type.  */
 GX_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
@@ -210,6 +213,7 @@ GX_DEFINE_TYPE (lp_Scene, lp_scene, G_TYPE_OBJECT)
     (s)->prop.text = DEFAULT_TEXT;                      \
     (s)->prop.text_color = DEFAULT_TEXT_COLOR;          \
     (s)->prop.text_font = DEFAULT_TEXT_FONT;            \
+    (s)->prop.sync = DEFAULT_SYNCHRONOUS;               \
   }                                                     \
   STMT_END
 
@@ -330,6 +334,7 @@ scene_start_unlocked (lp_Scene *scene)
   GstBus *bus;
   gulong id;
   gboolean done;
+  gboolean syncmode;
 
   done = FALSE;
 
@@ -399,15 +404,19 @@ scene_start_unlocked (lp_Scene *scene)
   }
 
   scene->state = STARTING;
+
+  syncmode = scene->prop.sync;
+
   scene_unlock (scene);
   if (scene->prop.lockstep)
     gstx_element_set_state_sync (pipeline, GST_STATE_PAUSED);
   else
     gstx_element_set_state_sync (pipeline, GST_STATE_PLAYING);
 
+
   scene_unlock (scene);
 
-  while (!done)
+  while (syncmode && !done)
   {
     g_main_context_iteration (g_main_loop_get_context (scene->loop), TRUE);
     scene_lock (scene);
@@ -1755,31 +1764,6 @@ lp_scene_quit (lp_Scene *scene)
   }
   scene_unlock (scene);
   g_assert (scene_stop_unlocked (scene));
-}
-
-static ATTR_UNUSED void
-print_element_clock_info (GstElement *element, GstClock *reference)
-{
-  guint64 time;
-  GstClock *clock;
-
-  if (!element)
-    return;
-
-  clock = gst_element_get_clock (element);
-  time = gst_clock_get_time (clock);
-
-  printf ("sink: %s\n", G_OBJECT_TYPE_NAME (G_OBJECT(element)));
-  printf ("reference clock: %s\n", G_OBJECT_TYPE_NAME (G_OBJECT(reference)));
-  printf ("clock: %s\n", G_OBJECT_TYPE_NAME (G_OBJECT(clock)));
-  printf ("clock time: %lu\n", time);
-
-  time = gst_clock_get_time (reference);
-  printf ("reference time: %lu\n", time);
-
-  assert (clock == reference);
-
-  gst_object_unref (clock);
 }
 
 /**

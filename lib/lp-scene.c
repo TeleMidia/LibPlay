@@ -345,7 +345,7 @@ scene_start_unlocked (lp_Scene *scene)
 
   _lp_eltmap_alloc_check (scene, lp_scene_eltmap);
 
-  gst_pipeline_use_clock (GST_PIPELINE(scene->pipeline),
+  gst_pipeline_set_clock (GST_PIPELINE(scene->pipeline),
       scene->clock.clock);
 
   pipeline = scene->pipeline;

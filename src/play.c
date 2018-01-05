@@ -1,5 +1,5 @@
 /* play.c -- Simple media player.
-   Copyright (C) 2015-2017 PUC-Rio/Laboratorio TeleMidia
+   Copyright (C) 2015-2018 PUC-Rio/Laboratorio TeleMidia
 
 This file is part of LibPlay.
 

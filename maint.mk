@@ -1,5 +1,5 @@
 # maint.mk -- Maintainer's makefile.
-# Copyright (C) 2014-2016 Free Software Foundation, Inc.
+# Copyright (C) 2014-2018 Free Software Foundation, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -451,7 +451,7 @@ syntax-check: $(SC_RULES)
 
 UPDATE_COPYRIGHT_EXCLUDE?=
 UPDATE_COPYRIGHT_EXCLUDE= $(REMOTE_FILES)
-COPYRIGHT_YEAR?= $(shell date +%Y)
+COPYRIGHT_YEAR= $(shell date +%Y)
 COPYRIGHT_HOLDER?= Free Software Foundation, Inc.
 
 perl_update_copyright:=\

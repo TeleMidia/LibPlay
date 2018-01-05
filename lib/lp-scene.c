@@ -1637,10 +1637,12 @@ lp_scene_advance (lp_Scene *scene, guint64 time)
   gboolean stepdone = FALSE;
 
   scene_lock (scene);
-  if (unlikely (!scene_state_started (scene)))
+  if (unlikely (!scene_state_started (scene) || !scene->prop.lockstep))
     goto fail;                  /* nothing to do */
 
   g_assert (scene_state_started (scene));
+
+  _lp_clock_advance (LP_CLOCK(scene->clock.clock), time);
 
   bus = gst_pipeline_get_bus (GST_PIPELINE(scene->pipeline));
   gst_bus_remove_watch (bus);

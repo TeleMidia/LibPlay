@@ -1293,7 +1293,7 @@ lp_scene_class_init (lp_SceneClass *cls)
     (gobject_class, PROP_SYNCHRONOUS, g_param_spec_boolean
      ("sync", "synchronous mode", "activate synchronous mode",
       DEFAULT_SYNCHRONOUS,
-      (GParamFlags)(G_PARAM_READWRITE)));
+      (GParamFlags)(G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY)));
 
   if (!gst_is_initialized ())
   {

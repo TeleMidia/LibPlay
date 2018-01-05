@@ -417,10 +417,10 @@ lp_media_pad_added_block_probe_callback (GstPad *pad, GstPadProbeInfo *info,
   g_assert (media_pad_flag_active (*flags));
 
   if (media_pad_flag_blocked (*flags))
-    {
-      media_unlock (media);
-      return GST_PAD_PROBE_OK;  /* block */
-    }
+  {
+    media_unlock (media);
+    return GST_PAD_PROBE_OK;  /* block */
+  }
 
   if (media_pad_flag_flushed (*flags))
     goto unblock;               /* drop residual probes */
@@ -431,11 +431,11 @@ lp_media_pad_added_block_probe_callback (GstPad *pad, GstPadProbeInfo *info,
   gst_pad_set_offset (pad, (gint64) media->offset);
 
   if (media_is_flag_set_on_all_pads (media, PAD_FLAG_FLUSHED))
-    {
-      lp_EventStart *event = _lp_event_start_new (G_OBJECT(media), FALSE);
-      g_assert_nonnull (event);
-      _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
-    }
+  {
+    lp_EventStart *event = _lp_event_start_new (G_OBJECT(media), FALSE);
+    g_assert_nonnull (event);
+    _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
+  }
 
  unblock:
   media_unlock (media);
@@ -623,7 +623,7 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
     goto done;            /* nothing to do */
   }
 
-  caps =  gst_pad_get_current_caps (pad);
+  caps = gst_pad_get_current_caps (pad);
   if (caps != NULL) /* Media that are only text */
     str = gst_caps_get_structure (caps, 0);
 
@@ -653,8 +653,8 @@ _lp_media_configure_video_bin (lp_Media *media, GstPad *pad)
   gstx_bin_add (media->bin, media->video.crop);
   gstx_bin_add (media->bin, media->video.text);
 
-  g_assert (gst_element_link_many (media->video.convert, media->video.crop,
-      media->video.text, NULL));
+  g_assert (gst_element_link_many (media->video.convert,
+        media->video.crop, media->video.text, NULL));
 
   sink = gst_element_get_static_pad (media->video.convert, "sink");
   g_assert_nonnull (sink);
@@ -822,13 +822,13 @@ lp_media_no_more_pads_callback (GstElement *dec, lp_Media *media)
   g_assert (media_state_starting (media));
 
   if (unlikely (!media_has_audio (media) && !media_has_video (media)))
-    {
-      lp_EventError *event =
-        _lp_event_error_new_start_no_pads (G_OBJECT(media));
-      g_assert_nonnull (event);
-      _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
-      goto done;
-    }
+  {
+    lp_EventError *event =
+      _lp_event_error_new_start_no_pads (G_OBJECT(media));
+    g_assert_nonnull (event);
+    _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
+    goto done;
+  }
 
   g_assert (media_is_flag_set_on_all_pads (media, PAD_FLAG_ACTIVE));
   g_assert (media_is_flag_set_on_all_pads (media, PAD_FLAG_BLOCKED));
@@ -1656,7 +1656,6 @@ gboolean
 lp_media_start (lp_Media *media)
 {
   GstElement *pipeline;
-  GstStateChangeReturn ret;
   gboolean flag = FALSE;
 
   media_lock (media);
@@ -1720,6 +1719,7 @@ lp_media_start (lp_Media *media)
       if (!tmp || *tmp != ':')
         ok = FALSE;
       else
+      {
         while (*(++tmp))
         {
           if (*tmp == ',')
@@ -1728,6 +1728,7 @@ lp_media_start (lp_Media *media)
             break;
           }
         }
+      }
 
       if (endptr != NULL)
       {
@@ -1736,7 +1737,7 @@ lp_media_start (lp_Media *media)
         type = g_strndup (tmp, endptr - tmp);
 
         /* If type isn't specified, the default is text */
-        if (strlen (type) == 0 ||  g_str_has_prefix(type, "text"))
+        if (strlen (type) == 0 || g_str_has_prefix(type, "text"))
         {
           char *text = (endptr + 1);
           g_object_set (media, "text", text, NULL);
@@ -1822,20 +1823,20 @@ sourceok:
   g_assert (gst_object_ref (media->bin) == media->bin);
 
   media->state = STARTING;
-  ret = gst_element_set_state (media->bin, GST_STATE_PLAYING);
-  if (unlikely (ret == GST_STATE_CHANGE_FAILURE))
-    {
-      gstx_element_set_state_sync (media->bin, GST_STATE_NULL);
-      gstx_bin_remove (pipeline, media->bin);
-      media_release_run_time_data (media);
-      goto fail;
-    }
+
+  media->offset = _lp_scene_get_offset_last_buffer (media->prop.scene);
+  g_assert (GST_CLOCK_TIME_IS_VALID (media->offset));
+
+  if (unlikely (!gst_element_sync_state_with_parent (media->bin)))
+  {
+    gstx_element_set_state_sync (media->bin, GST_STATE_NULL);
+    gstx_bin_remove (pipeline, media->bin);
+    media_release_run_time_data (media);
+    goto fail;
+  }
 
   /* To properly synchronize multiple media objects we need to save the
    * offset at this point */
-
-  media->offset = _lp_scene_get_running_time (media->prop.scene);
-  g_assert (GST_CLOCK_TIME_IS_VALID (media->offset));
 
   if (flag)
   {
@@ -1859,6 +1860,8 @@ sourceok:
     _lp_scene_dispatch (media->prop.scene, LP_EVENT (event));
     media->linked_pads++;
   }
+
+  _lp_debug ("%p offset: %lu\n", media, media->offset);
 
   media_unlock (media);
   return TRUE;
@@ -2012,24 +2015,24 @@ lp_media_seek (lp_Media *media, gboolean relative, gint64 offset)
   sum = media->seek.sum;
 
   if (relative)                 /* offset is relative */
-    {
-      abs = run + sum + offset;
-      if (abs > 0)
-        sum += offset;
-      else
-        abs = 0;
-    }
+  {
+    abs = run + sum + offset;
+    if (abs > 0)
+      sum += offset;
+    else
+      abs = 0;
+  }
   else                          /* offset is absolute */
-    {
-      abs = clamp (run + sum, 0, G_MAXINT64);
-      if (offset < 0)
-        {
-          g_assert (GST_CLOCK_STIME_IS_VALID (duration));
-          offset = duration + offset;
-        }
-      sum = sum + offset - abs;
-      abs = offset;
-    }
+  {
+    abs = clamp (run + sum, 0, G_MAXINT64);
+    if (offset < 0)
+      {
+        g_assert (GST_CLOCK_STIME_IS_VALID (duration));
+        offset = duration + offset;
+      }
+    sum = sum + offset - abs;
+    abs = offset;
+  }
 
   _lp_debug ("\n\
 seek (%s) %p\n\

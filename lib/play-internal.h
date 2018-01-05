@@ -82,6 +82,9 @@ GX_DECLARE_FINAL_TYPE (lp_Clock, lp_clock, LP, CLOCK, GstSystemClock)
 gboolean
 _lp_clock_advance (lp_Clock *, GstClockTime);
 
+gboolean
+_lp_clock_reset_time (lp_Clock *, guint64);
+
 /* event */
 
 gchar *
@@ -183,6 +186,9 @@ _lp_scene_dispatch (lp_Scene *, lp_Event *);
 
 gboolean
 _lp_scene_is_paused (lp_Scene *);
+
+guint64
+_lp_scene_get_offset_last_buffer (lp_Scene *);
 
 /* common */
 void

@@ -434,12 +434,16 @@ fail:
 static void
 scene_start_unlocked_finish (lp_Scene *scene)
 {
+  lp_Event *event;
   scene_lock (scene);
 
   scene->state = STARTED;
 
   if (scene->prop.slave_audio)
     scene_enslave_audio_clock (scene);
+
+  event = LP_EVENT (_lp_event_start_new (G_OBJECT(scene), FALSE));
+  _lp_scene_dispatch (scene, event);
 
   scene_unlock (scene);
 
@@ -505,7 +509,8 @@ scene_step_unlocked (lp_Scene *scene, gboolean block)
   GMainContext *ctx;
 
   scene_lock (scene);
-  if (unlikely (!scene_state_started_or_paused (scene)))
+  if (unlikely (!scene_state_started_or_paused (scene) &&
+        !scene_state_starting(scene)))
   {
     scene_unlock (scene);
     return FALSE;
@@ -1698,7 +1703,8 @@ lp_scene_receive (lp_Scene *scene, gboolean block)
   gboolean flag;
 
   scene_lock (scene);
-  if (unlikely (!scene_state_started_or_paused (scene)))
+  if (unlikely (!scene_state_started_or_paused (scene) &&
+        !scene_state_starting(scene)))
     goto quitted;               /* nothing to do */
 
   flag = TRUE;

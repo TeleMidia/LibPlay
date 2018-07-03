@@ -126,6 +126,7 @@ struct _lp_Media
     gdouble crop_left;          /* cached crop_left */
     gdouble crop_right;         /* cached crop_right */
     gdouble crop_bottom;        /* cached crop_bottom */
+    gboolean sync;              /* synchronous mode */
   } prop;
 };
 
@@ -181,6 +182,7 @@ enum
   PROP_CROP_LEFT,
   PROP_CROP_RIGHT,
   PROP_CROP_BOTTOM,
+  PROP_SYNCHRONOUS,
   PROP_LAST
 };
 
@@ -202,6 +204,7 @@ enum
 #define DEFAULT_CROP_LEFT     0.0        /* no crop */
 #define DEFAULT_CROP_RIGHT    0.0        /* no crop */
 #define DEFAULT_CROP_BOTTOM   0.0        /* no crop */
+#define DEFAULT_SYNCHRONOUS  FALSE       /* synchronous mode */
 
 /* Define the lp_Media type.  */
 GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
@@ -333,6 +336,7 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
     (m)->prop.crop_left = DEFAULT_CROP_LEFT;                    \
     (m)->prop.crop_right = DEFAULT_CROP_RIGHT;                  \
     (m)->prop.crop_bottom = DEFAULT_CROP_BOTTOM;                \
+    (m)->prop.sync = DEFAULT_SYNCHRONOUS;                       \
   }                                                             \
   STMT_END
 
@@ -344,6 +348,13 @@ GX_DEFINE_TYPE (lp_Media, lp_media, G_TYPE_OBJECT)
     g_free ((m)->prop.text_font);                               \
   }                                                             \
   STMT_END
+
+
+static gboolean
+lp_media_has_started (lp_Media *media)
+{
+  return media_state_started (media);
+}
 
 
 /* Get the address of the flags associated with @pad in @media.  */
@@ -1058,6 +1069,9 @@ lp_media_get_property (GObject *object, guint prop_id,
     case PROP_CROP_BOTTOM:
       g_value_set_double (value, media->prop.crop_bottom);
       break;
+    case PROP_SYNCHRONOUS:
+      g_value_set_boolean (value, media->prop.sync);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -1131,6 +1145,9 @@ lp_media_set_property (GObject *object, guint prop_id,
       break;
     case PROP_CROP_BOTTOM:
       media->prop.crop_bottom = g_value_get_double (value);
+      break;
+    case PROP_SYNCHRONOUS:
+      media->prop.sync = g_value_get_boolean (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1461,6 +1478,12 @@ lp_media_class_init (lp_MediaClass *cls)
      ("crop-bottom", "crop bottom", "pixels to crop at bottom",
       0.0, 1.0, DEFAULT_CROP_BOTTOM,
       (GParamFlags)(G_PARAM_READWRITE)));
+
+  g_object_class_install_property
+    (gobject_class, PROP_SYNCHRONOUS, g_param_spec_boolean
+     ("sync", "synchronous mode", "activate synchronous mode",
+      DEFAULT_SYNCHRONOUS,
+      (GParamFlags)(G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY)));
 }
 
 
@@ -1656,7 +1679,7 @@ gboolean
 lp_media_start (lp_Media *media)
 {
   GstElement *pipeline;
-  gboolean flag = FALSE;
+  gboolean is_started = FALSE;
 
   media_lock (media);
 
@@ -1702,7 +1725,7 @@ lp_media_start (lp_Media *media)
 
     g_assert (gst_element_link (media->source, media->decoder));
 
-    flag = TRUE;
+    is_started = TRUE;
     goto sourceok;
   }
 
@@ -1768,27 +1791,6 @@ lp_media_start (lp_Media *media)
     }
     media->prop.final_uri = final_uri;
   }
-  if (media_is_text(media))
-  {
-    /* FIXME: replace videotestsrc by appsrc */
-    /* const gstx_eltmap_t lp_media_text_eltmap[] = { */
-    /*   {"bin",           offsetof (lp_Media, bin)}, */
-    /*   {"videotestsrc",  offsetof (lp_Media, source)}, */
-    /*   {"decodebin",     offsetof (lp_Media, decoder)}, */
-    /*   {NULL, 0}, */
-    /* }; */
-
-    /* _lp_eltmap_alloc_check (media, lp_media_text_eltmap); */
-
-    /* gstx_bin_add (media->bin, media->source); */
-    /* gstx_bin_add (media->bin, media->decoder); */
-
-    /* g_object_set (media->source, "pattern", 2 /1* black *1/, NULL); */
-
-    /* g_assert (gst_element_link (media->source, media->decoder)); */
-    /* goto sourceok; */
-    return FALSE;
-  }
 
   _lp_eltmap_alloc_check (media, lp_media_eltmap);
   g_object_set (media->decoder, "uri", media->prop.final_uri, NULL);
@@ -1824,6 +1826,8 @@ sourceok:
 
   media->state = STARTING;
 
+  /* To properly synchronize multiple media objects we need to save the
+   * offset at this point */
   media->offset = _lp_scene_get_offset_last_buffer (media->prop.scene);
   g_assert (GST_CLOCK_TIME_IS_VALID (media->offset));
 
@@ -1835,10 +1839,7 @@ sourceok:
     goto fail;
   }
 
-  /* To properly synchronize multiple media objects we need to save the
-   * offset at this point */
-
-  if (flag)
+  if (is_started)
   {
     GstPad *pad = NULL;
     GstPad *ghost = NULL;
@@ -1861,9 +1862,16 @@ sourceok:
     media->linked_pads++;
   }
 
+  media_unlock (media);
+
+  /* if (media->prop.sync) */
+  /* { */
+  /*   _lp_scene_iterate_loop_until (media->prop.scene, */
+  /*       (gboolean (*)(gpointer)) lp_media_has_started, media); */
+  /* } */
+
   _lp_debug ("%p offset: %lu\n", media, media->offset);
 
-  media_unlock (media);
   return TRUE;
 
  fail:
@@ -2075,6 +2083,13 @@ seek (%s) %p\n\
     gst_pad_set_offset (media->video.pad, now);
 
   media_unlock (media);
+
+  if (media->prop.sync)
+  {
+    _lp_scene_iterate_loop_until (media->prop.scene,
+        (gboolean (*)(gpointer)) lp_media_has_started, media);
+  }
+
   return TRUE;
 
  fail:

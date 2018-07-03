@@ -194,4 +194,7 @@ _lp_scene_get_offset_last_buffer (lp_Scene *);
 void
 _lp_common_appsrc_transparent_data (GstElement *, guint, gpointer);
 
+void
+_lp_scene_iterate_loop_until (lp_Scene *, gboolean (*)(gpointer), gpointer);
+
 #endif /* PLAY_INTERNAL_H */

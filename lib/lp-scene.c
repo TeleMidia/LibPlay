@@ -234,6 +234,7 @@ static gint lp_scene_tick_callback (GstClock *, GstClockTime, GstClockID,
 
 static gboolean lp_scene_bus_callback (GstBus *, GstMessage *, lp_Scene *);
 
+static gboolean lp_scene_has_started (lp_Scene *);
 
 /* Enslaves @scene's audio sink clock to @scene clock.  */
 
@@ -287,6 +288,12 @@ scene_get_real_sink (lp_Scene *scene, ptrdiff_t offset)
   g_assert (GST_IS_BASE_SINK (sink));
 
   return sink;
+}
+
+gboolean
+lp_scene_has_started (lp_Scene *scene)
+{
+  return scene_state_started (scene);
 }
 
 guint64
@@ -416,19 +423,43 @@ scene_start_unlocked (lp_Scene *scene)
 
   scene_unlock (scene);
 
-  while (syncmode && !done)
+  if (syncmode)
   {
-    g_main_context_iteration (g_main_loop_get_context (scene->loop), TRUE);
-    scene_lock (scene);
-    done = scene_state_started (scene);
-    scene_unlock (scene);
+    _lp_scene_iterate_loop_until (scene,
+        (gboolean(*)(gpointer)) lp_scene_has_started, scene);
   }
+
+  /* while (syncmode && !done) */
+  /* { */
+  /*   g_main_context_iteration (g_main_loop_get_context (scene->loop), TRUE); */
+  /*   scene_lock (scene); */
+  /*   done = scene_state_started (scene); */
+  /*   scene_unlock (scene); */
+  /* } */
   _lp_debug ("scene %p start unlocked finished", scene);
 
   return TRUE;
 
 fail:
   return FALSE;
+}
+
+void
+_lp_scene_iterate_loop_until (lp_Scene *scene, gboolean (*func)(gpointer),
+    gpointer arg)
+{
+  gboolean done = FALSE;
+
+  g_assert_nonnull (scene);
+  g_assert_nonnull (func);
+
+  while (!done)
+  {
+    g_main_context_iteration (g_main_loop_get_context (scene->loop), TRUE);
+    scene_lock (scene);
+    done = (*func) (arg);
+    scene_unlock (scene);
+  }
 }
 
 static void
@@ -894,10 +925,10 @@ lp_scene_bus_callback (arg_unused (GstBus *bus),
       break;
     case GST_MESSAGE_NEW_CLOCK:
     {
-      scene_lock (scene);
-      if (scene_state_started (scene))
-        scene_update_clock_id (scene);
-      scene_unlock (scene);
+      /* scene_lock (scene); */
+      /* if (scene_state_started (scene)) */
+      /*   scene_update_clock_id (scene); */
+      /* scene_unlock (scene); */
       break;
     }
     case GST_MESSAGE_PROGRESS:
